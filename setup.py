@@ -6,9 +6,9 @@ with open("README.md", "r") as fh:
 setuptools.setup(
     name="pyShelly-styrahem",
     version="0.0.1",
-    author="Håkan Åkerberg",
+    author="HÃ¥kan Ã…kerberg",
     author_email="hakan@tarra.se",
-    description="A tiny library for Shelly devices",
+    description="A Python library for Shelly smart home devices",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/StyraHem/pyShelly",
