@@ -1,2 +1,4 @@
-# pyShelly
-Library for Shelly smart home devices
+Tiny lib for Shelly Devices
+
+- Shelly 1
+- Shelly 2
