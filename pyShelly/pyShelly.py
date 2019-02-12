@@ -7,7 +7,10 @@ import socket
 import struct
 import json
 import logging
-import http.client	#import httplib
+try:
+	import http.client as httplib
+except:
+	import httplib
 
 import sys
 if sys.version_info < (3,):
@@ -40,7 +43,7 @@ class pyShellyBlock():
 			dev.update(data)
 
 	def _setup(self):
-		conn = http.client.HTTPConnection(self.ipaddr)
+		conn = httplib.HTTPConnection(self.ipaddr)
 		conn.request("GET", "/settings")
 		resp = conn.getresponse()
 		settings = json.loads(resp.read())
@@ -77,7 +80,7 @@ class pyShellyDevice(object):
 		self.lastUpdated = None
 
 	def _sendCommand(self, url):
-		conn = http.client.HTTPConnection(self.block.ipaddr)
+		conn = httplib.HTTPConnection(self.block.ipaddr)
 		conn.request("GET", url)
 		print ("Sending to " + url)
 		resp = conn.getresponse()
@@ -183,15 +186,14 @@ class pyShelly():
 	def initSocket(self):
 		s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM, socket.IPPROTO_UDP)
 		
-		res = s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-		#logging.info("SOL_SOCKET=" + str(res))
+		s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+		s.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 10)
 		s.bind(('', COAP_PORT))
 		
 		mreq = struct.pack("=4sl", socket.inet_aton(COAP_IP), socket.INADDR_ANY)
-		res = s.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-		#logging.info("IP_ADD_MEMBERSHIP=" + str(res))
-		
-		s.settimeout(10)
+		s.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+				
+		s.settimeout(15)
 		
 		self._socket = s
 		
