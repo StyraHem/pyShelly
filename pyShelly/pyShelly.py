@@ -247,8 +247,8 @@ class pyShelly():
 			#This fix is needed if not sending IGMP reports correct
 			if self.igmpFixEnabled and datetime.now()>nextIGMPfix:
 				mreq = struct.pack("=4sl", socket.inet_aton(COAP_IP), socket.INADDR_ANY)
-				s.setsockopt(socket.IPPROTO_IP, socket.IP_DROP_MEMBERSHIP, mreq)
-				s.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+				self._socket.setsockopt(socket.IPPROTO_IP, socket.IP_DROP_MEMBERSHIP, mreq)
+				self._socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
 				nextIGMPfix = datetime.now() + timedelta(minutes=1)
 
 			try:
