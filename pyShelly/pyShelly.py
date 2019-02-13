@@ -27,7 +27,7 @@ else:
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
-VERSION = "0.0.3"
+VERSION = "0.0.4"
 
 SHELLY_TYPES = {
 	'SHSW-1' 	 : { 'name': "Shelly 1" },
