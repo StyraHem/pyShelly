@@ -7,6 +7,7 @@ import socket
 import struct
 import json
 import logging
+
 try:
 	import http.client as httplib
 except:
@@ -26,6 +27,14 @@ else:
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
+
+SHELLY_TYPES = {
+	"SHSW-1" 	 : { name: "Shelly 1" },
+	"SHSW-21" 	 : { name: "Shelly 2" },
+	"SHPLG-1" 	 : { name: "Shelly PLUG" },
+	"SHRGBWW-01" : { name: "Shelly RGBWW" },
+	"SHSW-44"	 : { name: "Shelly 4 Pro" }
+}
 
 class pyShellyBlock():
 	def __init__(self, parent, id, type, ipaddr, code):		
@@ -60,6 +69,10 @@ class pyShellyBlock():
 				self._addDevice( pyShellyRelay(self,1,1) )
 		elif self.type == 'SHSW-1':
 			self._addDevice( pyShellyRelay(self,0,0) )
+		elif self.type == 'SHSW-44':
+			for ch in range(4):			
+				self._addDevice( pyShellyRelay(self, ch, ch) )
+				#self._addDevice( pyShellyPowerMeter(self, 2) )		
 		elif self.type == 'SHRGBWW-01':
 			self._addDevice( pyShellyRGB(self) )
 		elif self.type == 'SHPLG-1':
@@ -78,6 +91,9 @@ class pyShellyDevice(object):
 		self.ipaddr = block.ipaddr
 		self.cb_updated = None
 		self.lastUpdated = None
+
+	def typeName(self):
+		return SHELLY_TYPES[self.type].name
 
 	def _sendCommand(self, url):
 		conn = httplib.HTTPConnection(self.block.ipaddr)
@@ -173,15 +189,20 @@ class pyShelly():
 	def __init__(self):
 		logging.info('Init pyShelly')
 		
+		self._version = "0.0.2"
 		self.stopped = threading.Event()
 		self.blocks = {}
 		self.devices = []
 		self.cb_deviceAdded = None
+		self.igmpFixEnabled = False	#Used if igmp packages not sent correctly
 
 		self.initSocket()
 
 		self._udp_thread = threading.Thread(target=self._udp_reader)
-		self._udp_thread.start()
+		self._udp_thread.start()		
+		
+	def version(self):
+		return _version
 		
 	def initSocket(self):
 		s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM, socket.IPPROTO_UDP)
@@ -217,8 +238,19 @@ class pyShelly():
 		if self.cb_deviceAdded is not None:
 			self.cb_deviceAdded(dev, code)
 
-	def _udp_reader(self):
+	def _udp_reader(self):			
+		
+		nextIGMPfix = datetime.now() + timedelta(minutes=1)
+		
 		while not self.stopped.isSet():
+			
+			#This fix is needed if not sending IGMP reports correct
+			if self.igmpFixEnabled and datetime.now()>nextIGMPfix:
+				mreq = struct.pack("=4sl", socket.inet_aton(COAP_IP), socket.INADDR_ANY)
+				s.setsockopt(socket.IPPROTO_IP, socket.IP_DROP_MEMBERSHIP, mreq)
+				s.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+				nextIGMPfix = datetime.now() + timedelta(minutes=1)
+
 			try:
 				dataTmp, addr = self._socket.recvfrom(500)
 			except socket.timeout:
