@@ -27,13 +27,14 @@ else:
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
+VERSION = "0.0.3"
 
 SHELLY_TYPES = {
-	"SHSW-1" 	 : { name: "Shelly 1" },
-	"SHSW-21" 	 : { name: "Shelly 2" },
-	"SHPLG-1" 	 : { name: "Shelly PLUG" },
-	"SHRGBWW-01" : { name: "Shelly RGBWW" },
-	"SHSW-44"	 : { name: "Shelly 4 Pro" }
+	'SHSW-1' 	 : { 'name': "Shelly 1" },
+	'SHSW-21' 	 : { 'name': "Shelly 2" },
+	'SHPLG-1' 	 : { 'name': "Shelly PLUG" },
+	'SHRGBWW-01' : { 'name': "Shelly RGBWW" },
+	'SHSW-44'	 : { 'name': "Shelly 4 Pro" }
 }
 
 class pyShellyBlock():
@@ -71,7 +72,7 @@ class pyShellyBlock():
 			self._addDevice( pyShellyRelay(self,0,0) )
 		elif self.type == 'SHSW-44':
 			for ch in range(4):			
-				self._addDevice( pyShellyRelay(self, ch, ch) )
+				self._addDevice( pyShellyRelay(self, ch, ch*2+1) )
 				#self._addDevice( pyShellyPowerMeter(self, 2) )		
 		elif self.type == 'SHRGBWW-01':
 			self._addDevice( pyShellyRGB(self) )
@@ -189,7 +190,6 @@ class pyShelly():
 	def __init__(self):
 		logging.info('Init pyShelly')
 		
-		self._version = "0.0.2"
 		self.stopped = threading.Event()
 		self.blocks = {}
 		self.devices = []
@@ -202,7 +202,7 @@ class pyShelly():
 		self._udp_thread.start()		
 		
 	def version(self):
-		return _version
+		return VERSION
 		
 	def initSocket(self):
 		s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM, socket.IPPROTO_UDP)
