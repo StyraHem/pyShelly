@@ -30,14 +30,15 @@ name = "pyShelly"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
-VERSION = "0.0.5"
+VERSION = "0.0.6"
 
 SHELLY_TYPES = {
 	'SHSW-1' 	 : { 'name': "Shelly 1" },
 	'SHSW-21' 	 : { 'name': "Shelly 2" },
 	'SHPLG-1' 	 : { 'name': "Shelly Plug" },
 	'SHRGBWW-01' : { 'name': "Shelly RGBWW" },
-	'SHSW-44'	 : { 'name': "Shelly 4 Pro" }
+	'SHSW-44'	 : { 'name': "Shelly 4 Pro" },
+	'SHBLB-1'	 : { 'name': "Shelly Bulb" }
 }
 
 class pyShellyBlock():
@@ -65,13 +66,11 @@ class pyShellyBlock():
 		conn.close()
 		return respJson
 
-	def _setup(self):
-		settings = self._httpGet("/settings")
-		
+	def _setup(self):		
 		if self.type == 'SHBLB-1':
 			self._addDevice( pyShellyRGB(self) )
 		elif self.type == 'SHSW-21':
-			#pm = self._addDevice( pyShellyPowerMeter(self, 2, 2) )
+			settings = self._httpGet("/settings")
 			if settings['mode'] == 'roller':
 				self._addDevice( pyShellyRoller(self) )
 			else:
@@ -81,16 +80,13 @@ class pyShellyBlock():
 			self._addDevice( pyShellyRelay(self,0 , 0) )
 		elif self.type == 'SHSW-44':
 			for ch in range(4):			
-				#pm = self._addDevice( pyShellyPowerMeter(self, ch, ch*2) )		
 				self._addDevice( pyShellyRelay(self, ch+1, ch*2+1, ch*2) )				
 		elif self.type == 'SHRGBWW-01':
 			self._addDevice( pyShellyRGB(self) )
 		elif self.type == 'SHPLG-1':
-			#pm = self._addDevice( pyShellyPowerMeter(self, 0, 0) )
 			self._addDevice( pyShellyRelay(self, 0, 1, 0) )
 			
 	def _addDevice(self, dev):
-		#dev.subDev = subDev
 		self.devices.append( dev )
 		self.parent._addDevice( dev, self.code )
 		return dev
@@ -104,12 +100,16 @@ class pyShellyDevice(object):
 		self.cb_updated = None
 		self.lastUpdated = None
 		self.isSensor = False
+		self.mode = None
 
 	def typeName(self):
 		try:
-			return SHELLY_TYPES[self.type]['name']
+			name = SHELLY_TYPES[self.type]['name']
 		except:
-			return self.type
+			name = self.type
+		if self.mode is not None:
+			name = name + " (" + self.mode + ")"
+		return name
 
 	def _sendCommand(self, url):
 		conn = httplib.HTTPConnection(self.block.ipaddr)
@@ -124,12 +124,16 @@ class pyShellyDevice(object):
 		diff = datetime.now()-self.lastUpdated
 		return diff.total_seconds() < 60
 
-	def _update(self, newState=None, newValues=None):
+	def _update(self, newState=None, newStateValue=None, newValues=None):
 		self.lastUpdated = datetime.now()
 		needUpdate = False
 		if newState is not None:
 			if self.state != newState:
 				self.state = newState		
+				needUpdate = True
+		if newStateValue is not None:
+			if self.stateValue != newStateValue:
+				self.stateValue = newStateValue		
 				needUpdate = True
 		if newValues is not None:
 			self.sensorValues = newValues	
@@ -144,10 +148,12 @@ class pyShellyDevice(object):
 class pyShellyRelay(pyShellyDevice):
 	def __init__(self, block, channel, pos, power=None):
 		super(pyShellyRelay, self).__init__(block)
-		self.id = block.id + "-RELAY";
+		self.id = block.id;
 		if channel>0: 
 			self.id = self.id + '-' + str(channel)
-		self._channel = channel
+			self._channel = channel-1	
+		else:
+			self._channel = 0		
 		self._pos = pos
 		self._power = power
 		self.state = None
@@ -160,7 +166,7 @@ class pyShellyRelay(pyShellyDevice):
 		if self._power is not None:
 			watt = data['G'][self._power][2]
 			newValues = { 'watt' : watt }
-		self._update(newState, newValues)
+		self._update(newState, None, newValues)
 
 	def turnOn(self):
 		self._sendCommand( "/relay/" + str(self._channel) + "?turn=on" )
@@ -168,39 +174,45 @@ class pyShellyRelay(pyShellyDevice):
 	def turnOff(self):
 		self._sendCommand( "/relay/" + str(self._channel) + "?turn=off" )
 		
-class pyShellyPowerMeter(pyShellyDevice):
-	def __init__(self, block, chan, pos):
-		super(pyShellyPowerMeter, self).__init__(block)
-		self.id = block.id + "-POWERMETER-" + str(chan)
-		self._pos = pos
-		self.sensorValues = None
-		self.devType = "POWER_METER"
-		
-	def update(self,data):
-		watt = data['G'][self._pos][2]
-		self._update(None, { 'watt' : watt })
+#class pyShellyPowerMeter(pyShellyDevice):
+#	def __init__(self, block, chan, pos):
+#		super(pyShellyPowerMeter, self).__init__(block)
+#		self.id = block.id + "-" + str(chan)
+#		self._pos = pos
+#		self.sensorValues = None
+#		self.devType = "POWER_METER"
+#		
+#	def update(self,data):
+#		watt = data['G'][self._pos][2]
+#		self._update(None, None, { 'watt' : watt })
 
 class pyShellyRoller(pyShellyDevice):
 	def __init__(self, block):
 		super(pyShellyRoller, self).__init__(block)
-		self.id = block.id + "-ROLLER"
+		self.id = block.id
 		self.devType = "ROLLER"
 		self.state = None
 		self.position = None	
 		self.isSensor = True
+		self.mode = "Roller"
+		self.upsideDown = True
 		
 	def update(self,data):
 		states = data['G']
 		settings = self.block._httpGet("/roller/0")
 		self.position = settings['current_pos']
 		watt = data['G'][2][2]
-		self._update(self.position!=0, { 'watt' : watt } )
+		#if not self.invert:
+		state = self.position!=0
+		#else:
+		#	state = self.position==0
+		self._update(state, None, { 'watt' : watt } )
 
 	def up(self):
-		self._sendCommand( "/roller/0?go=open" )
+		self._sendCommand( "/roller/0?go=" + ( "open" if not self.upsideDown else "close" ) )
 
 	def down(self):
-		self._sendCommand( "/roller/0?go=close" )
+		self._sendCommand( "/roller/0?go="  + ( "close" if not self.upsideDown else "open" ) )
 
 	def stop(self):
 		self._sendCommand( "/roller/0?go=stop" )
@@ -215,19 +227,42 @@ class pyShellyRoller(pyShellyDevice):
 class pyShellyRGB(pyShellyDevice):
 	def __init__(self, block):
 		super(pyShellyRGB, self).__init__(block)		
-		self.id = block.id + "-RGB"
+		self.id = block.id
 		self.state = None
+		self.stateValue = None
 		self.devType = "RGB"
+		
+		self.isModeWhite = None
+		self.gain = None
+		self.brightness = None
 
 	def update(self,data):
 		newState = data['G'][4][2]==1
-		self._update(newState)
+		settings = self.block._httpGet("/light/0")
+		self.gain = int(settings['gain'])
+		self.brightness = int(settings['brightness'])
+		self.isModeWhite = settings['mode']=='white'
+		
+		value = self.brightness if self.isModeWhite else self.gain
+		print ("RGB: " + str(data) + " " + str(settings) )
+		self._update(newState, value)
+
+	def _sendData(self, newState, newStateValue=0):
+		if not newState or newStateValue==0:
+			self._sendCommand( "/light/0?turn=off" )
+		elif self.isModeWhite:
+			self._sendCommand( "/light/0?mode=white&turn=on&brightness=" + str(newStateValue) )
+		else:
+			self._sendCommand( "/light/0?mode=color&turn=on&gain=" + str(newStateValue) )
 
 	def turnOn(self):
-		self._sendCommand( "/light/0?turn=on" )
+		self._sendData(True, 100)
 		
 	def turnOff(self):
-		self._sendCommand( "/light/0?turn=off" )
+		self._sendData(False)
+	
+	def dim(self, value):		
+		self._sendData(True, value)
 
 class pyShelly():
 	def __init__(self):
