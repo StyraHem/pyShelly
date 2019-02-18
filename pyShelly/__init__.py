@@ -35,7 +35,7 @@ name = "pyShelly"
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
 
-__version__ = "0.0.9"
+__version__ = "0.0.10"
 VERSION = __version__
 
 SHELLY_TYPES = {
