@@ -16,21 +16,25 @@ except:
 
 import sys
 if sys.version_info < (3,):
-    def b(x):
-        return bytearray(x)
-    def s(x):
-        return str(x)
+	def ba2c(x): #Convert bytearra to compatible string
+		return str(x)
+	def b(x):
+		return bytearray(x)
+	def s(x):
+		return str(x)
 else:
-    def b(x):
-        return x
-    def s(x):
-        return str(x, 'cp1252')
+	def ba2c(x): #Convert bytearra to compatible bytearray
+		return x
+	def b(x):
+		return x
+	def s(x):
+		return str(x, 'cp1252')
 
 name = "pyShelly"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
-VERSION = "0.0.6"
+VERSION = "0.0.7"
 
 SHELLY_TYPES = {
 	'SHSW-1' 	 : { 'name': "Shelly 1" },
@@ -38,7 +42,8 @@ SHELLY_TYPES = {
 	'SHPLG-1' 	 : { 'name': "Shelly Plug" },
 	'SHRGBWW-01' : { 'name': "Shelly RGBWW" },
 	'SHSW-44'	 : { 'name': "Shelly 4 Pro" },
-	'SHBLB-1'	 : { 'name': "Shelly Bulb" }
+	'SHBLB-1'	 : { 'name': "Shelly Bulb" },
+	'SHHT-1'	 : { 'name': "Shelly H&T" },
 }
 
 class pyShellyBlock():
@@ -61,7 +66,6 @@ class pyShellyBlock():
 		conn.request("GET", url)
 		resp = conn.getresponse()
 		body = resp.read()
-		#print ( self.ipaddr, url, body)
 		respJson = json.loads(body)
 		conn.close()
 		return respJson
@@ -85,6 +89,8 @@ class pyShellyBlock():
 			self._addDevice( pyShellyRGB(self) )
 		elif self.type == 'SHPLG-1':
 			self._addDevice( pyShellyRelay(self, 0, 1, 0) )
+		elif self.type == 'SHHT-1':
+			self._addDevice( pyShellySensor(self) )
 			
 	def _addDevice(self, dev):
 		self.devices.append( dev )
@@ -101,6 +107,7 @@ class pyShellyDevice(object):
 		self.lastUpdated = None
 		self.isSensor = False
 		self.mode = None
+		self._unavailableAfterSec = 60
 
 	def typeName(self):
 		try:
@@ -114,7 +121,6 @@ class pyShellyDevice(object):
 	def _sendCommand(self, url):
 		conn = httplib.HTTPConnection(self.block.ipaddr)
 		conn.request("GET", url)
-		print ("Sending to " + url)
 		resp = conn.getresponse()
 		conn.close()
 		
@@ -122,7 +128,7 @@ class pyShellyDevice(object):
 		if self.lastUpdated is None: 
 			return False
 		diff = datetime.now()-self.lastUpdated
-		return diff.total_seconds() < 60
+		return diff.total_seconds() < self._unavailableAfterSec
 
 	def _update(self, newState=None, newStateValue=None, newValues=None):
 		self.lastUpdated = datetime.now()
@@ -244,7 +250,6 @@ class pyShellyRGB(pyShellyDevice):
 		self.isModeWhite = settings['mode']=='white'
 		
 		value = self.brightness if self.isModeWhite else self.gain
-		print ("RGB: " + str(data) + " " + str(settings) )
 		self._update(newState, value)
 
 	def _sendData(self, newState, newStateValue=0):
@@ -263,6 +268,21 @@ class pyShellyRGB(pyShellyDevice):
 	
 	def dim(self, value):		
 		self._sendData(True, value)
+		
+class pyShellySensor(pyShellyDevice):
+	def __init__(self, block):
+		super(pyShellySensor, self).__init__(block)		
+		self.id = block.id
+		self.state = None
+		self.stateValue = None
+		self.devType = "SENSOR"
+		self._unavailableAfterSec = 3600*3	#TODO, read from settings
+
+	def update(self,data):
+		temp = float(data['G'][0][2])
+		humidity = float(data['G'][1][2])
+		battery = int(data['G'][2][2])
+		self._update(None, None, { 'temperature' : temp, 'humidity' : humidity, 'battery' : battery })
 
 class pyShelly():
 	def __init__(self):
@@ -297,23 +317,19 @@ class pyShelly():
 		self._socket = s
 		
 	def close(self):
-		print ("Closing pyShelly")
 		self.stopped.set()
 		if self._udp_thread is not None:
-			print ("Join")
 			self._udp_thread.join()
 		try:
-			print ("Shutdown")
 			self._socket.shutdown(socket.SHUT_RDWR)
 		except socket.error:
-			print ("Error")
 			pass
-		print ("Close")
 		self._socket.close()
-		print ("Done")
 		
 	def discover(self):
-		msg = chr(0x50) + chr(1) + chr(0) + chr(10) + chr(0xb3) + "cit" + chr(0x01) + 'd' + chr(0xFF)
+		msg = bytes(b'\x50\x01\x00\x0A\xb3cit\x01d\xFF')
+		#msg = bytes([0x50, 0x01, 0x00, 0x0A, 0xb3, b'c', b'i', b't', 0x01, b'd', 0xFF])
+		#msg = chr(0x50) + chr(1) + chr(0) + chr(10) + chr(0xb3) + "cit" + chr(0x01) + 'd' + chr(0xFF)
 		self._socket.sendto(msg, (COAP_IP, COAP_PORT))
 
 	def _addDevice(self, dev, code):
@@ -388,7 +404,6 @@ class pyShelly():
 					
 					if totDelta==3332:
 						type, id, _ = s(value).split('#',2)
-						print(type, id)
  
 					byte = data[pos]
 
