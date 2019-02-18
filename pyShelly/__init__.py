@@ -35,7 +35,7 @@ name = "pyShelly"
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
 
-__version__ = "0.0.9"
+__version__ = "0.0.11"
 VERSION = __version__
 
 SHELLY_TYPES = {
@@ -107,7 +107,8 @@ class pyShellyDevice(object):
 		self.ipaddr = block.ipaddr
 		self.cb_updated = None
 		self.lastUpdated = None
-		self.isSensor = False
+		self.isDevice = True
+		self.isSensor = False		
 		self.mode = None
 		self._unavailableAfterSec = 60
 
@@ -278,6 +279,8 @@ class pyShellySensor(pyShellyDevice):
 		self.state = None
 		self.stateValue = None
 		self.devType = "SENSOR"
+		self.isSensor = True
+		self.isDevice = False
 		self._unavailableAfterSec = 3600*3	#TODO, read from settings
 
 	def update(self,data):
