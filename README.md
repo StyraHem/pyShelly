@@ -1,13 +1,13 @@
-#pyShelly
+# pyShelly
 
 Library for Shelly smart home devices
 
-##Features:
+## Features:
 - Discover devices
 - Monitor status
 - Control (turn on/off etc)
 
-##Devices supported:
+## Devices supported:
 - Shelly 1
 - Shelly 2 (relay or roller mode)
 - Shelly 4
@@ -16,12 +16,12 @@ Library for Shelly smart home devices
 - Shelly RGBWW (only on/off and dim)
 - Shelly H&T
 
-##Device support comming soon:
+## Device support comming soon:
 - Shelly RGBW2
 - Shelly 2.5
 - Shelly PLUG S
 
-##Usage:
+## Usage:
 ```python
 shelly = pyShelly()
 shelly.cb_deviceAdded = _deviceAdded
