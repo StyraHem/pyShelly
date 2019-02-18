@@ -8,10 +8,10 @@ Features:
 Devices supported:
 - Shelly 1
 - Shelly 2 (relay or roller mode)
-- Shelly 4 (no power meter)
-- Shelly PLUG (no power meter)
-- Shelly BULB (only on/off)
-- Shelly RGBWW (only on/off)
+- Shelly 4
+- Shelly PLUG
+- Shelly BULB (only on/off and dim)
+- Shelly RGBWW (only on/off and dim)
 
 Comming soon:
 - Shelly RGBW2
