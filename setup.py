@@ -7,12 +7,12 @@ here = os.path.abspath(os.path.dirname(__file__))
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-def read(*parts):
+def readFile(*parts):
     with open(os.path.join(here, *parts), 'r') as fp:
         return fp.read()
 
 def find_version(*file_paths):
-    version_file = read(*file_paths)
+    version_file = readFile(*file_paths)
     version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
                               version_file, re.M)
     if version_match:
