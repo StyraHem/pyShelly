@@ -12,9 +12,10 @@ Devices supported:
 - Shelly PLUG
 - Shelly BULB (only on/off and dim)
 - Shelly RGBWW (only on/off and dim)
+- Shelly H&T
 
 Comming soon:
 - Shelly RGBW2
 - Shelly 2.5
 - Shelly PLUG S
-- Shelly H&T
+
