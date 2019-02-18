@@ -35,7 +35,7 @@ name = "pyShelly"
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
 
-__version__ = "0.0.7"
+__version__ = "0.0.8"
 VERSION = __version__
 
 SHELLY_TYPES = {
@@ -295,9 +295,9 @@ class pyShelly():
 		self.devices = []
 		self.cb_deviceAdded = None
 		self.igmpFixEnabled = False	#Used if igmp packages not sent correctly
-
+		
+	def open(self):	
 		self.initSocket()
-
 		self._udp_thread = threading.Thread(target=self._udp_reader)
 		self._udp_thread.start()		
 		
