@@ -24,7 +24,10 @@ Library for Shelly smart home devices
 ## Usage:
 ```python
 shelly = pyShelly()
-shelly.cb_deviceAdded = _deviceAdded
-shelly.open
+shelly.cb_deviceAdded = deviceAdded
+shelly.open()
 shelly.discover()
+
+def deviceAdded(dev):
+  print (dev.devType)
 ```
