@@ -35,7 +35,7 @@ name = "pyShelly"
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
 
-__version__ = "0.0.11"
+__version__ = "0.0.12"
 VERSION = __version__
 
 SHELLY_TYPES = {
@@ -111,6 +111,7 @@ class pyShellyDevice(object):
 		self.isSensor = False		
 		self.mode = None
 		self._unavailableAfterSec = 60
+		self.stateValues = None
 
 	def typeName(self):
 		try:
@@ -133,16 +134,16 @@ class pyShellyDevice(object):
 		diff = datetime.now()-self.lastUpdated
 		return diff.total_seconds() < self._unavailableAfterSec
 
-	def _update(self, newState=None, newStateValue=None, newValues=None):
+	def _update(self, newState=None, newStateValues=None, newValues=None):
 		self.lastUpdated = datetime.now()
 		needUpdate = False
 		if newState is not None:
 			if self.state != newState:
 				self.state = newState		
 				needUpdate = True
-		if newStateValue is not None:
-			if self.stateValue != newStateValue:
-				self.stateValue = newStateValue		
+		if newStateValues is not None:
+			if self.stateValues != newStateValues:
+				self.stateValues = newStateValues		
 				needUpdate = True
 		if newValues is not None:
 			self.sensorValues = newValues	
@@ -237,13 +238,14 @@ class pyShellyRGB(pyShellyDevice):
 	def __init__(self, block):
 		super(pyShellyRGB, self).__init__(block)		
 		self.id = block.id
-		self.state = None
-		self.stateValue = None
+		self.state = None		
 		self.devType = "RGB"
 		
 		self.isModeWhite = None
 		self.gain = None
 		self.brightness = None
+		self.rgb = None
+		self.temp = None
 
 	def update(self,data):
 		newState = data['G'][4][2]==1
@@ -251,20 +253,49 @@ class pyShellyRGB(pyShellyDevice):
 		self.gain = int(settings['gain'])
 		self.brightness = int(settings['brightness'])
 		self.isModeWhite = settings['mode']=='white'
+		self.rgb = [ data['G'][0][2], data['G'][1][2], data['G'][2][2] ]		
+		self.temp = int(settings['temp'])		
+		values = { 'brightness': self.brightness, 'gain' : self.gain, 'rgb' : self.rgb, 'temp':self.temp }
+		self._update(newState, values)
+
+	def _sendData(self, state, brightness=None, rgb=None, temp=None, isModeWhite=None, effect=None):
+		url = "/light/0?"
+		if not state or brightness==0:			
+			url += "turn=off"
+			self._sendCommand( url )
+			return
+			
+		url += "turn=on&"
 		
-		value = self.brightness if self.isModeWhite else self.gain
-		self._update(newState, value)
+		if isModeWhite is not None:
+			if isModeWhite:
+				#url += "mode=white&"
+				self._sendCommand( "/settings/?mode=white" )
+			else:
+				#url += "mode=color&"
+				self._sendCommand( "/settings/?mode=color" )
+				
+		if effect is not None:
+			self._sendCommand( "/settings/light/0/?effect=" + str(effect) )
+		
+		if brightness is not None:
+			if self.isModeWhite:
+				url += "brightness=" + str(brightness) + "&"
+			else:
+				url += "gain=" + str(brightness) + "&"
+		
+		if rgb is not None:
+			url += "red=" + str(rgb[0]) + "&"
+			url += "green=" + str(rgb[1]) + "&"
+			url += "blue=" + str(rgb[2]) + "&"
+			
+		if temp is not None:		
+			url += "temp=" + str(temp) + "&"
+		
+		self._sendCommand( url )
 
-	def _sendData(self, newState, newStateValue=0):
-		if not newState or newStateValue==0:
-			self._sendCommand( "/light/0?turn=off" )
-		elif self.isModeWhite:
-			self._sendCommand( "/light/0?mode=white&turn=on&brightness=" + str(newStateValue) )
-		else:
-			self._sendCommand( "/light/0?mode=color&turn=on&gain=" + str(newStateValue) )
-
-	def turnOn(self):
-		self._sendData(True, 100)
+	def turnOn(self, rgb=None, brightness=None, temp=None, isModeWhite=None, effect=None):
+		self._sendData(True, brightness, rgb, temp, isModeWhite, effect)
 		
 	def turnOff(self):
 		self._sendData(False)
@@ -277,7 +308,6 @@ class pyShellySensor(pyShellyDevice):
 		super(pyShellySensor, self).__init__(block)		
 		self.id = block.id
 		self.state = None
-		self.stateValue = None
 		self.devType = "SENSOR"
 		self.isSensor = True
 		self.isDevice = False
@@ -285,8 +315,13 @@ class pyShellySensor(pyShellyDevice):
 
 	def update(self,data):
 		temp = float(data['G'][0][2])
-		humidity = float(data['G'][1][2])
+		#humidity = float(data['G'][1][2])
 		battery = int(data['G'][2][2])
+		try:
+			status = self.block._httpGet("/status")
+			humidity = status['hum']['value']
+		except:
+			pass
 		self._update(None, None, { 'temperature' : temp, 'humidity' : humidity, 'battery' : battery })
 
 class pyShelly():
