@@ -35,7 +35,7 @@ name = "pyShelly"
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
 
-__version__ = "0.0.13"
+__version__ = "0.0.14"
 VERSION = __version__
 
 SHELLY_TYPES = {
@@ -46,10 +46,11 @@ SHELLY_TYPES = {
     'SHSW-44'    : { 'name': "Shelly 4 Pro" },
     'SHBLB-1'    : { 'name': "Shelly Bulb" },
     'SHHT-1'     : { 'name': "Shelly H&T" },
+    'SHRGBW2'    : { 'name': "Shelly RGBW2" },
 }
 
 class pyShellyBlock():
-    def __init__(self, parent, id, type, ipaddr, code):     
+    def __init__(self, parent, id, type, ipaddr, code):             
         self.id = id
         self.type = type
         self.parent = parent
@@ -74,7 +75,7 @@ class pyShellyBlock():
 
     def _setup(self):       
         if self.type == 'SHBLB-1':
-            self._addDevice( pyShellyRGB(self) )
+            self._addDevice( pyShellyBulb(self) )
         elif self.type == 'SHSW-21':
             settings = self._httpGet("/settings")
             if settings['mode'] == 'roller':
@@ -88,16 +89,29 @@ class pyShellyBlock():
             for ch in range(4):         
                 self._addDevice( pyShellyRelay(self, ch+1, ch*2+1, ch*2) )              
         elif self.type == 'SHRGBWW-01':
-            self._addDevice( pyShellyRGB(self) )
+            self._addDevice( pyShellyRGBWW(self) )
         elif self.type == 'SHPLG-1':
             self._addDevice( pyShellyRelay(self, 0, 1, 0) )
         elif self.type == 'SHHT-1':
-            self._addDevice( pyShellySensor(self) )
+            self._addDevice( pyShellySensor(self) )  
+        elif self.type == 'SHRGBW2':
+            settings = self._httpGet("/settings")
+            if settings['mode'] == 'color':
+                self._addDevice( pyShellyRGBW2C(self) )
+            else:
+                for ch in range(4):         
+                    self._addDevice( pyShellyRGBW2W(self, ch+1) )
             
     def _addDevice(self, dev):
         self.devices.append( dev )
         self.parent._addDevice( dev, self.code )
         return dev
+
+    def _removeDevice(self, dev):
+        self.devices.remove( dev )
+        self.parent._removeDevice( dev, self.code )
+        if len(self.devices)==0:
+            self._setup()
 
 class pyShellyDevice(object):
     def __init__(self, block):
@@ -109,7 +123,7 @@ class pyShellyDevice(object):
         self.lastUpdated = None
         self.isDevice = True
         self.isSensor = False       
-        self.mode = None
+        self.subName = None
         self._unavailableAfterSec = 60
         self.stateValues = None
 
@@ -118,8 +132,8 @@ class pyShellyDevice(object):
             name = SHELLY_TYPES[self.type]['name']
         except:
             name = self.type
-        if self.mode is not None:
-            name = name + " (" + self.mode + ")"
+        if self.subName is not None:
+            name = name + " (" + self.subName + ")"
         return name
 
     def _sendCommand(self, url):
@@ -135,6 +149,7 @@ class pyShellyDevice(object):
         return diff.total_seconds() < self._unavailableAfterSec
 
     def _update(self, newState=None, newStateValues=None, newValues=None):
+        logging.debug("Update")
         self.lastUpdated = datetime.now()
         needUpdate = False
         if newState is not None:
@@ -154,6 +169,9 @@ class pyShellyDevice(object):
     def _raiseUpdated(self):        
         if self.cb_updated is not None:
             self.cb_updated()
+            
+    def _removeMySelf(self):
+        self.block._removeDevice(self)
 
 class pyShellyRelay(pyShellyDevice):
     def __init__(self, block, channel, pos, power=None):
@@ -204,7 +222,7 @@ class pyShellyRoller(pyShellyDevice):
         self.state = None
         self.position = None    
         self.isSensor = True
-        self.mode = "Roller"
+        self.subName = "Roller"
         self.upsideDown = True
         
     def update(self,data):
@@ -226,40 +244,52 @@ class pyShellyRoller(pyShellyDevice):
 
     def stop(self):
         self._sendCommand( "/roller/0?go=stop" )
+               
         
-    #def turnOn(self):
-    #   self.up()
-
-    #def turnOff(self):
-    #   self.down()
-    
-        
-class pyShellyRGB(pyShellyDevice):
+class pyShellyLight(pyShellyDevice):
     def __init__(self, block):
-        super(pyShellyRGB, self).__init__(block)        
+        super(pyShellyLight, self).__init__(block)        
         self.id = block.id
         self.state = None       
-        self.devType = "RGB"
+        self.devType = "LIGHT"
+        self.url = "/light/0"
         
-        self.isModeWhite = None
-        self.gain = None
+        self.mode = None
         self.brightness = None
         self.rgb = None
         self.temp = None
-
+        
+        self.supportEffects = True
+        self.allowSwitchMode = True
+        self.supportColorTemp = False
+        
     def update(self,data):
+        
+        settings = self.block._httpGet(self.url)
+        print(settings)        
+        
         newState = data['G'][4][2]==1
-        settings = self.block._httpGet("/light/0")
-        self.gain = int(settings['gain'])
-        self.brightness = int(settings['brightness'])
-        self.isModeWhite = settings['mode']=='white'
+        mode = settings['mode']
+        if mode != self.mode:
+            if not self.allowSwitchMode:
+                self._removeMySelf()
+                return
+            self.mode = mode
+            
+        if self.mode=='color':
+            self.brightness = int(settings['gain'])
+        else: 
+            self.brightness = int(settings['brightness'])
+        
         self.rgb = [ data['G'][0][2], data['G'][1][2], data['G'][2][2] ]        
-        self.temp = int(settings['temp'])       
-        values = { 'brightness': self.brightness, 'gain' : self.gain, 'rgb' : self.rgb, 'temp':self.temp }
+        
+        self.temp = int(settings.get('temp',0))       
+        
+        values = { 'mode' : self.mode, 'brightness': self.brightness, 'rgb' : self.rgb, 'temp':self.temp }
         self._update(newState, values)
 
-    def _sendData(self, state, brightness=None, rgb=None, temp=None, isModeWhite=None, effect=None):
-        url = "/light/0?"
+    def _sendData(self, state, brightness=None, rgb=None, temp=None, mode=None, effect=None):
+        url = self.url + "?"
         if not state or brightness==0:          
             url += "turn=off"
             self._sendCommand( url )
@@ -267,19 +297,16 @@ class pyShellyRGB(pyShellyDevice):
             
         url += "turn=on&"
         
-        if isModeWhite is not None:
-            if isModeWhite:
-                #url += "mode=white&"
-                self._sendCommand( "/settings/?mode=white" )
-            else:
-                #url += "mode=color&"
-                self._sendCommand( "/settings/?mode=color" )
+        if mode is not None:
+            self._sendCommand( "/settings/?mode=" + mode )
+        else:
+            mode = self.mode
                 
         if effect is not None:
             self._sendCommand( "/settings/light/0/?effect=" + str(effect) )
         
         if brightness is not None:
-            if self.isModeWhite:
+            if mode == "white":
                 url += "brightness=" + str(brightness) + "&"
             else:
                 url += "gain=" + str(brightness) + "&"
@@ -294,23 +321,62 @@ class pyShellyRGB(pyShellyDevice):
         
         self._sendCommand( url )
 
-    def turnOn(self, rgb=None, brightness=None, temp=None, isModeWhite=None, effect=None):
-        self._sendData(True, brightness, rgb, temp, isModeWhite, effect)
+    def turnOn(self, rgb=None, brightness=None, temp=None, mode=None, effect=None):
+        self._sendData(True, brightness, rgb, temp, mode, effect)
 
-    def setValues(self, rgb=None, brightness=None, temp=None, isModeWhite=None, effect=None):
-        self._sendData(brightness, rgb, temp, isModeWhite, effect)
+    def setValues(self, rgb=None, brightness=None, temp=None, mode=None, effect=None):
+        self._sendData(brightness, rgb, temp, mode, effect)
         
     def turnOff(self):
         self._sendData(False)
 
     def getDimValue(self):       
-        if self.isModeWhite:
+        if self.mode=='white':
             return self.brightness
         else:
             return self.gain
     
     def setDimValue(self, value):       
         self._sendData(True, value)
+        
+        
+class pyShellyBulb(pyShellyLight):
+    def __init__(self, block):
+        super(pyShellyBulb, self).__init__(block)
+        self.supportColorTemp = True
+
+class pyShellyRGBWW(pyShellyLight):
+    def __init__(self, block):
+        super(pyShellyRGBWW, self).__init__(block)
+        self.supportColorTemp = True
+        
+class pyShellyRGBW2W(pyShellyLight):
+    def __init__(self, block, channel):
+        super(pyShellyRGBW2W, self).__init__(block)
+        self.id = self.id + '-' + str(channel)
+        self._channel = channel-1   
+        self.mode = "white"
+        self.url = "/white/" + str(channel-1)
+        self.supportEffects = False
+        self.allowSwitchMode = False
+        
+        
+    def update(self,data):
+        if len(data['G'])==8:            
+            newState = data['G'][4+self._channel][2]==1
+            self.brightness = data['G'][self._channel][2]
+            values = { 'mode' : self.mode, 'brightness': self.brightness, 'rgb' : self.rgb, 'temp':self.temp }
+            self._update(newState, values)
+        else:
+            self._removeMySelf()
+        
+class pyShellyRGBW2C(pyShellyLight):
+    def __init__(self, block):
+        super(pyShellyRGBW2C, self).__init__(block)
+        self.mode = "color"  
+        self.url = "/color/0"
+        self.supportEffects = False
+        self.allowSwitchMode = False
         
 class pyShellySensor(pyShellyDevice):
     def __init__(self, block):
@@ -335,12 +401,12 @@ class pyShellySensor(pyShellyDevice):
 
 class pyShelly():
     def __init__(self):
-        logging.info("Init pyShelly " + VERSION)
-        
+        logging.info("Init pyShelly " + VERSION)        
         self.stopped = threading.Event()
         self.blocks = {}
         self.devices = []
         self.cb_deviceAdded = None
+        self.cb_deviceRemoved = None
         self.igmpFixEnabled = False #Used if igmp packages not sent correctly
         
     def open(self): 
@@ -352,17 +418,13 @@ class pyShelly():
         return VERSION
         
     def initSocket(self):
-        s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        
+        s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM, socket.IPPROTO_UDP)        
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 10)
-        s.bind(('', COAP_PORT))
-        
+        s.bind(('', COAP_PORT))        
         mreq = struct.pack("=4sl", socket.inet_aton(COAP_IP), socket.INADDR_ANY)
-        s.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-                
-        s.settimeout(15)
-        
+        s.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)                
+        s.settimeout(15)        
         self._socket = s
         
     def close(self):
@@ -377,91 +439,104 @@ class pyShelly():
         
     def discover(self):
         msg = bytes(b'\x50\x01\x00\x0A\xb3cit\x01d\xFF')
-        #msg = bytes([0x50, 0x01, 0x00, 0x0A, 0xb3, b'c', b'i', b't', 0x01, b'd', 0xFF])
-        #msg = chr(0x50) + chr(1) + chr(0) + chr(10) + chr(0xb3) + "cit" + chr(0x01) + 'd' + chr(0xFF)
         self._socket.sendto(msg, (COAP_IP, COAP_PORT))
 
     def _addDevice(self, dev, code):
-        #logging.info('Add device')
+        logging.debug('Add device')
         self.devices.append (dev )
         if self.cb_deviceAdded is not None:
             self.cb_deviceAdded(dev, code)
+            
+    def _removeDevice(self, dev, code):
+        logging.debug('Remove device')
+        self.devices.remove(dev)
+        if self.cb_deviceRemoved is not None:
+            self.cb_deviceRemoved(dev, code)
 
-    def _udp_reader(self):          
+    def _udp_reader(self):
         
         nextIGMPfix = datetime.now() + timedelta(minutes=1)
-        
+
         while not self.stopped.isSet():
-            
-            #This fix is needed if not sending IGMP reports correct
-            if self.igmpFixEnabled and datetime.now()>nextIGMPfix:
-                mreq = struct.pack("=4sl", socket.inet_aton(COAP_IP), socket.INADDR_ANY)
-                self._socket.setsockopt(socket.IPPROTO_IP, socket.IP_DROP_MEMBERSHIP, mreq)
-                self._socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-                nextIGMPfix = datetime.now() + timedelta(minutes=1)
 
             try:
-                dataTmp, addr = self._socket.recvfrom(500)
-            except socket.timeout:
-                continue
-
-            data = bytearray(dataTmp)
-            #logging.info("Data:" + str(data))
-            
-            byte = data[0]
-            ver = byte >> 6
-            typex = (byte >> 4) & 0x3
-            tokenlen = byte & 0xF
-            
-            code = data[1]
-            msgid = 256 * data[2] + data[3]
-            
-            pos = 4
-            
-            #logging.info('Got UDP ' + str(code))
-            
-            if code == 30 or code == 69 :
-
-                byte = data[pos]
-                totDelta = 0
-
-                type = "";
-                id = "";
-
-                while byte!=0xFF:
-                    delta = byte >> 4
-                    len = byte & 0x0F
-
-                    if delta==13:
-                        pos=pos+1
-                        delta = data[pos]+13
-                    elif delta==14:
-                        pos=pos+2
-                        delta = data[pos-1]*256 + data[pos] + 269
-
-                    totDelta = totDelta + delta
-
-                    if len==13:
-                        pos=pos+1
-                        len = data[pos]+13
-                    elif len==14:
-                        pos=pos+2
-                        len = data[pos-1]*256 + data[pos] + 269
-                    
-                    value = data[pos+1:pos+len]
-                    pos = pos + len +1;                             
-                    
-                    if totDelta==3332:
-                        type, id, _ = s(value).split('#',2)
- 
-                    byte = data[pos]
-
-                payload = s(data[pos+1:])
-
-                #logging.info('Type %s, Id %s, Payload %s', type, id, payload)                      
                 
-                if id not in self.blocks:
-                    self.blocks[id] = pyShellyBlock(self, id, type, addr[0], code)
+                #This fix is needed if not sending IGMP reports correct
+                if self.igmpFixEnabled and datetime.now()>nextIGMPfix:
+                    mreq = struct.pack("=4sl", socket.inet_aton(COAP_IP), socket.INADDR_ANY)
+                    try:
+                        self._socket.setsockopt(socket.IPPROTO_IP, socket.IP_DROP_MEMBERSHIP, mreq)
+                    except:
+                        pass
+                    self._socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
+                    nextIGMPfix = datetime.now() + timedelta(minutes=1)
 
-                if code==30:
-                    self.blocks[id].update(json.loads(payload))
+                logging.debug("Got UDP message")
+                try:
+                    dataTmp, addr = self._socket.recvfrom(500)
+                except socket.timeout:
+                    continue
+
+                data = bytearray(dataTmp)
+                logging.debug(" Data:" + str(data))
+
+                byte = data[0]
+                ver = byte >> 6
+                typex = (byte >> 4) & 0x3
+                tokenlen = byte & 0xF
+
+                code = data[1]
+                msgid = 256 * data[2] + data[3]
+
+                pos = 4
+
+                logging.debug(' Code:' + str(code))
+
+                if code == 30 or code == 69 :
+
+                    byte = data[pos]
+                    totDelta = 0
+
+                    devType = "";
+                    id = "";
+
+                    while byte!=0xFF:
+                        delta = byte >> 4
+                        length = byte & 0x0F
+
+                        if delta==13:
+                            pos=pos+1
+                            delta = data[pos]+13
+                        elif delta==14:
+                            pos=pos+2
+                            delta = data[pos-1]*256 + data[pos] + 269
+
+                        totDelta = totDelta + delta
+
+                        if length==13:
+                            pos=pos+1
+                            length = data[pos]+13
+                        elif length==14:
+                            pos=pos+2
+                            length = data[pos-1]*256 + data[pos] + 269
+
+                        value = data[pos+1:pos+length]
+                        pos = pos + length +1;                             
+
+                        if totDelta==3332:
+                            devType, id, _ = s(value).split('#',2)
+
+                        byte = data[pos]
+
+                    payload = s(data[pos+1:])
+
+                    logging.info(' Type %s, Id %s, Payload *%s*', devType, id, payload.replace(' ',''))
+
+                    if id not in self.blocks:
+                        self.blocks[id] = pyShellyBlock(self, id, devType, addr[0], code)
+
+                    if code==30:
+                        self.blocks[id].update(json.loads(payload))
+            
+            except:
+                logging.exception("Error receiving UDP")
