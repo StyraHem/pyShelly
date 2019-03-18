@@ -1,6 +1,6 @@
 # pyShelly
 
-Library for Shelly smart home devices
+Library for Shelly smart home devices. Using CoAP for auto discovery and status updates.
 
 ## Features:
 - Discover devices
@@ -12,12 +12,12 @@ Library for Shelly smart home devices
 - Shelly 2 (relay or roller mode)
 - Shelly 4
 - Shelly PLUG
-- Shelly BULB (only on/off and dim)
-- Shelly RGBWW (only on/off and dim)
+- Shelly BULB
+- Shelly RGBWW
+- Shelly RGBW2
 - Shelly H&T
 
 ## Device support comming soon:
-- Shelly RGBW2
 - Shelly 2.5
 - Shelly PLUG S
 
