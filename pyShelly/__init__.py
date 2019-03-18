@@ -35,7 +35,7 @@ name = "pyShelly"
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
 
-__version__ = "0.0.14"
+__version__ = "0.0.15"
 VERSION = __version__
 
 SHELLY_TYPES = {
@@ -60,7 +60,7 @@ class pyShellyBlock():
         self._setup()
 
     def update(self, data):
-        #logging.info("BlockUpdate!! " + str(data))
+        #logging.debug("BlockUpdate!! " + str(data))
         for dev in self.devices:
             dev.update(data)
 
@@ -149,7 +149,7 @@ class pyShellyDevice(object):
         return diff.total_seconds() < self._unavailableAfterSec
 
     def _update(self, newState=None, newStateValues=None, newValues=None):
-        logging.debug("Update")
+        logging.debug("Update", newState, newStateValues, newValues)
         self.lastUpdated = datetime.now()
         needUpdate = False
         if newState is not None:
@@ -266,12 +266,13 @@ class pyShellyLight(pyShellyDevice):
     def update(self,data):
         
         settings = self.block._httpGet(self.url)
-        print(settings)        
+        logging.debug(settings)        
         
-        newState = data['G'][4][2]==1
+        newState = data['G'][4][2]==1   #151
         mode = settings['mode']
+        
         if mode != self.mode:
-            if not self.allowSwitchMode:
+            if not self.allowSwitchMode and self.mode is not None:
                 self._removeMySelf()
                 return
             self.mode = mode
@@ -280,7 +281,7 @@ class pyShellyLight(pyShellyDevice):
             self.brightness = int(settings['gain'])
         else: 
             self.brightness = int(settings['brightness'])
-        
+                
         self.rgb = [ data['G'][0][2], data['G'][1][2], data['G'][2][2] ]        
         
         self.temp = int(settings.get('temp',0))       
@@ -290,12 +291,14 @@ class pyShellyLight(pyShellyDevice):
 
     def _sendData(self, state, brightness=None, rgb=None, temp=None, mode=None, effect=None):
         url = self.url + "?"
-        if not state or brightness==0:          
-            url += "turn=off"
-            self._sendCommand( url )
-            return
-            
-        url += "turn=on&"
+        
+        if state is not None:
+            if not state or brightness==0:          
+                url += "turn=off"
+                self._sendCommand( url )
+                return
+
+            url += "turn=on&"
         
         if mode is not None:
             self._sendCommand( "/settings/?mode=" + mode )
@@ -325,16 +328,13 @@ class pyShellyLight(pyShellyDevice):
         self._sendData(True, brightness, rgb, temp, mode, effect)
 
     def setValues(self, rgb=None, brightness=None, temp=None, mode=None, effect=None):
-        self._sendData(brightness, rgb, temp, mode, effect)
+        self._sendData(None, brightness, rgb, temp, mode, effect)
         
     def turnOff(self):
         self._sendData(False)
 
     def getDimValue(self):       
-        if self.mode=='white':
-            return self.brightness
-        else:
-            return self.gain
+        return self.brightness
     
     def setDimValue(self, value):       
         self._sendData(True, value)
@@ -459,7 +459,7 @@ class pyShelly():
 
         while not self.stopped.isSet():
 
-            try:
+            #try:
                 
                 #This fix is needed if not sending IGMP reports correct
                 if self.igmpFixEnabled and datetime.now()>nextIGMPfix:
@@ -478,7 +478,7 @@ class pyShelly():
                     continue
 
                 data = bytearray(dataTmp)
-                logging.debug(" Data:" + str(data))
+                #logging.debug(" Data:" + str(data))
 
                 byte = data[0]
                 ver = byte >> 6
@@ -530,7 +530,7 @@ class pyShelly():
 
                     payload = s(data[pos+1:])
 
-                    logging.info(' Type %s, Id %s, Payload *%s*', devType, id, payload.replace(' ',''))
+                    logging.debug(' Type %s, Id %s, Payload *%s*', devType, id, payload.replace(' ',''))
 
                     if id not in self.blocks:
                         self.blocks[id] = pyShellyBlock(self, id, devType, addr[0], code)
@@ -538,5 +538,5 @@ class pyShelly():
                     if code==30:
                         self.blocks[id].update(json.loads(payload))
             
-            except:
-                logging.exception("Error receiving UDP")
+            #except:
+            #    logging.exception("Error receiving UDP")
