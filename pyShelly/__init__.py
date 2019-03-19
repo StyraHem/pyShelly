@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 
 from datetime import timedelta, datetime
@@ -7,7 +6,11 @@ import threading
 import socket
 import struct
 import json
+import traceback
 import logging
+import sys
+
+logger = logging.getLogger('pyShelly')
 
 try:
     import http.client as httplib
@@ -35,19 +38,28 @@ name = "pyShelly"
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
 
-__version__ = "0.0.15"
+__version__ = "0.0.16"
 VERSION = __version__
 
 SHELLY_TYPES = {
     'SHSW-1'     : { 'name': "Shelly 1" },
     'SHSW-21'    : { 'name': "Shelly 2" },
-    'SHPLG-1'    : { 'name': "Shelly Plug" },
-    'SHRGBWW-01' : { 'name': "Shelly RGBWW" },
+    'SHSW-22'    : { 'name': "Shelly HD Pro" },
+    'SHSW-25'    : { 'name': "Shelly 2.5" },
     'SHSW-44'    : { 'name': "Shelly 4 Pro" },
+    'SHPLG-1'    : { 'name': "Shelly Plug" },
+    'SHPLG2-1'   : { 'name': "Shelly Plug" },
+    'SHRGBWW-01' : { 'name': "Shelly RGBWW" },    
     'SHBLB-1'    : { 'name': "Shelly Bulb" },
     'SHHT-1'     : { 'name': "Shelly H&T" },
     'SHRGBW2'    : { 'name': "Shelly RGBW2" },
+    'SHEM-1'     : { 'name': "Shelly EM" },
+    'SHCL-255'   : { 'name': "Shelly Bulb" },
+    'SH2LED-1'   : { 'name': "Shelly 2LED" },
+    'SHSK-1'     : { 'name': "Shelly Socket" },
 }
+#SHSEN-1    Sense
+#SHSM-01    Smoke
 
 class pyShellyBlock():
     def __init__(self, parent, id, type, ipaddr, code):             
@@ -60,7 +72,7 @@ class pyShellyBlock():
         self._setup()
 
     def update(self, data):
-        #logging.debug("BlockUpdate!! " + str(data))
+        #logger.debug("BlockUpdate %2", data)
         for dev in self.devices:
             dev.update(data)
 
@@ -74,7 +86,7 @@ class pyShellyBlock():
         return respJson
 
     def _setup(self):       
-        if self.type == 'SHBLB-1':
+        if self.type == 'SHBLB-1' or self.type == 'SHCL-255':
             self._addDevice( pyShellyBulb(self) )
         elif self.type == 'SHSW-21':
             settings = self._httpGet("/settings")
@@ -83,14 +95,29 @@ class pyShellyBlock():
             else:
                 self._addDevice( pyShellyRelay(self,1,0,2) )
                 self._addDevice( pyShellyRelay(self,2,1,2) )
-        elif self.type == 'SHSW-1':
+        elif self.type == 'SHSW-25':
+            settings = self._httpGet("/settings")
+            if settings['mode'] == 'roller':
+                self._addDevice( pyShellyRoller(self) )
+            else:
+                self._addDevice( pyShellyRelay(self,1,0,1) )
+                self._addDevice( pyShellyRelay(self,2,2,3) )
+        elif self.type == 'SHSW-22':
+            self._addDevice( pyShellyRelay(self,1,0,1) )
+            self._addDevice( pyShellyRelay(self,2,2,3) )  
+        elif self.type == 'SH2LED-1':
+            self._addDevice( pyShellyRGBW2W(self, 0) )
+            self._addDevice( pyShellyRGBW2W(self, 1) )            
+        elif self.type == 'SHEM-1':
+            self._addDevice( pyShellyRelay(self,1,0,1) )
+        elif self.type == 'SHSW-1' or self.type == 'SHSK-1':
             self._addDevice( pyShellyRelay(self,0 , 0) )
         elif self.type == 'SHSW-44':
             for ch in range(4):         
                 self._addDevice( pyShellyRelay(self, ch+1, ch*2+1, ch*2) )              
         elif self.type == 'SHRGBWW-01':
             self._addDevice( pyShellyRGBWW(self) )
-        elif self.type == 'SHPLG-1':
+        elif self.type == 'SHPLG-1' or self.type == 'SHPLG2-1':
             self._addDevice( pyShellyRelay(self, 0, 1, 0) )
         elif self.type == 'SHHT-1':
             self._addDevice( pyShellySensor(self) )  
@@ -101,6 +128,9 @@ class pyShellyBlock():
             else:
                 for ch in range(4):         
                     self._addDevice( pyShellyRGBW2W(self, ch+1) )
+        else:
+            self._addDevice( pyShellyUnknown(self) )  
+            
             
     def _addDevice(self, dev):
         self.devices.append( dev )
@@ -119,7 +149,7 @@ class pyShellyDevice(object):
         self.id = block.id
         self.type = block.type
         self.ipaddr = block.ipaddr
-        self.cb_updated = None
+        self.cb_updated = None        
         self.lastUpdated = None
         self.isDevice = True
         self.isSensor = False       
@@ -149,7 +179,7 @@ class pyShellyDevice(object):
         return diff.total_seconds() < self._unavailableAfterSec
 
     def _update(self, newState=None, newStateValues=None, newValues=None):
-        logging.debug("Update", newState, newStateValues, newValues)
+        logger.debug("Update %s %s %s", newState, newStateValues, newValues)
         self.lastUpdated = datetime.now()
         needUpdate = False
         if newState is not None:
@@ -173,6 +203,13 @@ class pyShellyDevice(object):
     def _removeMySelf(self):
         self.block._removeDevice(self)
 
+class pyShellyUnknown(pyShellyDevice):
+    def __init__(self, block):
+        super(pyShellyUnknown, self).__init__(block)
+        self.devType = "UNKNOWN"
+    def update(self,data):
+        pass
+    
 class pyShellyRelay(pyShellyDevice):
     def __init__(self, block, channel, pos, power=None):
         super(pyShellyRelay, self).__init__(block)
@@ -266,7 +303,7 @@ class pyShellyLight(pyShellyDevice):
     def update(self,data):
         
         settings = self.block._httpGet(self.url)
-        logging.debug(settings)        
+        logger.debug(settings)        
         
         newState = data['G'][4][2]==1   #151
         mode = settings['mode']
@@ -401,17 +438,19 @@ class pyShellySensor(pyShellyDevice):
 
 class pyShelly():
     def __init__(self):
-        logging.info("Init pyShelly " + VERSION)        
+        logger.info("Init pyShelly %s", VERSION)        
         self.stopped = threading.Event()
         self.blocks = {}
         self.devices = []
         self.cb_deviceAdded = None
         self.cb_deviceRemoved = None
+        self.cb_log = None
         self.igmpFixEnabled = False #Used if igmp packages not sent correctly
         
     def open(self): 
         self.initSocket()
         self._udp_thread = threading.Thread(target=self._udp_reader)
+        self._udp_thread.daemon = True
         self._udp_thread.start()        
         
     def version(self):
@@ -442,13 +481,13 @@ class pyShelly():
         self._socket.sendto(msg, (COAP_IP, COAP_PORT))
 
     def _addDevice(self, dev, code):
-        logging.debug('Add device')
+        logger.debug('Add device')
         self.devices.append (dev )
         if self.cb_deviceAdded is not None:
             self.cb_deviceAdded(dev, code)
             
     def _removeDevice(self, dev, code):
-        logging.debug('Remove device')
+        logger.debug('Remove device')
         self.devices.remove(dev)
         if self.cb_deviceRemoved is not None:
             self.cb_deviceRemoved(dev, code)
@@ -459,7 +498,7 @@ class pyShelly():
 
         while not self.stopped.isSet():
 
-            #try:
+            try:
                 
                 #This fix is needed if not sending IGMP reports correct
                 if self.igmpFixEnabled and datetime.now()>nextIGMPfix:
@@ -471,14 +510,14 @@ class pyShelly():
                     self._socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
                     nextIGMPfix = datetime.now() + timedelta(minutes=1)
 
-                logging.debug("Got UDP message")
+                logger.debug("Got UDP message")
                 try:
                     dataTmp, addr = self._socket.recvfrom(500)
                 except socket.timeout:
                     continue
 
                 data = bytearray(dataTmp)
-                #logging.debug(" Data:" + str(data))
+                #logger.debug(" Data: %s", data)
 
                 byte = data[0]
                 ver = byte >> 6
@@ -490,7 +529,7 @@ class pyShelly():
 
                 pos = 4
 
-                logging.debug(' Code:' + str(code))
+                logger.debug(' Code: %s', code)
 
                 if code == 30 or code == 69 :
 
@@ -530,7 +569,7 @@ class pyShelly():
 
                     payload = s(data[pos+1:])
 
-                    logging.debug(' Type %s, Id %s, Payload *%s*', devType, id, payload.replace(' ',''))
+                    logger.debug(' Type %s, Id %s, Payload *%s*', devType, id, payload.replace(' ',''))
 
                     if id not in self.blocks:
                         self.blocks[id] = pyShellyBlock(self, id, devType, addr[0], code)
@@ -538,5 +577,9 @@ class pyShelly():
                     if code==30:
                         self.blocks[id].update(json.loads(payload))
             
-            #except:
-            #    logging.exception("Error receiving UDP")
+            except:
+            
+                logger.exception("Error receiving UDP")
+                print(traceback.format_exc())
+                print(sys.exc_info()[0])
+                
