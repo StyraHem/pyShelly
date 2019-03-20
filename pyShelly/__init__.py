@@ -38,7 +38,7 @@ name = "pyShelly"
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
 
-__version__ = "0.0.16"
+__version__ = "0.0.17"
 VERSION = __version__
 
 SHELLY_TYPES = {
@@ -72,7 +72,7 @@ class pyShellyBlock():
         self._setup()
 
     def update(self, data):
-        #logger.debug("BlockUpdate %2", data)
+        #logger.debug("BlockUpdate %s", data)
         for dev in self.devices:
             dev.update(data)
 
@@ -579,7 +579,5 @@ class pyShelly():
             
             except:
             
-                logger.exception("Error receiving UDP")
-                print(traceback.format_exc())
-                print(sys.exc_info()[0])
+                logger.exception("Error receiving UDP: " + traceback.format_exc())
                 
