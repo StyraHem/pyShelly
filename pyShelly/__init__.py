@@ -38,7 +38,7 @@ name = "pyShelly"
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
 
-__version__ = "0.0.17"
+__version__ = "0.0.18"
 VERSION = __version__
 
 SHELLY_TYPES = {
@@ -71,9 +71,11 @@ class pyShellyBlock():
         self.code = code    #DEBUG
         self._setup()
 
-    def update(self, data):
+    def update(self, data, ip):
         #logger.debug("BlockUpdate %s", data)
+        self.ipaddr = ip    #If changed ip
         for dev in self.devices:
+            dev.ipaddr = ip
             dev.update(data)
 
     def _httpGet(self, url):
@@ -179,7 +181,7 @@ class pyShellyDevice(object):
         return diff.total_seconds() < self._unavailableAfterSec
 
     def _update(self, newState=None, newStateValues=None, newValues=None):
-        logger.debug("Update %s %s %s", newState, newStateValues, newValues)
+        logger.debug("Update state:%s stateValue:%s values:%s", newState, newStateValues, newValues)
         self.lastUpdated = datetime.now()
         needUpdate = False
         if newState is not None:
@@ -502,22 +504,30 @@ class pyShelly():
                 
                 #This fix is needed if not sending IGMP reports correct
                 if self.igmpFixEnabled and datetime.now()>nextIGMPfix:
+                    logger.debug("IGMP fix")
+                    nextIGMPfix = datetime.now() + timedelta(minutes=1)
                     mreq = struct.pack("=4sl", socket.inet_aton(COAP_IP), socket.INADDR_ANY)
                     try:
                         self._socket.setsockopt(socket.IPPROTO_IP, socket.IP_DROP_MEMBERSHIP, mreq)
-                    except:
-                        pass
-                    self._socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-                    nextIGMPfix = datetime.now() + timedelta(minutes=1)
+                    except Exception as e:
+                        logger.debug("Can't drop membership, " + str(e))
+                    try:
+                        self._socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)                    
+                    except Exception as e:
+                        logger.debug("Can't add membership, " + str(e))
 
-                logger.debug("Got UDP message")
+                
+                logger.debug("Wait for UDP message")
+                
                 try:
                     dataTmp, addr = self._socket.recvfrom(500)
                 except socket.timeout:
                     continue
 
+                logger.debug("Got UDP message")
+                
                 data = bytearray(dataTmp)
-                #logger.debug(" Data: %s", data)
+                logger.debug(" Data: %s", data)
 
                 byte = data[0]
                 ver = byte >> 6
@@ -575,7 +585,7 @@ class pyShelly():
                         self.blocks[id] = pyShellyBlock(self, id, devType, addr[0], code)
 
                     if code==30:
-                        self.blocks[id].update(json.loads(payload))
+                        self.blocks[id].update(json.loads(payload), addr[0])
             
             except:
             

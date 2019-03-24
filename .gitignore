@@ -4,4 +4,4 @@ dist
 *.pyc
 sendToGit
 sendToPyPi.sh
-
+desktop.ini
