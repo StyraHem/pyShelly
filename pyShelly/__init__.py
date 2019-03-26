@@ -38,7 +38,7 @@ name = "pyShelly"
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
 
-__version__ = "0.0.18"
+__version__ = "0.0.19"
 VERSION = __version__
 
 SHELLY_TYPES = {
@@ -97,6 +97,7 @@ class pyShellyBlock():
             else:
                 self._addDevice( pyShellyRelay(self,1,0,2) )
                 self._addDevice( pyShellyRelay(self,2,1,2) )
+            self._addDevice( pyShellyPowerMeter(self,0,2) )
         elif self.type == 'SHSW-25':
             settings = self._httpGet("/settings")
             if settings['mode'] == 'roller':
@@ -104,9 +105,13 @@ class pyShellyBlock():
             else:
                 self._addDevice( pyShellyRelay(self,1,0,1) )
                 self._addDevice( pyShellyRelay(self,2,2,3) )
+                self._addDevice( pyShellyPowerMeter(self,1,1) )
+                self._addDevice( pyShellyPowerMeter(self,2,3) )
         elif self.type == 'SHSW-22':
             self._addDevice( pyShellyRelay(self,1,0,1) )
             self._addDevice( pyShellyRelay(self,2,2,3) )  
+            self._addDevice( pyShellyPowerMeter(self,1,1) )
+            self._addDevice( pyShellyPowerMeter(self,2,3) )
         elif self.type == 'SH2LED-1':
             self._addDevice( pyShellyRGBW2W(self, 0) )
             self._addDevice( pyShellyRGBW2W(self, 1) )            
@@ -151,7 +156,7 @@ class pyShellyDevice(object):
         self.id = block.id
         self.type = block.type
         self.ipaddr = block.ipaddr
-        self.cb_updated = None        
+        self.cb_updated = []
         self.lastUpdated = None
         self.isDevice = True
         self.isSensor = False       
@@ -199,8 +204,8 @@ class pyShellyDevice(object):
             self._raiseUpdated()
             
     def _raiseUpdated(self):        
-        if self.cb_updated is not None:
-            self.cb_updated()
+        for callback in self.cb_updated:
+            callback()
             
     def _removeMySelf(self):
         self.block._removeDevice(self)
@@ -217,7 +222,7 @@ class pyShellyRelay(pyShellyDevice):
         super(pyShellyRelay, self).__init__(block)
         self.id = block.id;
         if channel>0: 
-            self.id = self.id + '-' + str(channel)
+            self.id += '-' + str(channel)
             self._channel = channel-1   
         else:
             self._channel = 0       
@@ -241,17 +246,22 @@ class pyShellyRelay(pyShellyDevice):
     def turnOff(self):
         self._sendCommand( "/relay/" + str(self._channel) + "?turn=off" )
         
-#class pyShellyPowerMeter(pyShellyDevice):
-#   def __init__(self, block, chan, pos):
-#       super(pyShellyPowerMeter, self).__init__(block)
-#       self.id = block.id + "-" + str(chan)
-#       self._pos = pos
-#       self.sensorValues = None
-#       self.devType = "POWER_METER"
-#       
-#   def update(self,data):
-#       watt = data['G'][self._pos][2]
-#       self._update(None, None, { 'watt' : watt })
+class pyShellyPowerMeter(pyShellyDevice):
+   def __init__(self, block, channel, pos):
+       super(pyShellyPowerMeter, self).__init__(block)
+       self.id = block.id
+       if channel>0:
+         self.id += "-" + str(channel)
+         self._channel = channel-1
+       else:
+         self._channel = 0
+       self._pos = pos
+       self.sensorValues = None
+       self.devType = "POWERMETER"
+       
+   def update(self,data):
+       watt = data['G'][self._pos][2]
+       self._update(None, None, { 'watt' : watt })
 
 class pyShellyRoller(pyShellyDevice):
     def __init__(self, block):
@@ -429,13 +439,14 @@ class pyShellySensor(pyShellyDevice):
 
     def update(self,data):
         temp = float(data['G'][0][2])
-        #humidity = float(data['G'][1][2])
+        humidity = float(data['G'][1][2])
         battery = int(data['G'][2][2])
-        try:
-            status = self.block._httpGet("/status")
-            humidity = status['hum']['value']
-        except:
-            pass
+        if humidity==0:
+            try:
+                status = self.block._httpGet("/status")
+                humidity = status['hum']['value']
+            except Exception as e:
+                logger.exception("Error receiving humidity: " + str(e))
         self._update(None, None, { 'temperature' : temp, 'humidity' : humidity, 'battery' : battery })
 
 class pyShelly():
@@ -446,7 +457,6 @@ class pyShelly():
         self.devices = []
         self.cb_deviceAdded = None
         self.cb_deviceRemoved = None
-        self.cb_log = None
         self.igmpFixEnabled = False #Used if igmp packages not sent correctly
         
     def open(self): 
@@ -587,7 +597,7 @@ class pyShelly():
                     if code==30:
                         self.blocks[id].update(json.loads(payload), addr[0])
             
-            except:
+            except Exception as e:
             
-                logger.exception("Error receiving UDP: " + traceback.format_exc())
+                logger.exception("Error receiving UDP: " + str(e) + traceback.format_exc())
                 

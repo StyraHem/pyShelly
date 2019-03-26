@@ -21,7 +21,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pyShelly",
-    version="0.0.18", #find_version("pyShelly","__init__.py"),
+    version="0.0.19", #find_version("pyShelly","__init__.py"),
     author="StyraHem / Tarra AB",
     author_email="info@styrahem.se",
     description="Library for Shelly smart home devices",
