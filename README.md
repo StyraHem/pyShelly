@@ -6,6 +6,11 @@ Library for Shelly smart home devices. Using CoAP for auto discovery and status 
 - Discover devices
 - Monitor status
 - Control (turn on/off etc)
+- Run only locally
+- Support user name and password
+- Coexist with Shelly Cloud and Shelly app
+- Support static and dynamic ip address
+- Zero configuration
 
 ## Devices supported:
 - Shelly 1
