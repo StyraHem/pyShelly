@@ -9,6 +9,7 @@ import json
 import traceback
 import logging
 import sys
+import base64
 
 logger = logging.getLogger('pyShelly')
 
@@ -38,7 +39,7 @@ name = "pyShelly"
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
 
-__version__ = "0.0.19"
+__version__ = "0.0.20"
 VERSION = __version__
 
 SHELLY_TYPES = {
@@ -78,9 +79,14 @@ class pyShellyBlock():
             dev.ipaddr = ip
             dev.update(data)
 
-    def _httpGet(self, url):
+    def _httpGet(self, url): 
         conn = httplib.HTTPConnection(self.ipaddr)
-        conn.request("GET", url)
+        headers = {}
+        if self.parent.username is not None and self.parent.password is not None:
+            combo = '%s:%s' % (self.parent.username, self.parent.password)
+            auth = s(base64.b64encode(combo.encode())) #.replace('\n', '')
+            headers["Authorization"]="Basic %s" % auth
+        conn.request("GET", url, None, headers)
         resp = conn.getresponse()
         body = resp.read()
         respJson = json.loads(body)
@@ -126,6 +132,7 @@ class pyShellyBlock():
             self._addDevice( pyShellyRGBWW(self) )
         elif self.type == 'SHPLG-1' or self.type == 'SHPLG2-1':
             self._addDevice( pyShellyRelay(self, 0, 1, 0) )
+            self._addDevice( pyShellyPowerMeter(self,0,0) )
         elif self.type == 'SHHT-1':
             self._addDevice( pyShellySensor(self) )  
         elif self.type == 'SHRGBW2':
@@ -161,7 +168,7 @@ class pyShellyDevice(object):
         self.isDevice = True
         self.isSensor = False       
         self.subName = None
-        self._unavailableAfterSec = 60
+        self._unavailableAfterSec = 20
         self.stateValues = None
 
     def typeName(self):
@@ -174,10 +181,11 @@ class pyShellyDevice(object):
         return name
 
     def _sendCommand(self, url):
-        conn = httplib.HTTPConnection(self.block.ipaddr)
-        conn.request("GET", url)
-        resp = conn.getresponse()
-        conn.close()
+        self.block._httpGet(url)
+        #conn = httplib.HTTPConnection(self.block.ipaddr)
+        #conn.request("GET", url)
+        #resp = conn.getresponse()
+        #conn.close()
         
     def available(self):
         if self.lastUpdated is None: 
@@ -435,13 +443,18 @@ class pyShellySensor(pyShellyDevice):
         self.devType = "SENSOR"
         self.isSensor = True
         self.isDevice = False
-        self._unavailableAfterSec = 3600*3  #TODO, read from settings
+        self._unavailableAfterSec = 3600*6  #TODO, read from settings
 
     def update(self,data):
         temp = float(data['G'][0][2])
         humidity = float(data['G'][1][2])
         battery = int(data['G'][2][2])
-        if humidity==0:
+        try:
+            settings = self.block._httpGet("/settings")
+            _unavailableAfterSec = settings['sleep_mode']['period'] * 3600
+        except:
+            pass
+        if humidity==0: #Workaround
             try:
                 status = self.block._httpGet("/status")
                 humidity = status['hum']['value']
@@ -458,6 +471,8 @@ class pyShelly():
         self.cb_deviceAdded = None
         self.cb_deviceRemoved = None
         self.igmpFixEnabled = False #Used if igmp packages not sent correctly
+        self.username = None
+        self.password = None
         
     def open(self): 
         self.initSocket()
