@@ -39,7 +39,7 @@ name = "pyShelly"
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
 
-__version__ = "0.0.20"
+__version__ = "0.0.21"
 VERSION = __version__
 
 SHELLY_TYPES = {
@@ -80,25 +80,29 @@ class pyShellyBlock():
             dev.update(data)
 
     def _httpGet(self, url): 
-        conn = httplib.HTTPConnection(self.ipaddr)
-        headers = {}
-        if self.parent.username is not None and self.parent.password is not None:
-            combo = '%s:%s' % (self.parent.username, self.parent.password)
-            auth = s(base64.b64encode(combo.encode())) #.replace('\n', '')
-            headers["Authorization"]="Basic %s" % auth
-        conn.request("GET", url, None, headers)
-        resp = conn.getresponse()
-        body = resp.read()
-        respJson = json.loads(body)
-        conn.close()
-        return respJson
+        try:
+            conn = httplib.HTTPConnection(self.ipaddr)
+            headers = {}
+            if self.parent.username is not None and self.parent.password is not None:
+                combo = '%s:%s' % (self.parent.username, self.parent.password)
+                auth = s(base64.b64encode(combo.encode())) #.replace('\n', '')
+                headers["Authorization"]="Basic %s" % auth
+            conn.request("GET", url, None, headers)
+            resp = conn.getresponse()
+            body = resp.read()            
+            conn.close()
+            logger.debug("Body: %s", body)
+            respJson = json.loads(body)
+            return respJson
+        except:
+            return {}
 
     def _setup(self):       
         if self.type == 'SHBLB-1' or self.type == 'SHCL-255':
             self._addDevice( pyShellyBulb(self) )
-        elif self.type == 'SHSW-21':
+        elif self.type == 'SHSW-21':            
             settings = self._httpGet("/settings")
-            if settings['mode'] == 'roller':
+            if settings.get('mode') == 'roller':
                 self._addDevice( pyShellyRoller(self) )
             else:
                 self._addDevice( pyShellyRelay(self,1,0,2) )
@@ -106,7 +110,7 @@ class pyShellyBlock():
             self._addDevice( pyShellyPowerMeter(self,0,2) )
         elif self.type == 'SHSW-25':
             settings = self._httpGet("/settings")
-            if settings['mode'] == 'roller':
+            if settings.get('mode') == 'roller':
                 self._addDevice( pyShellyRoller(self) )
             else:
                 self._addDevice( pyShellyRelay(self,1,0,1) )
@@ -137,7 +141,7 @@ class pyShellyBlock():
             self._addDevice( pyShellySensor(self) )  
         elif self.type == 'SHRGBW2':
             settings = self._httpGet("/settings")
-            if settings['mode'] == 'color':
+            if settings.get('mode','color') == 'color':
                 self._addDevice( pyShellyRGBW2C(self) )
             else:
                 for ch in range(4):         
@@ -164,7 +168,7 @@ class pyShellyDevice(object):
         self.type = block.type
         self.ipaddr = block.ipaddr
         self.cb_updated = []
-        self.lastUpdated = None
+        self.lastUpdated = datetime.now()
         self.isDevice = True
         self.isSensor = False       
         self.subName = None
@@ -182,10 +186,6 @@ class pyShellyDevice(object):
 
     def _sendCommand(self, url):
         self.block._httpGet(url)
-        #conn = httplib.HTTPConnection(self.block.ipaddr)
-        #conn.request("GET", url)
-        #resp = conn.getresponse()
-        #conn.close()
         
     def available(self):
         if self.lastUpdated is None: 
@@ -281,11 +281,17 @@ class pyShellyRoller(pyShellyDevice):
         self.isSensor = True
         self.subName = "Roller"
         self.upsideDown = True
+        self.supportPosition = False
+        self.motionState = None
+        self.lastDirection = None
         
     def update(self,data):
         states = data['G']
         settings = self.block._httpGet("/roller/0")
-        self.position = settings['current_pos']
+        self.supportPosition = settings.get("positioning", False)
+        self.motionState = settings.get("state", False)
+        self.lastDirection = settings.get("last_direction")
+        self.position = settings.get('current_pos',0)        
         watt = data['G'][2][2]
         #if not self.invert:
         state = self.position!=0
@@ -326,7 +332,7 @@ class pyShellyLight(pyShellyDevice):
         logger.debug(settings)        
         
         newState = data['G'][4][2]==1   #151
-        mode = settings['mode']
+        mode = settings.get('mode','color')
         
         if mode != self.mode:
             if not self.allowSwitchMode and self.mode is not None:
@@ -335,9 +341,9 @@ class pyShellyLight(pyShellyDevice):
             self.mode = mode
             
         if self.mode=='color':
-            self.brightness = int(settings['gain'])
+            self.brightness = int(settings.get('gain',0))
         else: 
-            self.brightness = int(settings['brightness'])
+            self.brightness = int(settings.get('brightness',0))
                 
         self.rgb = [ data['G'][0][2], data['G'][1][2], data['G'][2][2] ]        
         
@@ -454,12 +460,12 @@ class pyShellySensor(pyShellyDevice):
             _unavailableAfterSec = settings['sleep_mode']['period'] * 3600
         except:
             pass
-        if humidity==0: #Workaround
+        if humidity==0: #Workaround, not sending humidity in CoAP, will be fixed in next firmware
             try:
                 status = self.block._httpGet("/status")
                 humidity = status['hum']['value']
-            except Exception as e:
-                logger.exception("Error receiving humidity: " + str(e))
+            except:
+                pass
         self._update(None, None, { 'temperature' : temp, 'humidity' : humidity, 'battery' : battery })
 
 class pyShelly():
