@@ -39,7 +39,7 @@ name = "pyShelly"
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
 
-__version__ = "0.0.21"
+__version__ = "0.0.22"
 VERSION = __version__
 
 SHELLY_TYPES = {
@@ -280,7 +280,6 @@ class pyShellyRoller(pyShellyDevice):
         self.position = None    
         self.isSensor = True
         self.subName = "Roller"
-        self.upsideDown = True
         self.supportPosition = False
         self.motionState = None
         self.lastDirection = None
@@ -293,20 +292,20 @@ class pyShellyRoller(pyShellyDevice):
         self.lastDirection = settings.get("last_direction")
         self.position = settings.get('current_pos',0)        
         watt = data['G'][2][2]
-        #if not self.invert:
         state = self.position!=0
-        #else:
-        #   state = self.position==0
         self._update(state, None, { 'watt' : watt } )
 
     def up(self):
-        self._sendCommand( "/roller/0?go=" + ( "open" if not self.upsideDown else "close" ) )
+        self._sendCommand( "/roller/0?go=" + ( "open" ) )
 
     def down(self):
-        self._sendCommand( "/roller/0?go="  + ( "close" if not self.upsideDown else "open" ) )
+        self._sendCommand( "/roller/0?go="  + ( "close" ) )
 
     def stop(self):
         self._sendCommand( "/roller/0?go=stop" )
+
+    def position(self, pos):    
+        self._sendCommand( "/roller/0?roller_pos=" + str(pos) )
                
         
 class pyShellyLight(pyShellyDevice):
