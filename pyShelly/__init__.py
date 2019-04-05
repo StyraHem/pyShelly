@@ -93,6 +93,44 @@ class pyShellyBlock():
             dev.ipaddr = ip
             dev.update(data)
 
+    def update_status_information(self):
+        """Update the status information."""
+        status = self._httpGet('/status')
+        if status == {}:
+            return
+
+        info_values = {}
+
+        wifi_sta = status.get(STATUS_RESPONSE_WIFI_STA)
+        if wifi_sta is not None:
+            if wifi_sta.get(STATUS_RESPONSE_WIFI_STA_RSSI):
+                info_values['rssi'] = \
+                    wifi_sta.get(STATUS_RESPONSE_WIFI_STA_RSSI)
+            if wifi_sta.get(STATUS_RESPONSE_WIFI_STA_SSID):
+                info_values['ssid'] = \
+                    wifi_sta.get(STATUS_RESPONSE_WIFI_STA_SSID)
+
+        update = status.get(STATUS_RESPONSE_UPDATE)
+        if update is not None:
+            has_update = False
+            if update.get(STATUS_RESPONSE_UPDATE_HAS_UPDATE) is not None:
+                has_update = update.get(STATUS_RESPONSE_UPDATE_HAS_UPDATE)
+                info_values['has_update'] = has_update
+
+            if update.get(STATUS_RESPONSE_UPDATE_OLD_VERSION):
+                info_values['fw_version'] = \
+                    update.get(STATUS_RESPONSE_UPDATE_OLD_VERSION)
+
+            if has_update and update.get(STATUS_RESPONSE_UPDATE_NEW_VERSION):
+                info_values['new_fw_version'] = \
+                    update.get(STATUS_RESPONSE_UPDATE_NEW_VERSION)
+
+        if status.get(STATUS_RESPONSE_UPTIME) is not None:
+            info_values['uptime'] = status.get(STATUS_RESPONSE_UPTIME)
+
+        for dev in self.devices:
+            dev.update_status_information(info_values)
+
     def _httpGet(self, url):
         try:
             conn = httplib.HTTPConnection(self.ipaddr)
@@ -190,7 +228,6 @@ class pyShellyDevice(object):
         self.subName = None
         self._unavailableAfterSec = 20
         self.stateValues = None
-        self.sensorValues = None
         self.infoValues = None
 
     def typeName(self):
@@ -234,41 +271,8 @@ class pyShellyDevice(object):
         if needUpdate:
             self._raiseUpdated()
 
-    def update_status_information(self):
+    def update_status_information(self, info_values):
         """Update the status information."""
-        status = self.block._httpGet('/status')
-        if status == {}:
-            return
-
-        info_values = {}
-
-        wifi_sta = status.get(STATUS_RESPONSE_WIFI_STA)
-        if wifi_sta is not None:
-            if wifi_sta.get(STATUS_RESPONSE_WIFI_STA_RSSI):
-                info_values['rssi'] = \
-                    wifi_sta.get(STATUS_RESPONSE_WIFI_STA_RSSI)
-            if wifi_sta.get(STATUS_RESPONSE_WIFI_STA_SSID):
-                info_values['ssid'] = \
-                    wifi_sta.get(STATUS_RESPONSE_WIFI_STA_SSID)
-
-        update = status.get(STATUS_RESPONSE_UPDATE)
-        if update is not None:
-            has_update = False
-            if update.get(STATUS_RESPONSE_UPDATE_HAS_UPDATE) is not None:
-                has_update = update.get(STATUS_RESPONSE_UPDATE_HAS_UPDATE)
-                info_values['has_update'] = has_update
-
-            if update.get(STATUS_RESPONSE_UPDATE_OLD_VERSION):
-                info_values['fw_version'] = \
-                    update.get(STATUS_RESPONSE_UPDATE_OLD_VERSION)
-
-            if has_update and update.get(STATUS_RESPONSE_UPDATE_NEW_VERSION):
-                info_values['new_fw_version'] = \
-                    update.get(STATUS_RESPONSE_UPDATE_NEW_VERSION)
-
-        if status.get(STATUS_RESPONSE_UPTIME) is not None:
-            info_values['uptime'] = status.get(STATUS_RESPONSE_UPTIME)
-
         self._update(infoValues=info_values)
 
     def _raiseUpdated(self):
