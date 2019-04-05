@@ -51,7 +51,7 @@ STATUS_RESPONSE_UPDATE_NEW_VERSION = 'new_version'
 STATUS_RESPONSE_UPDATE_OLD_VERSION = 'old_version'
 STATUS_RESPONSE_UPTIME = 'uptime'
 
-__version__ = "0.0.24"
+__version__ = "0.0.25"
 VERSION = __version__
 
 SHELLY_TYPES = {

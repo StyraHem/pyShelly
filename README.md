@@ -2,7 +2,8 @@
 
 Library for Shelly smart home devices. Using CoAP for auto discovery and status updates.
 
-## Features:
+## Features
+
 - Discover devices
 - Monitor status
 - Control (turn on/off etc)
@@ -12,7 +13,8 @@ Library for Shelly smart home devices. Using CoAP for auto discovery and status 
 - Support static and dynamic ip address
 - Zero configuration
 
-## Devices supported:
+## Devices supported
+
 - Shelly 1
 - Shelly 2 (relay or roller mode)
 - Shelly 4
@@ -25,13 +27,14 @@ Library for Shelly smart home devices. Using CoAP for auto discovery and status 
 - Shelly 2.5 (not tested)
 - Shelly PLUG S (not tested)
 
-## Usage:
+## Usage
+
 ```python
 shelly = pyShelly()
-shelly.cb_deviceAdded = deviceAdded
+shelly.cb_device_added.append(device_added)
 shelly.open()
 shelly.discover()
 
-def deviceAdded(dev):
+def device_added(dev):
   print (dev.devType)
 ```
