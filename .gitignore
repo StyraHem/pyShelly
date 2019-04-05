@@ -5,3 +5,4 @@ dist
 sendToGit
 sendToPyPi.sh
 desktop.ini
+.vscode
