@@ -10,13 +10,12 @@ import sys
 import threading
 import traceback
 
-logger = logging.getLogger('pyShelly')
+_LOGGER = logging.getLogger('pyShelly')
 
 try:
     import http.client as httplib
-except:
+except ModuleNotFoundError:
     import httplib
-
 
 if sys.version_info < (3,):
     def ba2c(x):  # Convert bytearra to compatible string
@@ -37,7 +36,7 @@ else:
     def s(x):
         return str(x, 'cp1252')
 
-name = "pyShelly"
+NAME = "pyShelly"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
@@ -87,7 +86,7 @@ class pyShellyBlock():
         self._setup()
 
     def update(self, data, ip):
-        # logger.debug("BlockUpdate %s", data)
+        # _LOGGER.debug("BlockUpdate %s", data)
         self.ip_addr = ip  # If changed ip
         for dev in self.devices:
             dev.ip_addr = ip
@@ -131,12 +130,13 @@ class pyShellyBlock():
         for dev in self.devices:
             dev.update_status_information(info_values)
 
-    def _http_get(self, url):
+    def _http_get(self, url, log_error=True):
         try:
-            logger.debug("http://%s%s", self.ip_addr, url)
+            _LOGGER.debug("http://%s%s", self.ip_addr, url)
             conn = httplib.HTTPConnection(self.ip_addr)
             headers = {}
-            if self.parent.username is not None and self.parent.password is not None:
+            if self.parent.username is not None \
+               and self.parent.password is not None:
                 combo = '%s:%s' % (self.parent.username, self.parent.password)
                 auth = s(
                     base64.b64encode(combo.encode()))  # .replace('\n', '')
@@ -145,12 +145,16 @@ class pyShellyBlock():
             resp = conn.getresponse()
             body = resp.read()
             conn.close()
-            logger.debug("Body: %s", body)
+            _LOGGER.debug("Body: %s", body)
             resp_json = json.loads(body)
             return resp_json
         except Exception as e:
-            logger.exception(
-                    "Error http GET: " + str(e) + traceback.format_exc())
+            if log_error:
+                _LOGGER.exception(
+                    "Error http GET: http://%s%s %s %s", self.ip_addr, url, e, traceback.format_exc())
+            else:
+                _LOGGER.debug(
+                    "Fail http GET: %s", e)
             return {}
 
     def _setup(self):
@@ -186,9 +190,10 @@ class pyShellyBlock():
         elif self.type == 'SHSW-1' or self.type == 'SHSK-1':
             self._add_device(pyShellyRelay(self, 0, 0))
         elif self.type == 'SHSW-44':
-            for ch in range(4):
+            for channel in range(4):
                 self._add_device(
-                    pyShellyRelay(self, ch + 1, ch * 2 + 1, ch * 2))
+                    pyShellyRelay(self, channel + 1, channel * 2 + 1, 
+                                  channel * 2))
         elif self.type == 'SHRGBWW-01':
             self._add_device(pyShellyRGBWW(self))
         elif self.type == 'SHPLG-1' or self.type == 'SHPLG2-1':
@@ -201,8 +206,8 @@ class pyShellyBlock():
             if settings.get('mode', 'color') == 'color':
                 self._add_device(pyShellyRGBW2C(self))
             else:
-                for ch in range(4):
-                    self._add_device(pyShellyRGBW2W(self, ch + 1))
+                for channel in range(4):
+                    self._add_device(pyShellyRGBW2W(self, channel + 1))
         else:
             self._add_device(pyShellyUnknown(self))
 
@@ -254,7 +259,7 @@ class pyShellyDevice(object):
 
     def _update(self, new_state=None, new_state_values=None, new_values=None,
                 info_values=None):
-        logger.debug("Update state:%s stateValue:%s values:%s", new_state,
+        _LOGGER.debug("Update state:%s stateValue:%s values:%s", new_state,
                      new_state_values, new_values)
         self.last_updated = datetime.now()
         needUpdate = False
@@ -400,7 +405,7 @@ class pyShellyLight(pyShellyDevice):
     def update(self, data):
 
         settings = self.block._http_get(self.url)
-        logger.debug(settings)
+        _LOGGER.debug(settings)
 
         new_state = data['G'][4][2] == 1  # 151
         mode = settings.get('mode', 'color')
@@ -424,8 +429,8 @@ class pyShellyLight(pyShellyDevice):
                   'rgb': self.rgb, 'temp': self.temp}
         self._update(new_state, values)
 
-    def _sendData(self, state, brightness=None, rgb=None, temp=None, mode=None,
-                  effect=None):
+    def _send_data(self, state, brightness=None, rgb=None, temp=None, mode=None,
+                   effect=None):
         url = self.url + "?"
 
         if state is not None:
@@ -461,21 +466,21 @@ class pyShellyLight(pyShellyDevice):
         self._sendCommand(url)
 
     def turn_on(self, rgb=None, brightness=None, temp=None, mode=None,
-               effect=None):
-        self._sendData(True, brightness, rgb, temp, mode, effect)
+                effect=None):
+        self._send_data(True, brightness, rgb, temp, mode, effect)
 
     def set_values(self, rgb=None, brightness=None, temp=None, mode=None,
-                  effect=None):
-        self._sendData(None, brightness, rgb, temp, mode, effect)
+                   effect=None):
+        self._send_data(None, brightness, rgb, temp, mode, effect)
 
     def turn_off(self):
-        self._sendData(False)
+        self._send_data(False)
 
     def get_dim_value(self):
         return self.brightness
 
     def set_dim_value(self, value):
-        self._sendData(True, value)
+        self._send_data(True, value)
 
 
 class pyShellyBulb(pyShellyLight):
@@ -535,14 +540,15 @@ class pyShellySensor(pyShellyDevice):
         humidity = float(data['G'][1][2])
         battery = int(data['G'][2][2])
         try:
-            settings = self.block._http_get("/settings")
+            settings = self.block._http_get("/settings", False)
             _unavailableAfterSec = settings['sleep_mode']['period'] * 3600
         except:
             pass
         if humidity == 0:
-            # Workaround, not sending humidity in CoAP, will be fixed in next firmware
+            # Workaround, not sending humidity in CoAP, 
+            # will be fixed in next firmware
             try:
-                status = self.block._http_get("/status")
+                status = self.block._http_get("/status", False)
                 humidity = status['hum']['value']
             except:
                 pass
@@ -552,13 +558,14 @@ class pyShellySensor(pyShellyDevice):
 
 class pyShelly():
     def __init__(self):
-        logger.info("Init pyShelly %s", VERSION)
+        _LOGGER.info("Init pyShelly %s", VERSION)
         self.stopped = threading.Event()
         self.blocks = {}
         self.devices = []
         self.cb_device_added = []
         self.cb_device_removed = []
-        self.igmp_fix_enabled = False  # Used if igmp packages not sent correctly
+        # Used if igmp packages not sent correctly
+        self.igmp_fix_enabled = False
         self.username = None
         self.password = None
         self._udp_thread = None
@@ -604,14 +611,14 @@ class pyShelly():
         for device in self.devices:
             device.update_status_information()
 
-    def _add_device(self, dev, code):
-        logger.debug('Add device')
+    def add_device(self, dev, code):
+        _LOGGER.debug('Add device')
         self.devices.append(dev)
         for callback in self.cb_device_added:
             callback(dev, code)
 
-    def _remove_device(self, dev, code):
-        logger.debug('Remove device')
+    def remove_device(self, dev, code):
+        _LOGGER.debug('Remove device')
         self.devices.remove(dev)
         for callback in self.cb_device_removed:
             callback(dev, code)
@@ -626,7 +633,7 @@ class pyShelly():
 
                 # This fix is needed if not sending IGMP reports correct
                 if self.igmp_fix_enabled and datetime.now() > next_igmp_fix:
-                    logger.debug("IGMP fix")
+                    _LOGGER.debug("IGMP fix")
                     next_igmp_fix = datetime.now() + timedelta(minutes=1)
                     mreq = struct.pack("=4sl", socket.inet_aton(COAP_IP),
                                        socket.INADDR_ANY)
@@ -635,24 +642,24 @@ class pyShelly():
                                                 socket.IP_DROP_MEMBERSHIP,
                                                 mreq)
                     except Exception as e:
-                        logger.debug("Can't drop membership, " + str(e))
+                        _LOGGER.debug("Can't drop membership, " + str(e))
                     try:
                         self._socket.setsockopt(socket.IPPROTO_IP,
                                                 socket.IP_ADD_MEMBERSHIP, mreq)
                     except Exception as e:
-                        logger.debug("Can't add membership, " + str(e))
+                        _LOGGER.debug("Can't add membership, " + str(e))
 
-                logger.debug("Wait for UDP message")
+                _LOGGER.debug("Wait for UDP message")
 
                 try:
                     dataTmp, addr = self._socket.recvfrom(500)
                 except socket.timeout:
                     continue
 
-                logger.debug("Got UDP message")
+                _LOGGER.debug("Got UDP message")
 
                 data = bytearray(dataTmp)
-                logger.debug(" Data: %s", data)
+                _LOGGER.debug(" Data: %s", data)
 
                 byte = data[0]
                 #ver = byte >> 6
@@ -664,7 +671,7 @@ class pyShelly():
 
                 pos = 4
 
-                logger.debug(' Code: %s', code)
+                _LOGGER.debug(' Code: %s', code)
 
                 if code == 30 or code == 69:
 
@@ -704,8 +711,8 @@ class pyShelly():
 
                     payload = s(data[pos + 1:])
 
-                    logger.debug(' Type %s, Id %s, Payload *%s*', device_type, id,
-                                 payload.replace(' ', ''))
+                    _LOGGER.debug(' Type %s, Id %s, Payload *%s*', device_type, 
+                                  id, payload.replace(' ', ''))
 
                     if id not in self.blocks:
                         self.blocks[id] = pyShellyBlock(self, id, device_type,
@@ -716,5 +723,5 @@ class pyShelly():
 
             except Exception as e:
 
-                logger.exception(
-                    "Error receiving UDP: " + str(e) + traceback.format_exc())
+                _LOGGER.exception(
+                    "Error receiving UDP: %s, %s", e, traceback.format_exc())
