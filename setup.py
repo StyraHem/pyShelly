@@ -9,7 +9,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="pyShelly",
-    version="0.0.25",
+    version="0.0.26",
     author="StyraHem / Tarra AB",
     author_email="info@styrahem.se",
     description="Library for Shelly smart home devices",

@@ -50,7 +50,7 @@ STATUS_RESPONSE_UPDATE_NEW_VERSION = 'new_version'
 STATUS_RESPONSE_UPDATE_OLD_VERSION = 'old_version'
 STATUS_RESPONSE_UPTIME = 'uptime'
 
-__version__ = "0.0.25"
+__version__ = "0.0.26"
 VERSION = __version__
 
 SHELLY_TYPES = {
@@ -173,9 +173,9 @@ class pyShellyBlock():
             if settings.get('mode') == 'roller':
                 self._add_device(pyShellyRoller(self))
             else:
-                self._add_device(pyShellyRelay(self, 1, 0, 1))
-                self._add_device(pyShellyRelay(self, 2, 2, 3))
-                self._add_device(pyShellyPowerMeter(self, 1, 1))
+                self._add_device(pyShellyRelay(self, 1, 0, 2))
+                self._add_device(pyShellyRelay(self, 2, 1, 3))
+                self._add_device(pyShellyPowerMeter(self, 1, 2))
                 self._add_device(pyShellyPowerMeter(self, 2, 3))
         elif self.type == 'SHSW-22':
             self._add_device(pyShellyRelay(self, 1, 0, 1))
@@ -213,13 +213,13 @@ class pyShellyBlock():
 
     def _add_device(self, dev):
         self.devices.append(dev)
-        self.parent._add_device(dev, self.code)
+        self.parent.add_device(dev, self.code)
         return dev
 
     def _remove_device(self, dev):
         self.devices.remove(dev)
-        self.parent._remove_device(dev, self.code)
-        if len(self.devices) == 0:
+        self.parent.remove_device(dev, self.code)
+        if not self.devices: #Empty
             self._setup()
 
 
@@ -262,22 +262,22 @@ class pyShellyDevice(object):
         _LOGGER.debug("Update state:%s stateValue:%s values:%s", new_state,
                      new_state_values, new_values)
         self.last_updated = datetime.now()
-        needUpdate = False
+        need_update = False
         if new_state is not None:
             if self.state != new_state:
                 self.state = new_state
-                needUpdate = True
+                need_update = True
         if new_state_values is not None:
             if self.state_values != new_state_values:
                 self.state_values = new_state_values
-                needUpdate = True
+                need_update = True
         if new_values is not None:
-            self.sensorValues = new_values
-            needUpdate = True
+            self.sensor_values = new_values
+            need_update = True
         if info_values is not None:
             self.info_values = info_values
-            needUpdate = True
-        if needUpdate:
+            need_update = True
+        if need_update:
             self._raise_updated()
 
     def update_status_information(self, info_values):
@@ -341,7 +341,7 @@ class pyShellyPowerMeter(pyShellyDevice):
         else:
             self._channel = 0
         self._pos = pos
-        self.sensorValues = None
+        self.sensor_values = {}
         self.device_type = "POWERMETER"
 
     def update(self, data):
