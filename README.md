@@ -23,8 +23,8 @@ Library for Shelly smart home devices. Using CoAP for auto discovery and status 
 - Shelly RGBWW
 - Shelly RGBW2
 - Shelly H&T
+- Shelly 2.5
 - Shelly 2LED (not tested)
-- Shelly 2.5 (not tested)
 - Shelly PLUG S (not tested)
 
 ## Usage
