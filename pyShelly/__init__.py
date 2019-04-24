@@ -50,7 +50,7 @@ STATUS_RESPONSE_UPDATE_NEW_VERSION = 'new_version'
 STATUS_RESPONSE_UPDATE_OLD_VERSION = 'old_version'
 STATUS_RESPONSE_UPTIME = 'uptime'
 
-__version__ = "0.0.26"
+__version__ = "0.0.27"
 VERSION = __version__
 
 SHELLY_TYPES = {
@@ -146,7 +146,7 @@ class pyShellyBlock():
             body = resp.read()
             conn.close()
             _LOGGER.debug("Body: %s", body)
-            resp_json = json.loads(body)
+            resp_json = json.loads(s(body))
             return resp_json
         except Exception as e:
             if log_error:
@@ -234,7 +234,7 @@ class pyShellyDevice(object):
         self.is_device = True
         self.is_sensor = False
         self.sub_name = None
-        self._unavailableAfterSec = 20
+        self._unavailable_after_sec = 20
         self.state_values = None
         self.info_values = None
         self.state = None
@@ -255,7 +255,7 @@ class pyShellyDevice(object):
         if self.last_updated is None:
             return False
         diff = datetime.now() - self.last_updated
-        return diff.total_seconds() < self._unavailableAfterSec
+        return diff.total_seconds() < self._unavailable_after_sec
 
     def _update(self, new_state=None, new_state_values=None, new_values=None,
                 info_values=None):
@@ -533,7 +533,7 @@ class pyShellySensor(pyShellyDevice):
         self.device_type = "SENSOR"
         self.is_sensor = True
         self.is_device = False
-        self._unavailableAfterSec = 3600 * 6  # TODO, read from settings
+        self._unavailable_after_sec = 3600 * 6
 
     def update(self, data):
         temp = float(data['G'][0][2])
@@ -541,7 +541,7 @@ class pyShellySensor(pyShellyDevice):
         battery = int(data['G'][2][2])
         try:
             settings = self.block._http_get("/settings", False)
-            _unavailableAfterSec = settings['sleep_mode']['period'] * 3600
+            self._unavailable_after_sec = settings['sleep_mode']['period'] * 3600
         except:
             pass
         if humidity == 0:
