@@ -8,6 +8,8 @@
 
 Library for Shelly smart home devices. Using CoAP for auto discovery and status updates.
 
+This library was created for Shelly Plugins for Home Assistant and Telldus Tellstick Net/zNet v2.
+
 ## Features
 
 - Discover devices
@@ -48,3 +50,9 @@ def device_added(dev):
 ## Feedback
 
 Please give us feedback on info@styrahem.se or Facebook groups: [Shelly grupp (Swedish)](https://www.facebook.com/groups/ShellySweden) or [Shelly support group (English)](https://www.facebook.com/groups/ShellyIoTCommunitySupport/)
+
+## Founder
+
+This plugin is created by the StyraHem.se, the Swedish distributor of Shelly. In Sweden you can bye Shellies from [StyraHem.se](https://www.styrahem.se/c/126/shelly) or any of the retailers like Kjell&Company.
+
+[![buy me a coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/styrahem)
