@@ -50,7 +50,7 @@ STATUS_RESPONSE_UPDATE_NEW_VERSION = 'new_version'
 STATUS_RESPONSE_UPDATE_OLD_VERSION = 'old_version'
 STATUS_RESPONSE_UPTIME = 'uptime'
 
-__version__ = "0.0.27"
+__version__ = "0.0.28"
 VERSION = __version__
 
 SHELLY_TYPES = {
@@ -69,11 +69,8 @@ SHELLY_TYPES = {
     'SHCL-255': {'name': "Shelly Bulb"},
     'SH2LED-1': {'name': "Shelly 2LED"},
     'SHSK-1': {'name': "Shelly Socket"},
+    'SHSW-PM': {'name': "Shelly 1 PM"},
 }
-
-
-# SHSEN-1    Sense
-# SHSM-01    Smoke
 
 class pyShellyBlock():
     def __init__(self, parent, id, type, ip_addr, code):
@@ -83,18 +80,23 @@ class pyShellyBlock():
         self.ip_addr = ip_addr
         self.devices = []
         self.code = code  # DEBUG
+        self.cb_updated = []
         self._setup()
+        self.info_values = {}
 
     def update(self, data, ip):
-        # _LOGGER.debug("BlockUpdate %s", data)
         self.ip_addr = ip  # If changed ip
         for dev in self.devices:
             dev.ip_addr = ip
             dev.update(data)
 
+    def _raise_updated(self):
+        for callback in self.cb_updated:
+            callback(self)
+
     def update_status_information(self):
         """Update the status information."""
-        status = self._http_get('/status')
+        status = self.http_get('/status', False)
         if status == {}:
             return
 
@@ -127,10 +129,13 @@ class pyShellyBlock():
         if status.get(STATUS_RESPONSE_UPTIME) is not None:
             info_values['uptime'] = status.get(STATUS_RESPONSE_UPTIME)
 
+        self.info_values = info_values
+        self._raise_updated()
+
         for dev in self.devices:
             dev.update_status_information(info_values)
 
-    def _http_get(self, url, log_error=True):
+    def http_get(self, url, log_error=True):
         try:
             _LOGGER.debug("http://%s%s", self.ip_addr, url)
             conn = httplib.HTTPConnection(self.ip_addr)
@@ -156,53 +161,65 @@ class pyShellyBlock():
                 _LOGGER.debug(
                     "Fail http GET: %s", e)
             return {}
+            
+    def update_firmware(self):
+        self.http_get("/ota?update=1")
 
     def _setup(self):
+        #Shelly BULB
         if self.type == 'SHBLB-1' or self.type == 'SHCL-255':
             self._add_device(pyShellyBulb(self))
+        #Shelly 2
         elif self.type == 'SHSW-21':
-            settings = self._http_get("/settings")
+            settings = self.http_get("/settings")
             if settings.get('mode') == 'roller':
                 self._add_device(pyShellyRoller(self))
             else:
-                self._add_device(pyShellyRelay(self, 1, 0, 2))
-                self._add_device(pyShellyRelay(self, 2, 1, 2))
-            self._add_device(pyShellyPowerMeter(self, 0, 2))
+                self._add_device(pyShellyRelay(self, 1, 112, 111))
+                self._add_device(pyShellyRelay(self, 2, 122, 121))
+            self._add_device(pyShellyPowerMeter(self, 0, 111))
+        #Shelly 2.5
         elif self.type == 'SHSW-25':
-            settings = self._http_get("/settings")
+            settings = self.http_get("/settings")
             if settings.get('mode') == 'roller':
                 self._add_device(pyShellyRoller(self))
             else:
-                self._add_device(pyShellyRelay(self, 1, 0, 2))
-                self._add_device(pyShellyRelay(self, 2, 1, 3))
-                self._add_device(pyShellyPowerMeter(self, 1, 2))
-                self._add_device(pyShellyPowerMeter(self, 2, 3))
+                self._add_device(pyShellyRelay(self, 1, 112, 111))
+                self._add_device(pyShellyRelay(self, 2, 122, 121))
+            self._add_device(pyShellyPowerMeter(self, 1, 111))
+            self._add_device(pyShellyPowerMeter(self, 2, 121))
         elif self.type == 'SHSW-22':
-            self._add_device(pyShellyRelay(self, 1, 0, 1))
-            self._add_device(pyShellyRelay(self, 2, 2, 3))
-            self._add_device(pyShellyPowerMeter(self, 1, 1))
-            self._add_device(pyShellyPowerMeter(self, 2, 3))
+            self._add_device(pyShellyRelay(self, 1, 112, 111))
+            self._add_device(pyShellyRelay(self, 2, 122, 121))
+            self._add_device(pyShellyPowerMeter(self, 1, 111))
+            self._add_device(pyShellyPowerMeter(self, 2, 121))
         elif self.type == 'SH2LED-1':
             self._add_device(pyShellyRGBW2W(self, 0))
             self._add_device(pyShellyRGBW2W(self, 1))
-        elif self.type == 'SHEM-1':
-            self._add_device(pyShellyRelay(self, 1, 0, 1))
+        #elif self.type == 'SHEM-1':
+        #    self._add_device(pyShellyRelay(self, 1, 0, 1))
+        #Shelly 1
         elif self.type == 'SHSW-1' or self.type == 'SHSK-1':
-            self._add_device(pyShellyRelay(self, 0, 0))
+            self._add_device(pyShellyRelay(self, 0, 112))
+        #Shelly 1 PM
+        elif self.type == 'SHSW-PM': 
+            self._add_device(pyShellyRelay(self, 0, 112, 111))
+            self._add_device(pyShellyPowerMeter(self, 0, 111))
         elif self.type == 'SHSW-44':
             for channel in range(4):
-                self._add_device(
-                    pyShellyRelay(self, channel + 1, channel * 2 + 1, 
-                                  channel * 2))
+                pos = 112 + (channel * 10)
+                self._add_device(pyShellyRelay(self, channel + 1, pos, pos-1))
+                self._add_device(pyShellyPowerMeter(self, channel + 1, pos - 1))
         elif self.type == 'SHRGBWW-01':
             self._add_device(pyShellyRGBWW(self))
+        #Shelly PLUG
         elif self.type == 'SHPLG-1' or self.type == 'SHPLG2-1':
-            self._add_device(pyShellyRelay(self, 0, 1, 0))
-            self._add_device(pyShellyPowerMeter(self, 0, 0))
+            self._add_device(pyShellyRelay(self, 0, 112, 111))
+            self._add_device(pyShellyPowerMeter(self, 0, 111))
         elif self.type == 'SHHT-1':
             self._add_device(pyShellySensor(self))
         elif self.type == 'SHRGBW2':
-            settings = self._http_get("/settings")
+            settings = self.http_get("/settings")
             if settings.get('mode', 'color') == 'color':
                 self._add_device(pyShellyRGBW2C(self))
             else:
@@ -221,6 +238,14 @@ class pyShellyBlock():
         self.parent.remove_device(dev, self.code)
         if not self.devices: #Empty
             self._setup()
+    
+
+    def type_name(self):
+        try:
+            name = SHELLY_TYPES[self.type]['name']
+        except:
+            name = self.type
+        return name
 
 
 class pyShellyDevice(object):
@@ -236,6 +261,7 @@ class pyShellyDevice(object):
         self.sub_name = None
         self._unavailable_after_sec = 20
         self.state_values = None
+        self.sensor_values = None
         self.info_values = None
         self.state = None
 
@@ -249,7 +275,7 @@ class pyShellyDevice(object):
         return name
 
     def _sendCommand(self, url):
-        self.block._http_get(url)
+        self.block.http_get(url)
 
     def available(self):
         if self.last_updated is None:
@@ -317,10 +343,10 @@ class pyShellyRelay(pyShellyDevice):
         self.is_sensor = power is not None
 
     def update(self, data):
-        new_state = data['G'][self._pos][2] == 1
+        new_state = data.get(self._pos) == 1
         new_values = None
         if self._power is not None:
-            watt = data['G'][self._power][2]
+            watt = data.get(self._power)
             new_values = {'watt': watt}
         self._update(new_state, None, new_values)
 
@@ -345,7 +371,7 @@ class pyShellyPowerMeter(pyShellyDevice):
         self.device_type = "POWERMETER"
 
     def update(self, data):
-        watt = data['G'][self._pos][2]
+        watt = data.get(self._pos)
         self._update(None, None, {'watt': watt})
 
 
@@ -359,16 +385,23 @@ class pyShellyRoller(pyShellyDevice):
         self.is_sensor = True
         self.sub_name = "Roller"
         self.support_position = False
-        self.motion_state = None
-        self.last_direction = None
+        self.motion_state = ""
+        self.last_direction = ""
+        settings = self.block.http_get("/roller/0")
+        self.support_position = settings.get("positioning", False)
 
     def update(self, data):
-        settings = self.block._http_get("/roller/0")
-        self.support_position = settings.get("positioning", False)
-        self.motion_state = settings.get("state", False)
-        self.last_direction = settings.get("last_direction")
-        self.position = settings.get('current_pos', 0)
-        watt = data['G'][2][2]
+        #self.motion_state = settings.get("state", False)
+        #self.last_direction = settings.get("last_direction")
+        self.motion_state = ""
+        if data.get(112):
+            self.motion_state = "open"
+        if data.get(122):
+            self.motion_state = "close"
+        if self.motion_state:
+            self.last_direction = self.motion_state
+        self.position = data.get(113)
+        watt = data.get(111, 0) + data.get(121, 0)
         state = self.position != 0
         self._update(state, None, {'watt': watt})
 
@@ -386,7 +419,7 @@ class pyShellyRoller(pyShellyDevice):
 
 
 class pyShellyLight(pyShellyDevice):
-    def __init__(self, block):
+    def __init__(self, block, state_pos):
         super(pyShellyLight, self).__init__(block)
         self.id = block.id
         self.state = None
@@ -395,42 +428,46 @@ class pyShellyLight(pyShellyDevice):
 
         self.mode = None
         self.brightness = None
+        self.white_value = None
         self.rgb = None
         self.temp = None
 
         self.support_effects = True
         self.allow_switch_mode = True
         self.support_color_temp = False
+        self.support_white_value = False
+
+        self.state_pos = state_pos
 
     def update(self, data):
-
-        settings = self.block._http_get(self.url)
+        settings = self.block.http_get(self.url)
         _LOGGER.debug(settings)
-
-        new_state = data['G'][4][2] == 1  # 151
         mode = settings.get('mode', 'color')
-
         if mode != self.mode:
             if not self.allow_switch_mode and self.mode is not None:
                 self._remove_my_self()
                 return
             self.mode = mode
 
+        new_state = data.get(self.state_pos) == 1 
+
         if self.mode == 'color':
             self.brightness = int(settings.get('gain', 0))
+            self.white_value = int(settings.get('white', 0))
         else:
             self.brightness = int(settings.get('brightness', 0))
 
-        self.rgb = [data['G'][0][2], data['G'][1][2], data['G'][2][2]]
+        self.rgb = [data.get(111), data.get(121), data.get(131)]
 
         self.temp = int(settings.get('temp', 0))
 
         values = {'mode': self.mode, 'brightness': self.brightness,
-                  'rgb': self.rgb, 'temp': self.temp}
+                  'rgb': self.rgb, 'temp': self.temp,
+                  'white_value': self.white_value}
         self._update(new_state, values)
 
     def _send_data(self, state, brightness=None, rgb=None, temp=None, mode=None,
-                   effect=None):
+                   effect=None, white_value=None):
         url = self.url + "?"
 
         if state is not None:
@@ -455,6 +492,9 @@ class pyShellyLight(pyShellyDevice):
             else:
                 url += "gain=" + str(brightness) + "&"
 
+        if white_value is not None:
+            url += "white=" + str(white_value) + "&"
+
         if rgb is not None:
             url += "red=" + str(rgb[0]) + "&"
             url += "green=" + str(rgb[1]) + "&"
@@ -466,12 +506,12 @@ class pyShellyLight(pyShellyDevice):
         self._sendCommand(url)
 
     def turn_on(self, rgb=None, brightness=None, temp=None, mode=None,
-                effect=None):
-        self._send_data(True, brightness, rgb, temp, mode, effect)
+                effect=None, white_value=None):
+        self._send_data(True, brightness, rgb, temp, mode, effect, white_value)
 
     def set_values(self, rgb=None, brightness=None, temp=None, mode=None,
-                   effect=None):
-        self._send_data(None, brightness, rgb, temp, mode, effect)
+                   effect=None, white_value=None):
+        self._send_data(None, brightness, rgb, temp, mode, effect, white_value)
 
     def turn_off(self):
         self._send_data(False)
@@ -482,22 +522,25 @@ class pyShellyLight(pyShellyDevice):
     def set_dim_value(self, value):
         self._send_data(True, value)
 
+    def get_white_value(self):
+        return self.white_value
+
+    def set_white_value(self, value):
+        self._send_data(True, white_value=value)
 
 class pyShellyBulb(pyShellyLight):
     def __init__(self, block):
-        super(pyShellyBulb, self).__init__(block)
+        super(pyShellyBulb, self).__init__(block, 151)
         self.support_color_temp = True
-
 
 class pyShellyRGBWW(pyShellyLight):
     def __init__(self, block):
-        super(pyShellyRGBWW, self).__init__(block)
+        super(pyShellyRGBWW, self).__init__(block, 151)
         self.support_color_temp = True
-
 
 class pyShellyRGBW2W(pyShellyLight):
     def __init__(self, block, channel):
-        super(pyShellyRGBW2W, self).__init__(block)
+        super(pyShellyRGBW2W, self).__init__(block, 161)
         self.id = self.id + '-' + str(channel)
         self._channel = channel - 1
         self.mode = "white"
@@ -506,9 +549,9 @@ class pyShellyRGBW2W(pyShellyLight):
         self.allow_switch_mode = False
 
     def update(self, data):
-        if len(data['G']) == 8:
-            new_state = data['G'][4 + self._channel][2] == 1
-            self.brightness = data['G'][self._channel][2]
+        if 181 in data:
+            new_state = data.get(151 + self._channel * 10) == 1
+            self.brightness = data.get(111 + self._channel * 10)
             values = {'mode': self.mode, 'brightness': self.brightness,
                       'rgb': self.rgb, 'temp': self.temp}
             self._update(new_state, values)
@@ -518,12 +561,12 @@ class pyShellyRGBW2W(pyShellyLight):
 
 class pyShellyRGBW2C(pyShellyLight):
     def __init__(self, block):
-        super(pyShellyRGBW2C, self).__init__(block)
+        super(pyShellyRGBW2C, self).__init__(block, 161)
         self.mode = "color"
         self.url = "/color/0"
         self.support_effects = False
         self.allow_switch_mode = False
-
+        self.support_white_value = True
 
 class pyShellySensor(pyShellyDevice):
     def __init__(self, block):
@@ -536,11 +579,11 @@ class pyShellySensor(pyShellyDevice):
         self._unavailable_after_sec = 3600 * 6
 
     def update(self, data):
-        temp = float(data['G'][0][2])
-        humidity = float(data['G'][1][2])
-        battery = int(data['G'][2][2])
+        temp = float(data.get(33))
+        humidity = float(data.get(44))
+        battery = int(data.get(77))
         try:
-            settings = self.block._http_get("/settings", False)
+            settings = self.block.http_get("/settings", False)
             self._unavailable_after_sec = settings['sleep_mode']['period'] * 3600
         except:
             pass
@@ -548,7 +591,7 @@ class pyShellySensor(pyShellyDevice):
             # Workaround, not sending humidity in CoAP, 
             # will be fixed in next firmware
             try:
-                status = self.block._http_get("/status", False)
+                status = self.block.http_get("/status", False)
                 humidity = status['hum']['value']
             except:
                 pass
@@ -562,6 +605,7 @@ class pyShelly():
         self.stopped = threading.Event()
         self.blocks = {}
         self.devices = []
+        self.cb_block_added = []
         self.cb_device_added = []
         self.cb_device_removed = []
         # Used if igmp packages not sent correctly
@@ -649,17 +693,17 @@ class pyShelly():
                     except Exception as e:
                         _LOGGER.debug("Can't add membership, " + str(e))
 
-                _LOGGER.debug("Wait for UDP message")
+                #_LOGGER.debug("Wait for UDP message")
 
                 try:
                     dataTmp, addr = self._socket.recvfrom(500)
                 except socket.timeout:
                     continue
 
-                _LOGGER.debug("Got UDP message")
+                #_LOGGER.debug("Got UDP message")
 
                 data = bytearray(dataTmp)
-                _LOGGER.debug(" Data: %s", data)
+                #_LOGGER.debug(" Data: %s", data)
 
                 byte = data[0]
                 #ver = byte >> 6
@@ -671,7 +715,7 @@ class pyShelly():
 
                 pos = 4
 
-                _LOGGER.debug(' Code: %s', code)
+                #_LOGGER.debug(' Code: %s', code)
 
                 if code == 30 or code == 69:
 
@@ -711,15 +755,21 @@ class pyShelly():
 
                     payload = s(data[pos + 1:])
 
+                    #if id != '5DBDD5':
+                    #    continue
+
                     _LOGGER.debug(' Type %s, Id %s, Payload *%s*', device_type, 
                                   id, payload.replace(' ', ''))
 
                     if id not in self.blocks:
-                        self.blocks[id] = pyShellyBlock(self, id, device_type,
-                                                        addr[0], code)
+                        block = self.blocks[id] = \
+                            pyShellyBlock(self, id, device_type, addr[0], code)
+                        for callback in self.cb_block_added:
+                            callback(block)
 
                     if code == 30:
-                        self.blocks[id].update(json.loads(payload), addr[0])
+                        data = {d[1]:d[2] for d in json.loads(payload)['G']}
+                        self.blocks[id].update(data, addr[0])
 
             except Exception as e:
 
