@@ -24,7 +24,7 @@ This library was created for Shelly Plugins for Home Assistant and Telldus Tells
 ## Devices supported
 
 - Shelly 1
-- Shelly 1 PM
+- Shelly 1 PM (bug in firmware)
 - Shelly 2 (relay or roller mode)
 - Shelly 4
 - Shelly PLUG
@@ -32,7 +32,7 @@ This library was created for Shelly Plugins for Home Assistant and Telldus Tells
 - Shelly RGBWW
 - Shelly RGBW2
 - Shelly H&T
-- Shelly 2.5
+- Shelly 2.5 (relay or roller mode)
 - Shelly 2LED (not tested)
 - Shelly PLUG S (not tested)
 

@@ -50,7 +50,7 @@ STATUS_RESPONSE_UPDATE_NEW_VERSION = 'new_version'
 STATUS_RESPONSE_UPDATE_OLD_VERSION = 'old_version'
 STATUS_RESPONSE_UPTIME = 'uptime'
 
-__version__ = "0.0.28"
+__version__ = "0.0.29"
 VERSION = __version__
 
 SHELLY_TYPES = {
@@ -156,12 +156,13 @@ class pyShellyBlock():
         except Exception as e:
             if log_error:
                 _LOGGER.exception(
-                    "Error http GET: http://%s%s %s %s", self.ip_addr, url, e, traceback.format_exc())
+                    "Error http GET: http://%s%s %s %s", self.ip_addr, url,
+                    e, traceback.format_exc())
             else:
                 _LOGGER.debug(
                     "Fail http GET: %s", e)
             return {}
-            
+
     def update_firmware(self):
         self.http_get("/ota?update=1")
 
@@ -177,22 +178,23 @@ class pyShellyBlock():
             else:
                 self._add_device(pyShellyRelay(self, 1, 112, 111))
                 self._add_device(pyShellyRelay(self, 2, 122, 121))
-            self._add_device(pyShellyPowerMeter(self, 0, 111))
+            self._add_device(pyShellyPowerMeter(self, 0, [111]))
         #Shelly 2.5
         elif self.type == 'SHSW-25':
             settings = self.http_get("/settings")
             if settings.get('mode') == 'roller':
                 self._add_device(pyShellyRoller(self))
+                self._add_device(pyShellyPowerMeter(self, 1, [111, 112]))
             else:
                 self._add_device(pyShellyRelay(self, 1, 112, 111))
                 self._add_device(pyShellyRelay(self, 2, 122, 121))
-            self._add_device(pyShellyPowerMeter(self, 1, 111))
-            self._add_device(pyShellyPowerMeter(self, 2, 121))
+                self._add_device(pyShellyPowerMeter(self, 1, [111]))
+                self._add_device(pyShellyPowerMeter(self, 2, [121]))
         elif self.type == 'SHSW-22':
             self._add_device(pyShellyRelay(self, 1, 112, 111))
             self._add_device(pyShellyRelay(self, 2, 122, 121))
-            self._add_device(pyShellyPowerMeter(self, 1, 111))
-            self._add_device(pyShellyPowerMeter(self, 2, 121))
+            self._add_device(pyShellyPowerMeter(self, 1, [111]))
+            self._add_device(pyShellyPowerMeter(self, 2, [121]))
         elif self.type == 'SH2LED-1':
             self._add_device(pyShellyRGBW2W(self, 0))
             self._add_device(pyShellyRGBW2W(self, 1))
@@ -202,20 +204,21 @@ class pyShellyBlock():
         elif self.type == 'SHSW-1' or self.type == 'SHSK-1':
             self._add_device(pyShellyRelay(self, 0, 112))
         #Shelly 1 PM
-        elif self.type == 'SHSW-PM': 
+        elif self.type == 'SHSW-PM':
             self._add_device(pyShellyRelay(self, 0, 112, 111))
-            self._add_device(pyShellyPowerMeter(self, 0, 111))
+            self._add_device(pyShellyPowerMeter(self, 0, [111]))
         elif self.type == 'SHSW-44':
             for channel in range(4):
                 pos = 112 + (channel * 10)
                 self._add_device(pyShellyRelay(self, channel + 1, pos, pos-1))
-                self._add_device(pyShellyPowerMeter(self, channel + 1, pos - 1))
+                self._add_device(pyShellyPowerMeter(self, channel + 1,
+                                                    [pos - 1]))
         elif self.type == 'SHRGBWW-01':
             self._add_device(pyShellyRGBWW(self))
         #Shelly PLUG
         elif self.type == 'SHPLG-1' or self.type == 'SHPLG2-1':
             self._add_device(pyShellyRelay(self, 0, 112, 111))
-            self._add_device(pyShellyPowerMeter(self, 0, 111))
+            self._add_device(pyShellyPowerMeter(self, 0, [111]))
         elif self.type == 'SHHT-1':
             self._add_device(pyShellySensor(self))
         elif self.type == 'SHRGBW2':
@@ -358,7 +361,8 @@ class pyShellyRelay(pyShellyDevice):
 
 
 class pyShellyPowerMeter(pyShellyDevice):
-    def __init__(self, block, channel, pos):
+    """Class to represent a power meter value"""
+    def __init__(self, block, channel, positions):
         super(pyShellyPowerMeter, self).__init__(block)
         self.id = block.id
         if channel > 0:
@@ -366,12 +370,13 @@ class pyShellyPowerMeter(pyShellyDevice):
             self._channel = channel - 1
         else:
             self._channel = 0
-        self._pos = pos
+        self._positions = positions
         self.sensor_values = {}
         self.device_type = "POWERMETER"
 
     def update(self, data):
-        watt = data.get(self._pos)
+        """Get the power"""
+        watt = sum(data.get(pos) for pos in self._positions)
         self._update(None, None, {'watt': watt})
 
 
@@ -449,7 +454,7 @@ class pyShellyLight(pyShellyDevice):
                 return
             self.mode = mode
 
-        new_state = data.get(self.state_pos) == 1 
+        new_state = data.get(self.state_pos) == 1
 
         if self.mode == 'color':
             self.brightness = int(settings.get('gain', 0))
