@@ -50,7 +50,7 @@ STATUS_RESPONSE_UPDATE_NEW_VERSION = 'new_version'
 STATUS_RESPONSE_UPDATE_OLD_VERSION = 'old_version'
 STATUS_RESPONSE_UPTIME = 'uptime'
 
-__version__ = "0.0.29"
+__version__ = "0.0.30"
 VERSION = __version__
 
 SHELLY_TYPES = {
@@ -61,6 +61,7 @@ SHELLY_TYPES = {
     'SHSW-44': {'name': "Shelly 4 Pro"},
     'SHPLG-1': {'name': "Shelly Plug"},
     'SHPLG2-1': {'name': "Shelly Plug"},
+    'SHPLG-S': {'name': "Shelly Plug S"},
     'SHRGBWW-01': {'name': "Shelly RGBWW"},
     'SHBLB-1': {'name': "Shelly Bulb"},
     'SHHT-1': {'name': "Shelly H&T"},
@@ -215,8 +216,9 @@ class pyShellyBlock():
                                                     [pos - 1]))
         elif self.type == 'SHRGBWW-01':
             self._add_device(pyShellyRGBWW(self))
-        #Shelly PLUG
-        elif self.type == 'SHPLG-1' or self.type == 'SHPLG2-1':
+        #Shelly PLUG'S
+        elif (self.type == 'SHPLG-1' or self.type == 'SHPLG2-1' or
+              self.type == 'SHPLG-S'):
             self._add_device(pyShellyRelay(self, 0, 112, 111))
             self._add_device(pyShellyPowerMeter(self, 0, [111]))
         elif self.type == 'SHHT-1':
@@ -376,7 +378,7 @@ class pyShellyPowerMeter(pyShellyDevice):
 
     def update(self, data):
         """Get the power"""
-        watt = sum(data.get(pos) for pos in self._positions)
+        watt = sum(data.get(pos, 0) for pos in self._positions)
         self._update(None, None, {'watt': watt})
 
 
