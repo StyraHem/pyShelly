@@ -49,6 +49,12 @@ STATUS_RESPONSE_UPDATE_HAS_UPDATE = 'has_update'
 STATUS_RESPONSE_UPDATE_NEW_VERSION = 'new_version'
 STATUS_RESPONSE_UPDATE_OLD_VERSION = 'old_version'
 STATUS_RESPONSE_UPTIME = 'uptime'
+STATUS_RESPONSE_TEMP = 'temperature'
+STATUS_RESPONSE_OVER_TEMP = 'overtemperature'
+STATUS_RESPONSE_RELAYS = 'relays'
+STATUS_RESPONSE_RELAY_OVER_POWER = 'overpower'
+STATUS_RESPONSE_CLOUD = 'cloud'
+STATUS_RESPONSE_CLOUD_CONNECTED = 'connected'
 
 __version__ = "0.0.30"
 VERSION = __version__
@@ -89,7 +95,8 @@ class pyShellyBlock():
         self.ip_addr = ip  # If changed ip
         for dev in self.devices:
             dev.ip_addr = ip
-            dev.update(data)
+            if hasattr(dev, 'update'):
+                dev.update(data)
 
     def _raise_updated(self):
         for callback in self.cb_updated:
@@ -127,14 +134,26 @@ class pyShellyBlock():
                 info_values['new_fw_version'] = \
                     update.get(STATUS_RESPONSE_UPDATE_NEW_VERSION)
 
+        cloud = status.get(STATUS_RESPONSE_CLOUD)
+        if cloud.get(STATUS_RESPONSE_CLOUD_CONNECTED) is not None:
+            info_values['cloud_connected'] = \
+                cloud.get(STATUS_RESPONSE_CLOUD_CONNECTED)
+
         if status.get(STATUS_RESPONSE_UPTIME) is not None:
             info_values['uptime'] = status.get(STATUS_RESPONSE_UPTIME)
+
+        if status.get(STATUS_RESPONSE_TEMP) is not None:
+            info_values['temperature'] = status.get(STATUS_RESPONSE_TEMP)
+
+        if status.get(STATUS_RESPONSE_OVER_TEMP) is not None:
+            info_values['over_temperature'] = \
+                status.get(STATUS_RESPONSE_OVER_TEMP)
 
         self.info_values = info_values
         self._raise_updated()
 
         for dev in self.devices:
-            dev.update_status_information(info_values)
+            dev.update_status_information(info_values, status)
 
     def http_get(self, url, log_error=True):
         try:
@@ -191,6 +210,7 @@ class pyShellyBlock():
                 self._add_device(pyShellyRelay(self, 2, 122, 121))
                 self._add_device(pyShellyPowerMeter(self, 1, [111]))
                 self._add_device(pyShellyPowerMeter(self, 2, [121]))
+            self._add_device(pyShellyInfoSensor(self, 'temperature'))
         elif self.type == 'SHSW-22':
             self._add_device(pyShellyRelay(self, 1, 112, 111))
             self._add_device(pyShellyRelay(self, 2, 122, 121))
@@ -290,8 +310,8 @@ class pyShellyDevice(object):
 
     def _update(self, new_state=None, new_state_values=None, new_values=None,
                 info_values=None):
-        _LOGGER.debug("Update state:%s stateValue:%s values:%s", new_state,
-                     new_state_values, new_values)
+        _LOGGER.debug("Update id:%s state:%s stateValue:%s values:%s info_values:%s", self.id, new_state,
+                     new_state_values, new_values, info_values)
         self.last_updated = datetime.now()
         need_update = False
         if new_state is not None:
@@ -311,13 +331,13 @@ class pyShellyDevice(object):
         if need_update:
             self._raise_updated()
 
-    def update_status_information(self, info_values):
+    def update_status_information(self, info_values, _status):
         """Update the status information."""
         self._update(info_values=info_values)
 
     def _raise_updated(self):
         for callback in self.cb_updated:
-            callback()
+            callback(self)
 
     def _remove_my_self(self):
         self.block._remove_device(self)
@@ -354,6 +374,18 @@ class pyShellyRelay(pyShellyDevice):
             watt = data.get(self._power)
             new_values = {'watt': watt}
         self._update(new_state, None, new_values)
+
+    def update_status_information(self, info_values, status):
+        """Update the status information."""
+        relays = status.get(STATUS_RESPONSE_RELAYS)
+        if relays:
+            relay = relays[self._channel]
+            if relay.get(STATUS_RESPONSE_RELAY_OVER_POWER) is not None:
+                info_values = info_values.copy()
+                info_values['over_power'] = \
+                    relay.get(STATUS_RESPONSE_RELAY_OVER_POWER)
+
+        self._update(info_values=info_values)
 
     def turn_on(self):
         self._sendCommand("/relay/" + str(self._channel) + "?turn=on")
@@ -605,6 +637,20 @@ class pyShellySensor(pyShellyDevice):
         self._update(None, None, {'temperature': temp, 'humidity': humidity,
                                   'battery': battery})
 
+class pyShellyInfoSensor(pyShellyDevice):
+    def __init__(self, block, info_attr):
+        super(pyShellyInfoSensor, self).__init__(block)
+        self.info_attr = info_attr
+        self.state = None
+        self.device_type = "INFOSENSOR"
+        self.is_sensor = True
+        self.is_device = False
+
+    def update_status_information(self, info_values, _status):
+        """Update the status information."""
+        state = {}
+        state[self.info_attr] = info_values[self.info_attr]
+        self._update(state, info_values=info_values)
 
 class pyShelly():
     def __init__(self):
@@ -658,9 +704,9 @@ class pyShelly():
         self._socket.sendto(msg, (COAP_IP, COAP_PORT))
 
     def update_status_information(self):
-        """Update status information for all devices."""
-        for device in self.devices:
-            device.update_status_information()
+        """Update status information for all blocks."""
+        for _, block in self.blocks.items():
+            block.update_status_information()
 
     def add_device(self, dev, code):
         _LOGGER.debug('Add device')
