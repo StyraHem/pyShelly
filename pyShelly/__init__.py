@@ -12,6 +12,11 @@ import traceback
 
 _LOGGER = logging.getLogger('pyShelly')
 
+NAME = "pyShelly"
+
+__version__ = "0.0.31"
+VERSION = __version__
+
 try:
     import http.client as httplib
 except ModuleNotFoundError:
@@ -36,28 +41,46 @@ else:
     def s(x):
         return str(x, 'cp1252')
 
-NAME = "pyShelly"
-
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
 
-STATUS_RESPONSE_WIFI_STA_RSSI = 'rssi'
-STATUS_RESPONSE_WIFI_STA = 'wifi_sta'
-STATUS_RESPONSE_WIFI_STA_SSID = 'ssid'
-STATUS_RESPONSE_UPDATE = 'update'
-STATUS_RESPONSE_UPDATE_HAS_UPDATE = 'has_update'
-STATUS_RESPONSE_UPDATE_NEW_VERSION = 'new_version'
-STATUS_RESPONSE_UPDATE_OLD_VERSION = 'old_version'
-STATUS_RESPONSE_UPTIME = 'uptime'
-STATUS_RESPONSE_TEMP = 'temperature'
-STATUS_RESPONSE_OVER_TEMP = 'overtemperature'
 STATUS_RESPONSE_RELAYS = 'relays'
 STATUS_RESPONSE_RELAY_OVER_POWER = 'overpower'
-STATUS_RESPONSE_CLOUD = 'cloud'
-STATUS_RESPONSE_CLOUD_CONNECTED = 'connected'
 
-__version__ = "0.0.30"
-VERSION = __version__
+INFO_VALUE_RSSI = 'rssi'
+INFO_VALUE_UPTIME = 'uptime'
+INFO_VALUE_OVER_POWER = 'over_power'
+INFO_VALUE_DEVICE_TEMP = 'device_temp'
+INFO_VALUE_OVER_TEMPERATURE = 'over_temp'
+INFO_VALUE_SSID = 'ssid'
+INFO_VALUE_HAS_FIRMWARE_UPDATE = 'has_firmware_update'
+INFO_VALUE_LATEST_FIRMWARE_VERSION = 'latest_fw_version'
+INFO_VALUE_FW_VERSION = 'firmware_version'
+INFO_VALUE_CLOUD_STATUS = 'cloud_status'
+INFO_VALUE_CLOUD_ENABLED = 'cloud_enabled'
+INFO_VALUE_CLOUD_CONNECTED = 'cloud_connected'
+INFO_VALUE_MQTT_CONNECTED = 'mqtt_connected'
+INFO_VALUE_CONCUMPTION = 'consumtion'
+INFO_VALUE_BATTERY = 'battery'
+
+ATTR_PATH = 'path'
+
+BLOCK_INFO_VALUES = {
+    INFO_VALUE_SSID : {ATTR_PATH :'wifi_sta/ssid'},
+    INFO_VALUE_RSSI : {ATTR_PATH : 'wifi_sta/rssi'},
+    INFO_VALUE_UPTIME : {ATTR_PATH : 'uptime' },
+    INFO_VALUE_DEVICE_TEMP : {ATTR_PATH : 'temperature' },
+    INFO_VALUE_OVER_TEMPERATURE : {ATTR_PATH : 'overtemperature' },
+    INFO_VALUE_HAS_FIRMWARE_UPDATE : {ATTR_PATH : 'update/has_update' },
+    INFO_VALUE_LATEST_FIRMWARE_VERSION : {ATTR_PATH : 'update/new_version' },   
+    INFO_VALUE_FW_VERSION : {ATTR_PATH : 'update/old_version' },
+    INFO_VALUE_CLOUD_ENABLED : {ATTR_PATH : 'cloud/enabled' },
+    INFO_VALUE_CLOUD_CONNECTED : {ATTR_PATH : 'cloud/connected' },
+    #INFO_VALUE_CLOUD_STATUS : {ATTR_PATH : 'cloud/connected' },
+    INFO_VALUE_MQTT_CONNECTED : {ATTR_PATH : 'mqtt/connected' },
+    INFO_VALUE_CONCUMPTION : {ATTR_PATH : 'consumtion' },
+    INFO_VALUE_BATTERY : {ATTR_PATH : 'bat/value' },
+}
 
 SHELLY_TYPES = {
     'SHSW-1': {'name': "Shelly 1"},
@@ -90,6 +113,7 @@ class pyShellyBlock():
         self.cb_updated = []
         self._setup()
         self.info_values = {}
+        self._last_update_status_info = None
 
     def update(self, data, ip):
         self.ip_addr = ip  # If changed ip
@@ -104,56 +128,35 @@ class pyShellyBlock():
 
     def update_status_information(self):
         """Update the status information."""
+        self._last_update_status_info = datetime.now()
+
         status = self.http_get('/status', False)
         if status == {}:
             return
 
+        """Put status in info_values"""
         info_values = {}
+        for name, attr in BLOCK_INFO_VALUES.items():
+            data = status
+            path = attr[ATTR_PATH]                        
+            for key in path.split('/'):
+                data = data.get(key,None) if data is not None else None
+            if data is not None:
+                info_values[name] = data
 
-        wifi_sta = status.get(STATUS_RESPONSE_WIFI_STA)
-        if wifi_sta is not None:
-            if wifi_sta.get(STATUS_RESPONSE_WIFI_STA_RSSI):
-                info_values['rssi'] = \
-                    wifi_sta.get(STATUS_RESPONSE_WIFI_STA_RSSI)
-            if wifi_sta.get(STATUS_RESPONSE_WIFI_STA_SSID):
-                info_values['ssid'] = \
-                    wifi_sta.get(STATUS_RESPONSE_WIFI_STA_SSID)
-
-        update = status.get(STATUS_RESPONSE_UPDATE)
-        if update is not None:
-            has_update = False
-            if update.get(STATUS_RESPONSE_UPDATE_HAS_UPDATE) is not None:
-                has_update = update.get(STATUS_RESPONSE_UPDATE_HAS_UPDATE)
-                info_values['has_update'] = has_update
-
-            if update.get(STATUS_RESPONSE_UPDATE_OLD_VERSION):
-                info_values['fw_version'] = \
-                    update.get(STATUS_RESPONSE_UPDATE_OLD_VERSION)
-
-            if has_update and update.get(STATUS_RESPONSE_UPDATE_NEW_VERSION):
-                info_values['new_fw_version'] = \
-                    update.get(STATUS_RESPONSE_UPDATE_NEW_VERSION)
-
-        cloud = status.get(STATUS_RESPONSE_CLOUD)
-        if cloud.get(STATUS_RESPONSE_CLOUD_CONNECTED) is not None:
-            info_values['cloud_connected'] = \
-                cloud.get(STATUS_RESPONSE_CLOUD_CONNECTED)
-
-        if status.get(STATUS_RESPONSE_UPTIME) is not None:
-            info_values['uptime'] = status.get(STATUS_RESPONSE_UPTIME)
-
-        if status.get(STATUS_RESPONSE_TEMP) is not None:
-            info_values['temperature'] = status.get(STATUS_RESPONSE_TEMP)
-
-        if status.get(STATUS_RESPONSE_OVER_TEMP) is not None:
-            info_values['over_temperature'] = \
-                status.get(STATUS_RESPONSE_OVER_TEMP)
+        if info_values.get(INFO_VALUE_CLOUD_ENABLED)==True:
+            if info_values.get(INFO_VALUE_CLOUD_CONNECTED):
+                info_values[INFO_VALUE_CLOUD_STATUS] = 'connected'
+            else:
+                info_values[INFO_VALUE_CLOUD_STATUS] = 'disconnected'
+        else:
+            info_values[INFO_VALUE_CLOUD_STATUS] = 'disabled'
 
         self.info_values = info_values
         self._raise_updated()
 
         for dev in self.devices:
-            dev.update_status_information(info_values, status)
+            dev.update_status_information(status)
 
     def http_get(self, url, log_error=True):
         try:
@@ -210,7 +213,7 @@ class pyShellyBlock():
                 self._add_device(pyShellyRelay(self, 2, 122, 121))
                 self._add_device(pyShellyPowerMeter(self, 1, [111]))
                 self._add_device(pyShellyPowerMeter(self, 2, [121]))
-            self._add_device(pyShellyInfoSensor(self, 'temperature'))
+            #self._add_device(pyShellyInfoSensor(self, 'temperature'))
         elif self.type == 'SHSW-22':
             self._add_device(pyShellyRelay(self, 1, 112, 111))
             self._add_device(pyShellyRelay(self, 2, 122, 121))
@@ -331,9 +334,10 @@ class pyShellyDevice(object):
         if need_update:
             self._raise_updated()
 
-    def update_status_information(self, info_values, _status):
+    def update_status_information(self,  _status):
         """Update the status information."""
-        self._update(info_values=info_values)
+        pass
+        #self._update(info_values={}})
 
     def _raise_updated(self):
         for callback in self.cb_updated:
@@ -371,18 +375,18 @@ class pyShellyRelay(pyShellyDevice):
         new_state = data.get(self._pos) == 1
         new_values = None
         if self._power is not None:
-            watt = data.get(self._power)
-            new_values = {'watt': watt}
+            consumtion = data.get(self._power)
+            new_values = {INFO_VALUE_CONCUMPTION: consumtion}
         self._update(new_state, None, new_values)
 
-    def update_status_information(self, info_values, status):
+    def update_status_information(self, status):
         """Update the status information."""
+        info_values = {}
         relays = status.get(STATUS_RESPONSE_RELAYS)
         if relays:
             relay = relays[self._channel]
             if relay.get(STATUS_RESPONSE_RELAY_OVER_POWER) is not None:
-                info_values = info_values.copy()
-                info_values['over_power'] = \
+                info_values[INFO_VALUE_OVER_POWER] = \
                     relay.get(STATUS_RESPONSE_RELAY_OVER_POWER)
 
         self._update(info_values=info_values)
@@ -410,8 +414,8 @@ class pyShellyPowerMeter(pyShellyDevice):
 
     def update(self, data):
         """Get the power"""
-        watt = sum(data.get(pos, 0) for pos in self._positions)
-        self._update(None, None, {'watt': watt})
+        consumption = sum(data.get(pos, 0) for pos in self._positions)
+        self._update(None, None, {INFO_VALUE_CONCUMPTION: consumption})
 
 
 class pyShellyRoller(pyShellyDevice):
@@ -440,9 +444,9 @@ class pyShellyRoller(pyShellyDevice):
         if self.motion_state:
             self.last_direction = self.motion_state
         self.position = data.get(113)
-        watt = data.get(111, 0) + data.get(121, 0)
+        consumption = data.get(111, 0) + data.get(121, 0)
         state = self.position != 0
-        self._update(state, None, {'watt': watt})
+        self._update(state, None, {INFO_VALUE_CONCUMPTION:consumption})
 
     def up(self):
         self._sendCommand("/roller/0?go=" + ("open"))
@@ -597,7 +601,6 @@ class pyShellyRGBW2W(pyShellyLight):
         else:
             self._remove_my_self()
 
-
 class pyShellyRGBW2C(pyShellyLight):
     def __init__(self, block):
         super(pyShellyRGBW2C, self).__init__(block, 161)
@@ -637,20 +640,20 @@ class pyShellySensor(pyShellyDevice):
         self._update(None, None, {'temperature': temp, 'humidity': humidity,
                                   'battery': battery})
 
-class pyShellyInfoSensor(pyShellyDevice):
-    def __init__(self, block, info_attr):
-        super(pyShellyInfoSensor, self).__init__(block)
-        self.info_attr = info_attr
-        self.state = None
-        self.device_type = "INFOSENSOR"
-        self.is_sensor = True
-        self.is_device = False
+# class pyShellyInfoSensor(pyShellyDevice):
+#     def __init__(self, block, info_attr):
+#         super(pyShellyInfoSensor, self).__init__(block)
+#         self.info_attr = info_attr
+#         self.state = None
+#         self.device_type = "INFOSENSOR"
+#         self.is_sensor = True
+#         self.is_device = False
 
-    def update_status_information(self, info_values, _status):
-        """Update the status information."""
-        state = {}
-        state[self.info_attr] = info_values[self.info_attr]
-        self._update(state, info_values=info_values)
+#     def update_status_information(self, info_values, _status):
+#         """Update the status information."""
+#         state = {}
+#         state[self.info_attr] = info_values[self.info_attr]
+#         self._update(state, info_values=info_values)
 
 class pyShelly():
     def __init__(self):
@@ -665,14 +668,15 @@ class pyShelly():
         self.igmp_fix_enabled = False
         self.username = None
         self.password = None
-        self._udp_thread = None
+        self.update_status_interval = None
+        self._main_thread = None
         self._socket = None
 
     def open(self):
         self.init_socket()
-        self._udp_thread = threading.Thread(target=self._udp_reader)
-        self._udp_thread.daemon = True
-        self._udp_thread.start()
+        self._main_thread = threading.Thread(target=self._main_loop)
+        self._main_thread.daemon = True
+        self._main_thread.start()
 
     def version(self):
         return VERSION
@@ -691,8 +695,8 @@ class pyShelly():
 
     def close(self):
         self.stopped.set()
-        if self._udp_thread is not None:
-            self._udp_thread.join()
+        if self._main_thread is not None:
+            self._main_thread.join()
         try:
             self._socket.shutdown(socket.SHUT_RDWR)
         except socket.error:
@@ -703,10 +707,10 @@ class pyShelly():
         msg = bytes(b'\x50\x01\x00\x0A\xb3cit\x01d\xFF')
         self._socket.sendto(msg, (COAP_IP, COAP_PORT))
 
-    def update_status_information(self):
-        """Update status information for all blocks."""
-        for _, block in self.blocks.items():
-            block.update_status_information()
+    #def update_status_information(self):
+    #    """Update status information for all blocks."""
+    #    for _, block in self.blocks.items():
+    #        block.update_status_information()
 
     def add_device(self, dev, code):
         _LOGGER.debug('Add device')
@@ -720,7 +724,7 @@ class pyShelly():
         for callback in self.cb_device_removed:
             callback(dev, code)
 
-    def _udp_reader(self):
+    def _main_loop(self):
 
         next_igmp_fix = datetime.now() + timedelta(minutes=1)
 
@@ -753,20 +757,29 @@ class pyShelly():
                 except socket.timeout:
                     continue
 
+                ipaddr = addr[0]
+
                 #_LOGGER.debug("Got UDP message")
 
                 data = bytearray(dataTmp)
                 #_LOGGER.debug(" Data: %s", data)
 
-                byte = data[0]
+                pos = 0
+
+                """Receice messages with ip from proxy"""
+                if data[0]==112 and data[1]==114 and data[2]==120 and data[3]==121:
+                    ipaddr = socket.inet_ntoa(data[4:8])
+                    pos = 8
+
+                byte = data[pos]
                 #ver = byte >> 6
                 #typex = (byte >> 4) & 0x3
                 #tokenlen = byte & 0xF
 
-                code = data[1]
+                code = data[pos+1]
                 #msgid = 256 * data[2] + data[3]
 
-                pos = 4
+                pos = pos + 4
 
                 #_LOGGER.debug(' Code: %s', code)
 
@@ -808,7 +821,7 @@ class pyShelly():
 
                     payload = s(data[pos + 1:])
 
-                    #if id != '5DBDD5':
+                    #if id != '134E13':
                     #    continue
 
                     _LOGGER.debug(' Type %s, Id %s, Payload *%s*', device_type, 
@@ -816,13 +829,21 @@ class pyShelly():
 
                     if id not in self.blocks:
                         block = self.blocks[id] = \
-                            pyShellyBlock(self, id, device_type, addr[0], code)
+                            pyShellyBlock(self, id, device_type, ipaddr, code)
                         for callback in self.cb_block_added:
                             callback(block)
 
                     if code == 30:
                         data = {d[1]:d[2] for d in json.loads(payload)['G']}
-                        self.blocks[id].update(data, addr[0])
+                        block = self.blocks[id]
+                        if self.update_status_interval is not None and \
+                            (block._last_update_status_info is None or
+                            datetime.now() - block._last_update_status_info > self.update_status_interval):
+                            t = threading.Thread(target=block.update_status_information)
+                            t.daemon = True
+                            t.start()
+                            pass
+                        block.update(data, ipaddr)
 
             except Exception as e:
 
