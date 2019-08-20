@@ -14,12 +14,12 @@ This library was created for Shelly Plugins for Home Assistant and Telldus Tells
 
 - Discover devices
 - Monitor status
+- Monitor switch status
 - Control (turn on/off etc)
 - Run only locally
 - Support user name and password
 - Coexist with Shelly Cloud and Shelly app
 - Support static and dynamic ip address
-- Zero configuration
 
 ## Devices supported
 
@@ -33,8 +33,9 @@ This library was created for Shelly Plugins for Home Assistant and Telldus Tells
 - Shelly RGBWW
 - Shelly RGBW2
 - Shelly H&T
+- Shelly EM
 - Shelly 2.5 (relay or roller mode)
-- Shelly 2LED (not tested)
+- Shelly 2LED
 
 ## Usage
 
