@@ -96,7 +96,7 @@ SHELLY_TYPES = {
     'SHBLB-1': {'name': "Shelly Bulb"},
     'SHHT-1': {'name': "Shelly H&T"},
     'SHRGBW2': {'name': "Shelly RGBW2"},
-    'SHEM': {'name': "Shelly EM"},
+    'SHEM-1': {'name': "Shelly EM"},
     'SHCL-255': {'name': "Shelly Bulb"},
     'SH2LED-1': {'name': "Shelly 2LED"},
     'SHSK-1': {'name': "Shelly Socket"},
@@ -252,7 +252,7 @@ class pyShellyBlock():
         elif self.type == 'SH2LED-1':
             self._add_device(pyShellyRGBW2W(self, 0))
             self._add_device(pyShellyRGBW2W(self, 1))
-        elif self.type == 'SHEM':
+        elif self.type == 'SHEM-1':
             self._add_device(pyShellyRelay(self, 1, 112))
             self._add_device(pyShellyPowerMeter(self, 1, [111]))
             self._add_device(pyShellyPowerMeter(self, 2, [121]))
