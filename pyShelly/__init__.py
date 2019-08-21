@@ -60,7 +60,7 @@ INFO_VALUE_CLOUD_STATUS = 'cloud_status'
 INFO_VALUE_CLOUD_ENABLED = 'cloud_enabled'
 INFO_VALUE_CLOUD_CONNECTED = 'cloud_connected'
 INFO_VALUE_MQTT_CONNECTED = 'mqtt_connected'
-INFO_VALUE_CONCUMPTION = 'consumption'
+INFO_VALUE_CONSUMPTION = 'consumption'
 INFO_VALUE_SWITCH = 'switch'
 INFO_VALUE_BATTERY = 'battery'
 
@@ -79,7 +79,7 @@ BLOCK_INFO_VALUES = {
     INFO_VALUE_CLOUD_CONNECTED : {ATTR_PATH : 'cloud/connected' },
     #INFO_VALUE_CLOUD_STATUS : {ATTR_PATH : 'cloud/connected' },
     INFO_VALUE_MQTT_CONNECTED : {ATTR_PATH : 'mqtt/connected' },
-    INFO_VALUE_CONCUMPTION : {ATTR_PATH : 'consumption' },
+    INFO_VALUE_CONSUMPTION : {ATTR_PATH : 'consumption' },
     INFO_VALUE_BATTERY : {ATTR_PATH : 'bat/value' },
 }
 
@@ -413,7 +413,7 @@ class pyShellyRelay(pyShellyDevice):
         new_values = {}
         if self._power_idx is not None:
             consumption = data.get(self._power_idx)
-            new_values[INFO_VALUE_CONCUMPTION] = consumption
+            new_values[INFO_VALUE_CONSUMPTION] = consumption
         if self._switch_idx is not None:
             switch_state = data.get(self._switch_idx)
             new_values[INFO_VALUE_SWITCH] = switch_state
@@ -455,7 +455,7 @@ class pyShellyPowerMeter(pyShellyDevice):
     def update(self, data):
         """Get the power"""
         consumption = sum(data.get(pos, 0) for pos in self._positions)
-        self._update(None, None, {INFO_VALUE_CONCUMPTION: consumption})
+        self._update(None, None, {INFO_VALUE_CONSUMPTION: consumption})
 
 class pyShellySwitch(pyShellyDevice):
     """Class to represent a power meter value"""
@@ -504,7 +504,7 @@ class pyShellyRoller(pyShellyDevice):
         self.position = data.get(113)
         consumption = data.get(111, 0) + data.get(121, 0)
         state = self.position != 0
-        self._update(state, None, {INFO_VALUE_CONCUMPTION:consumption})
+        self._update(state, None, {INFO_VALUE_CONSUMPTION:consumption})
 
     def up(self):
         self._sendCommand("/roller/0?go=" + ("open"))
