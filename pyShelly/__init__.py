@@ -14,7 +14,7 @@ _LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
 
-__version__ = "0.0.33"
+__version__ = "0.0.34"
 VERSION = __version__
 
 try:
