@@ -14,7 +14,7 @@ _LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
 
-__version__ = "0.0.34"
+__version__ = "0.0.35"
 VERSION = __version__
 
 try:
@@ -46,6 +46,8 @@ COAP_PORT = 5683
 
 STATUS_RESPONSE_RELAYS = 'relays'
 STATUS_RESPONSE_RELAY_OVER_POWER = 'overpower'
+
+SENSOR_UNAVAILABLE_SEC = 3600 * 13
 
 INFO_VALUE_RSSI = 'rssi'
 INFO_VALUE_UPTIME = 'uptime'
@@ -101,6 +103,7 @@ SHELLY_TYPES = {
     'SH2LED-1': {'name': "Shelly 2LED"},
     'SHSK-1': {'name': "Shelly Socket"},
     'SHSW-PM': {'name': "Shelly 1 PM"},
+    'SHWT-1': {'name': "Shelly flood"},
 }
 
 EFFECTS_RGBW2 = [
@@ -129,13 +132,16 @@ class pyShellyBlock():
         self.devices = []
         self.code = code  # DEBUG
         self.cb_updated = []
+        self.unavailable_after_sec = None
         self._setup()
         self.info_values = {}
         self._last_update_status_info = None
         self._reload = False
+        self.last_updated = datetime.now()
 
     def update(self, data, ip):
         self.ip_addr = ip  # If changed ip
+        self.last_updated = datetime.now()
         for dev in self.devices:
             dev.ip_addr = ip
             if hasattr(dev, 'update'):
@@ -279,7 +285,9 @@ class pyShellyBlock():
             self._add_device(pyShellyRelay(self, 0, 112, 111))
             self._add_device(pyShellyPowerMeter(self, 0, [111]))
         elif self.type == 'SHHT-1':
-            self._add_device(pyShellySensor(self))
+            self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
+            self._add_device(pyShellySensor(self, 33, 'temperature'))
+            self._add_device(pyShellySensor(self, 44, 'humidity'))
         elif self.type == 'SHRGBW2':
             settings = self.http_get("/settings")
             if settings.get('mode', 'color') == 'color':
@@ -287,8 +295,12 @@ class pyShellyBlock():
             else:
                 for channel in range(4):
                     self._add_device(pyShellyRGBW2W(self, channel + 1))
-        else:
-            self._add_device(pyShellyUnknown(self))
+        elif self.type == 'SHWT-1':
+            self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
+            self._add_device(pyShellyFlood(self))
+            self._add_device(pyShellySensor(self, 33, 'temperature'))
+        #else:
+        #    self._add_device(pyShellyUnknown(self))
 
     def _add_device(self, dev):
         self.devices.append(dev)
@@ -309,22 +321,30 @@ class pyShellyBlock():
             name = self.type
         return name
 
+    def available(self):
+        if self.unavailable_after_sec is None:
+            return True
+        if self.last_updated is None:
+            return False
+        diff = datetime.now() - self.last_updated
+        return diff.total_seconds() <= self.unavailable_after_sec
+
 class pyShellyDevice(object):
     def __init__(self, block):
         self.block = block
         self.id = block.id
         self.type = block.type
         self.ip_addr = block.ip_addr
-        self.cb_updated = []
-        self.last_updated = datetime.now()
+        self.cb_updated = []        
         self.is_device = True
         self.is_sensor = False
         self.sub_name = None
-        self.unavailable_after_sec = None
         self.state_values = None
         self.sensor_values = None
         self.info_values = None
         self.state = None
+        self.device_type = None
+        self.device_sub_type = None #Used to make sensors unique
 
     def type_name(self):
         try:
@@ -339,18 +359,12 @@ class pyShellyDevice(object):
         self.block.http_get(url)
 
     def available(self):
-        if self.unavailable_after_sec is None:
-            return True
-        if self.last_updated is None:
-            return False
-        diff = datetime.now() - self.last_updated
-        return diff.total_seconds() <= self.unavailable_after_sec
+        return self.block.available()
 
     def _update(self, new_state=None, new_state_values=None, new_values=None,
                 info_values=None):
         _LOGGER.debug("Update id:%s state:%s stateValue:%s values:%s info_values:%s", self.id, new_state,
-                     new_state_values, new_values, info_values)
-        self.last_updated = datetime.now()
+                     new_state_values, new_values, info_values)        
         need_update = False
         if new_state is not None:
             if self.state != new_state:
@@ -675,49 +689,34 @@ class pyShellyRGBW2C(pyShellyLight):
         self.support_white_value = True
 
 class pyShellySensor(pyShellyDevice):
-    def __init__(self, block):
+    def __init__(self, block, pos, type):        
         super(pyShellySensor, self).__init__(block)
         self.id = block.id
         self.state = None
         self.device_type = "SENSOR"
+        self.device_sub_type = type
         self.is_sensor = True
         self.is_device = False
-        self.unavailable_after_sec = 3600 * 6
+        self._pos = pos
+        self.sensor_type = type
 
     def update(self, data):
-        temp = float(data.get(33))
-        humidity = float(data.get(44))
-        battery = int(data.get(77))
-        try:
-            settings = self.block.http_get("/settings", False)
-            self.unavailable_after_sec = settings['sleep_mode']['period'] * 3600
-        except:
-            pass
-        if humidity == 0:
-            # Workaround, not sending humidity in CoAP, 
-            # will be fixed in next firmware
-            try:
-                status = self.block.http_get("/status", False)
-                humidity = status['hum']['value']
-            except:
-                pass
-        self._update(None, None, {'temperature': temp, 'humidity': humidity,
-                                  'battery': battery})
+        value = float(data.get(self._pos))
+        self._update(None, None, { self.sensor_type : value })
 
-# class pyShellyInfoSensor(pyShellyDevice):
-#     def __init__(self, block, info_attr):
-#         super(pyShellyInfoSensor, self).__init__(block)
-#         self.info_attr = info_attr
-#         self.state = None
-#         self.device_type = "INFOSENSOR"
-#         self.is_sensor = True
-#         self.is_device = False
 
-#     def update_status_information(self, info_values, _status):
-#         """Update the status information."""
-#         state = {}
-#         state[self.info_attr] = info_values[self.info_attr]
-#         self._update(state, info_values=info_values)
+class pyShellyBinarySensor(pyShellySensor):
+    def __init__(self, block, pos, type):        
+        super(pyShellyBinarySensor, self).__init__(block, pos, type)
+
+    def update(self, data):
+        value = bool(data.get(self._pos))
+        self._update(None, None, { self.sensor_type : value })
+
+class pyShellyFlood(pyShellyBinarySensor):
+    """Class to represent a power meter value"""
+    def __init__(self, block):
+        super(pyShellyFlood, self).__init__(block, 23, 'flood')
 
 class pyShelly():
     def __init__(self):
