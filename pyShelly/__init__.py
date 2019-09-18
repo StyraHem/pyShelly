@@ -14,7 +14,7 @@ _LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
 
-__version__ = "0.0.35"
+__version__ = "0.1.0"
 VERSION = __version__
 
 try:
@@ -67,12 +67,13 @@ INFO_VALUE_SWITCH = 'switch'
 INFO_VALUE_BATTERY = 'battery'
 
 ATTR_PATH = 'path'
+ATTR_FMT = 'fmt'
 
 BLOCK_INFO_VALUES = {
     INFO_VALUE_SSID : {ATTR_PATH :'wifi_sta/ssid'},
     INFO_VALUE_RSSI : {ATTR_PATH : 'wifi_sta/rssi'},
     INFO_VALUE_UPTIME : {ATTR_PATH : 'uptime' },
-    INFO_VALUE_DEVICE_TEMP : {ATTR_PATH : 'temperature' },
+    INFO_VALUE_DEVICE_TEMP : {ATTR_PATH : 'temperature',  ATTR_FMT : 'round'},
     INFO_VALUE_OVER_TEMPERATURE : {ATTR_PATH : 'overtemperature' },
     INFO_VALUE_HAS_FIRMWARE_UPDATE : {ATTR_PATH : 'update/has_update' },
     INFO_VALUE_LATEST_FIRMWARE_VERSION : {ATTR_PATH : 'update/new_version' },   
@@ -104,6 +105,7 @@ SHELLY_TYPES = {
     'SHSK-1': {'name': "Shelly Socket"},
     'SHSW-PM': {'name': "Shelly 1 PM"},
     'SHWT-1': {'name': "Shelly flood"},
+    'SHDM-1': {'name': "Shelly dimmer"},
 }
 
 EFFECTS_RGBW2 = [
@@ -174,9 +176,12 @@ class pyShellyBlock():
             for key in path.split('/'):
                 data = data.get(key,None) if data is not None else None
             if data is not None:
+                fmt = attr.get(ATTR_FMT, None)
+                if fmt == "round":
+                    data = round(data, 0)
                 info_values[name] = data
 
-        if info_values.get(INFO_VALUE_CLOUD_ENABLED)==True:
+        if info_values.get(INFO_VALUE_CLOUD_ENABLED):
             if info_values.get(INFO_VALUE_CLOUD_CONNECTED):
                 info_values[INFO_VALUE_CLOUD_STATUS] = 'connected'
             else:
@@ -271,6 +276,7 @@ class pyShellyBlock():
             self._add_device(pyShellyRelay(self, 0, 112, 111, 118))
             self._add_device(pyShellyPowerMeter(self, 0, [111]))
             self._add_device(pyShellySwitch(self, 0, 118))
+        #Shelly 4 Pro
         elif self.type == 'SHSW-44':
             for channel in range(4):
                 pos = 112 + (channel * 10)
@@ -279,6 +285,11 @@ class pyShellyBlock():
                                                     [pos - 1]))
         elif self.type == 'SHRGBWW-01':
             self._add_device(pyShellyRGBWW(self))
+        #Shelly Dimmer
+        elif self.type == 'SHDM-1':
+            self._add_device(pyShellyDimmer(self, 121, 111))
+            self._add_device(pyShellySwitch(self, 1, 131))
+            self._add_device(pyShellySwitch(self, 2, 141))
         #Shelly PLUG'S
         elif (self.type == 'SHPLG-1' or self.type == 'SHPLG2-1' or
               self.type == 'SHPLG-S'):
@@ -355,7 +366,7 @@ class pyShellyDevice(object):
             name = name + " (" + self.sub_name + ")"
         return name
 
-    def _sendCommand(self, url):
+    def _send_command(self, url):
         self.block.http_get(url)
 
     def available(self):
@@ -446,10 +457,10 @@ class pyShellyRelay(pyShellyDevice):
         self._update(info_values=info_values)
 
     def turn_on(self):
-        self._sendCommand("/relay/" + str(self._channel) + "?turn=on")
+        self._send_command("/relay/" + str(self._channel) + "?turn=on")
 
     def turn_off(self):
-        self._sendCommand("/relay/" + str(self._channel) + "?turn=off")
+        self._send_command("/relay/" + str(self._channel) + "?turn=off")
 
 
 class pyShellyPowerMeter(pyShellyDevice):
@@ -521,17 +532,63 @@ class pyShellyRoller(pyShellyDevice):
         self._update(state, None, {INFO_VALUE_CONSUMPTION:consumption})
 
     def up(self):
-        self._sendCommand("/roller/0?go=" + ("open"))
+        self._send_command("/roller/0?go=" + ("open"))
 
     def down(self):
-        self._sendCommand("/roller/0?go=" + ("close"))
+        self._send_command("/roller/0?go=" + ("close"))
 
     def stop(self):
-        self._sendCommand("/roller/0?go=stop")
+        self._send_command("/roller/0?go=stop")
 
     def set_position(self, pos):
-        self._sendCommand("/roller/0?go=to_pos&roller_pos=" + str(pos))
+        self._send_command("/roller/0?go=to_pos&roller_pos=" + str(pos))
 
+class pyShellyDimmer(pyShellyDevice):
+    def __init__(self, block, state_pos, dim_pos):
+        super(pyShellyDimmer, self).__init__(block)
+        self.id = block.id
+        self.device_type = "DIMMER"
+        self.url = "/light/0"
+        self.state = None
+        self.brightness = None
+        self.state_pos = state_pos
+        self.dim_pos = dim_pos
+
+    def update(self, data):
+        new_state = data.get(self.state_pos) == 1
+        self.brightness = data.get(self.dim_pos)        
+        values = { 'brightness': self.brightness }        
+        self._update(new_state, values)
+
+    def _send_data(self, state, brightness=None):
+        url = self.url + "?"
+
+        if state is not None:
+            if not state or brightness == 0:
+                url += "turn=off"
+                self._send_command(url)
+                return
+            url += "turn=on&"
+
+        if brightness is not None:
+            url += "brightness=" + str(brightness) + "&"
+
+        self._send_command(url)
+
+    def turn_on(self, brightness=None):
+        self._send_data(True, brightness)
+
+    #def set_values(self, brightness=None):
+    #    self._send_data(None, brightness)
+
+    def turn_off(self):
+        self._send_data(False)
+
+    def get_dim_value(self):
+        return self.brightness
+
+    def set_dim_value(self, value):
+        self._send_data(True, value)
 
 class pyShellyLight(pyShellyDevice):
     def __init__(self, block, state_pos):
@@ -593,18 +650,18 @@ class pyShellyLight(pyShellyDevice):
         if state is not None:
             if not state or brightness == 0:
                 url += "turn=off"
-                self._sendCommand(url)
+                self._send_command(url)
                 return
 
             url += "turn=on&"
 
         if mode is not None:
-            self._sendCommand("/settings/?mode=" + mode)
+            self._send_command("/settings/?mode=" + mode)
         else:
             mode = self.mode
 
         if effect is not None:
-            self._sendCommand("/color/0/?effect=" + str(effect))
+            self._send_command("/color/0/?effect=" + str(effect))
 
         if brightness is not None:
             if mode == "white":
@@ -623,7 +680,7 @@ class pyShellyLight(pyShellyDevice):
         if temp is not None:
             url += "temp=" + str(temp) + "&"
 
-        self._sendCommand(url)
+        self._send_command(url)
 
     def turn_on(self, rgb=None, brightness=None, temp=None, mode=None,
                 effect=None, white_value=None):

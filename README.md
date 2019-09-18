@@ -36,6 +36,8 @@ This library was created for Shelly Plugins for Home Assistant and Telldus Tells
 - Shelly EM
 - Shelly 2.5 (relay or roller mode)
 - Shelly 2LED
+- Shelly Flood
+- Shelly Dimmer
 
 ## Usage
 
