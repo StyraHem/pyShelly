@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# pylint: disable=broad-except, bare-except
 
 import base64
 from datetime import datetime, timedelta
@@ -14,12 +15,12 @@ _LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
 
-__version__ = "0.1.0"
+__version__ = "0.1.3"
 VERSION = __version__
 
 try:
     import http.client as httplib
-except ModuleNotFoundError:
+except:
     import httplib
 
 if sys.version_info < (3,):
@@ -140,6 +141,7 @@ class pyShellyBlock():
         self._last_update_status_info = None
         self._reload = False
         self.last_updated = datetime.now()
+        self.error = None
 
     def update(self, data, ip):
         self.ip_addr = ip  # If changed ip
@@ -154,7 +156,7 @@ class pyShellyBlock():
                 if hasattr(device, 'update'):
                     device.update(data)
                 self.parent.add_device(device, self.code)
-            self._reload = False            
+            self._reload = False
 
     def _raise_updated(self):
         for callback in self.cb_updated:
@@ -168,7 +170,7 @@ class pyShellyBlock():
         if status == {}:
             return
 
-        """Put status in info_values"""
+        #Put status in info_values
         info_values = {}
         for name, attr in BLOCK_INFO_VALUES.items():
             data = status
@@ -196,7 +198,9 @@ class pyShellyBlock():
             dev.update_status_information(status)
 
     def http_get(self, url, log_error=True):
+        """Send HTTP GET request"""
         try:
+            resp_json = None
             _LOGGER.debug("http://%s%s", self.ip_addr, url)
             conn = httplib.HTTPConnection(self.ip_addr)
             headers = {}
@@ -208,22 +212,30 @@ class pyShellyBlock():
                 headers["Authorization"] = "Basic %s" % auth
             conn.request("GET", url, None, headers)
             resp = conn.getresponse()
-            body = resp.read()
+
+            if resp.status == 200:
+                body = resp.read()
+                _LOGGER.debug("Body: %s", body)
+                resp_json = json.loads(s(body))
+                self.error = ""
+            else:
+                self.error = "Error, " + str(resp.status) \
+                                + ' ' + str(resp.reason)
+                _LOGGER.debug(self.error)
             conn.close()
-            _LOGGER.debug("Body: %s", body)
-            resp_json = json.loads(s(body))
             return resp_json
-        except Exception as e:
+        except Exception as ex:
             if log_error:
                 _LOGGER.exception(
                     "Error http GET: http://%s%s %s %s", self.ip_addr, url,
-                    e, traceback.format_exc())
+                    ex, traceback.format_exc())
             else:
                 _LOGGER.debug(
-                    "Fail http GET: %s", e)
+                    "Fail http GET: %s", ex)
             return {}
 
     def update_firmware(self):
+        """Start firmware update"""
         self.http_get("/ota?update=1")
 
     def _setup(self):
@@ -237,7 +249,7 @@ class pyShellyBlock():
                 self._add_device(pyShellyRoller(self))
             else:
                 self._add_device(pyShellyRelay(self, 1, 112, 111, 118))
-                self._add_device(pyShellyRelay(self, 2, 122, 121, 128))
+                self._add_device(pyShellyRelay(self, 2, 122, None, 128))
             self._add_device(pyShellySwitch(self, 1, 118))
             self._add_device(pyShellySwitch(self, 2, 128))
             self._add_device(pyShellyPowerMeter(self, 0, [111]))
@@ -269,7 +281,7 @@ class pyShellyBlock():
             self._add_device(pyShellyPowerMeter(self, 2, [121]))
         #Shelly 1
         elif self.type == 'SHSW-1' or self.type == 'SHSK-1':
-            self._add_device(pyShellyRelay(self, 0, 112, 118))
+            self._add_device(pyShellyRelay(self, 0, 112, None, 118))
             self._add_device(pyShellySwitch(self, 0, 118))
         #Shelly 1 PM
         elif self.type == 'SHSW-PM':
@@ -326,6 +338,7 @@ class pyShellyBlock():
         self._setup()
 
     def type_name(self):
+        """Type friendly name"""
         try:
             name = SHELLY_TYPES[self.type]['name']
         except:
@@ -333,6 +346,7 @@ class pyShellyBlock():
         return name
 
     def available(self):
+        """Return if device available"""
         if self.unavailable_after_sec is None:
             return True
         if self.last_updated is None:
@@ -358,6 +372,7 @@ class pyShellyDevice(object):
         self.device_sub_type = None #Used to make sensors unique
 
     def type_name(self):
+        """Friendly type name"""
         try:
             name = SHELLY_TYPES[self.type]['name']
         except:
@@ -431,7 +446,7 @@ class pyShellyRelay(pyShellyDevice):
         self._switch_idx = switch_idx
         self.state = None
         self.device_type = "RELAY"
-        self.is_sensor = power_idx is not None        
+        self.is_sensor = power_idx is not None
 
     def update(self, data):
         new_state = data.get(self._pos) == 1
@@ -640,7 +655,7 @@ class pyShellyLight(pyShellyDevice):
                   'rgb': self.rgb, 'temp': self.temp,
                   'white_value': self.white_value,
                   'effect': self.effect}
-        
+
         self._update(new_state, values)
 
     def _send_data(self, state, brightness=None, rgb=None, temp=None, mode=None,
@@ -730,8 +745,8 @@ class pyShellyRGBW2W(pyShellyLight):
         if 181 in data:
             new_state = data.get(151 + self._channel * 10) == 1
             self.brightness = data.get(111 + self._channel * 10)
-            values = {'mode': self.mode, 'brightness': self.brightness,
-                      'rgb': self.rgb, 'temp': self.temp}
+            values = {'mode': self.mode, 'brightness': self.brightness}
+                      #'rgb': self.rgb, 'temp': self.temp}
             self._update(new_state, values)
         else:
             self._reload_block()
