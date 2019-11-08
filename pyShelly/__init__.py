@@ -15,7 +15,7 @@ _LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
 
-__version__ = "0.1.3"
+__version__ = "0.1.4"
 VERSION = __version__
 
 try:
@@ -105,8 +105,8 @@ SHELLY_TYPES = {
     'SH2LED-1': {'name': "Shelly 2LED"},
     'SHSK-1': {'name': "Shelly Socket"},
     'SHSW-PM': {'name': "Shelly 1 PM"},
-    'SHWT-1': {'name': "Shelly flood"},
-    'SHDM-1': {'name': "Shelly dimmer"},
+    'SHWT-1': {'name': "Shelly Flood"},
+    'SHDM-1': {'name': "Shelly Dimmer"},
 }
 
 EFFECTS_RGBW2 = [
@@ -722,7 +722,7 @@ class pyShellyLight(pyShellyDevice):
 
 class pyShellyBulb(pyShellyLight):
     def __init__(self, block):
-        super(pyShellyBulb, self).__init__(block, 151)
+        super(pyShellyBulb, self).__init__(block, 181)
         self.effects_list = EFFECTS_BULB
         self.support_color_temp = True
 
