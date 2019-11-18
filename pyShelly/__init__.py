@@ -530,6 +530,7 @@ class pyShellyRoller(pyShellyDevice):
         self.last_direction = ""
         settings = self.block.http_get("/roller/0")
         self.support_position = settings.get("positioning", False)
+        self.offset = 0
 
     def update(self, data):
         #self.motion_state = settings.get("state", False)
@@ -556,6 +557,8 @@ class pyShellyRoller(pyShellyDevice):
         self._send_command("/roller/0?go=stop")
 
     def set_position(self, pos):
+        if pos >= 1:
+            pos = pos + ((100 - pos) * self.offset / 100)
         self._send_command("/roller/0?go=to_pos&roller_pos=" + str(pos))
 
 class pyShellyDimmer(pyShellyDevice):
