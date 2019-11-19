@@ -303,7 +303,7 @@ class pyShelly():
 
                     if code == 30:
                         self._update_block(device_id, device_type,
-                                           ipaddr, code, None) #payload)
+                                           ipaddr, code, payload)
 
                     if code == 69:
                         self._update_block(device_id, device_type,
