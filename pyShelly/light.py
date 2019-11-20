@@ -99,8 +99,10 @@ class Light(Device):
         self._channel = channel
 
     def update(self, data):
-        settings = self.block.http_get(self.url) #todo
-        LOGGER.debug(settings)
+        success, settings = self.block.http_get(self.url) #todo
+        if not success:
+            return
+
         mode = settings.get('mode', 'color')
         if mode != self.mode:
             if not self.allow_switch_mode and self.mode is not None:
@@ -150,6 +152,10 @@ class Light(Device):
             else:
                 self.brightness = \
                     int(light.get(STATUS_RESPONSE_LIGHTS_BRIGHTNESS, 0))
+
+            self.temp = int(light.get('temp', 0))
+
+            self.effect = int(light.get('effect', 0))
 
             new_state = light.get(STATUS_RESPONSE_LIGHTS_STATE, None)
             values = {'mode': self.mode, 'brightness': self.brightness,

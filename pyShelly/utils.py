@@ -22,7 +22,7 @@ def exception_log(ex, _msg, *args):
         msg += ", " + str(ex) + ", " + traceback.format_exc()
         LOGGER.exception(msg)
     except Exception as ex:
-        LOGGER.error("**************************************** ERROR")
+        LOGGER.error("Exception log error %s", ex)
 
 def shelly_http_get(host, url, username, password, log_error=True):
     """Send HTTP GET request"""
@@ -50,7 +50,6 @@ def shelly_http_get(host, url, username, password, log_error=True):
             res = "Error, " + str(resp.status) \
                             + ' ' + str(resp.reason)
             LOGGER.debug(res)
-        conn.close()
     except Exception as ex:
         success = False
         res = str(ex)
@@ -59,5 +58,8 @@ def shelly_http_get(host, url, username, password, log_error=True):
         else:
             LOGGER.debug(
                 "Fail http GET: %s %s %s", host, url, ex)
+    finally:
+        if conn:
+            conn.close()
 
     return success, res

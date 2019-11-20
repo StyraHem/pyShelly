@@ -25,8 +25,6 @@ from .const import (
 
 class Block():
     def __init__(self, parent, block_id, block_type, ip_addr, code):
-        LOGGER.info("################################################")
-        LOGGER.info(block_id)
         self.id = block_id
         self.type = block_type
         self.parent = parent
@@ -214,6 +212,16 @@ class Block():
             device.close()
         self.devices = []
         self._setup()
+
+    def friendly_name(self):
+        try:
+            if self.parent.cloud:
+                name = self.parent.cloud.get_device_name(self.id.lower())
+                if name:
+                    return name
+        except:
+            pass
+        return self.type_name()
 
     def type_name(self):
         """Type friendly name"""

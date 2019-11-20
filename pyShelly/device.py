@@ -20,6 +20,26 @@ class Device(object):
         self.device_type = None
         self.device_sub_type = None #Used to make sensors unique
 
+    def friendly_name(self):
+        try:
+            if self.block.parent.cloud:
+                device_id = self.id.lower().split('-')
+                name = None
+                ext = ''
+                if len(device_id) > 1 and int(device_id[1]) > 1:
+                    id2 = device_id[0] + '_' + str(int(device_id[1])-1)
+                    name = self.block.parent.cloud.get_device_name(id2)
+                    ext = ' - ' + device_id[1]
+                if not name:
+                    name = \
+                     self.block.parent.cloud.get_device_name(device_id[0]) + \
+                        ext
+                if name:
+                    return name
+        except Exception as ex:
+            LOGGER.debug("Error look up name, %s", ex)
+        return self.type_name()
+
     def type_name(self):
         """Friendly type name"""
         try:

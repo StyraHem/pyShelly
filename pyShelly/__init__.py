@@ -80,7 +80,15 @@ class pyShelly():
         self._socket = None
         self.only_device_id = None
 
+        self.cloud = None
+        self.cloud_server = None
+        self.cloud_auth_key = None
+
     def open(self):
+        if self.cloud_auth_key and self.cloud_server:
+            self.cloud = Cloud(self.cloud_server, self.cloud_auth_key)
+            self.cloud.start()
+
         self.init_socket()
         self._coap_thread = threading.Thread(target=self._coap_loop)
         self._coap_thread.name = "CoAP"
@@ -96,7 +104,7 @@ class pyShelly():
 
     def init_socket(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM,
-                          socket.IPPROTO_UDP)
+                             socket.IPPROTO_UDP)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 10)
         sock.bind(('', COAP_PORT))
@@ -107,6 +115,8 @@ class pyShelly():
         self._socket = sock
 
     def close(self):
+        if self.cloud:
+            self.cloud.stop()
         self.stopped.set()
         if self._coap_thread is not None:
             self._coap_thread.join()
@@ -170,7 +180,6 @@ class pyShelly():
             try:
                 any_hit = False
                 LOGGER.debug("Checking blocks")
-                #self.discover() #todo
                 for key in list(self.blocks.keys()):
                     block = self.blocks[key]
                     LOGGER.debug("Checking block, %s %s", block.id, block.last_update_status_info)
@@ -221,6 +230,8 @@ class pyShelly():
                     except Exception as e:
                         LOGGER.debug("Can't add membership, %s", e)
 
+                #todo add auto discover??
+                
                 #LOGGER.debug("Wait for UDP message")
 
                 try:
