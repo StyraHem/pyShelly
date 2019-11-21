@@ -43,7 +43,7 @@ def shelly_http_get(host, url, username, password, log_error=True):
 
         if resp.status == 200:
             body = resp.read()
-            LOGGER.debug("Body: %s", body)
+            #LOGGER.debug("Body: %s", body)
             res = json.loads(s(body))
             success = True
         else:

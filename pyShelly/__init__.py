@@ -174,7 +174,6 @@ class pyShelly():
                 self.add_device(device, block.code)
 
     def _update_loop(self):
-
         LOGGER.info("Start update loop, %s sec", self.update_status_interval)
         while not self.stopped.isSet():
             try:
@@ -182,7 +181,7 @@ class pyShelly():
                 LOGGER.debug("Checking blocks")
                 for key in list(self.blocks.keys()):
                     block = self.blocks[key]
-                    LOGGER.debug("Checking block, %s %s", block.id, block.last_update_status_info)
+                    #LOGGER.debug("Checking block, %s %s", block.id, block.last_update_status_info)
                     if self.update_status_interval is not None and \
                         (block.last_update_status_info is None or \
                         datetime.now() - block.last_update_status_info \
@@ -205,6 +204,8 @@ class pyShelly():
 
 
     def _coap_loop(self):
+
+        time.sleep(10)  #Just wait some sec to get names from cloud etc
 
         next_igmp_fix = datetime.now() + timedelta(minutes=1)
 
@@ -231,7 +232,7 @@ class pyShelly():
                         LOGGER.debug("Can't add membership, %s", e)
 
                 #todo add auto discover??
-                
+
                 #LOGGER.debug("Wait for UDP message")
 
                 try:

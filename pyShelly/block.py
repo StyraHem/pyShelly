@@ -65,7 +65,7 @@ class Block():
 
         LOGGER.info("Get status from %s", self.id)
         success, status = self.http_get('/status', False)
-        LOGGER.debug(status)
+        #LOGGER.debug(status)
         if not success or status == {}:
             return
 
@@ -121,28 +121,32 @@ class Block():
         #Shelly 2
         elif self.type == 'SHSW-21':
             success, settings = self.http_get("/settings") #todo
-            if settings.get('mode') == 'roller':
-                self._add_device(Roller(self))
-            else:
-                self._add_device(Relay(self, 1, 112, 111, 118))
-                self._add_device(Relay(self, 2, 122, None, 128))
-            self._add_device(Switch(self, 1, 118))
-            self._add_device(Switch(self, 2, 128))
-            self._add_device(PowerMeter(self, 0, [111]))
+            if success:
+                if settings.get('mode') == 'roller':
+                    self._add_device(Roller(self))
+                else:
+                    self._add_device(Relay(self, 1, 112, 111, 118))
+                    self._add_device(Relay(self, 2, 122, None, 128))
+                self._add_device(Switch(self, 1, 118))
+                self._add_device(Switch(self, 2, 128))
+                self._add_device(PowerMeter(self, 0, [111]))
+            #else delayed reload
         #Shelly 2.5
         elif self.type == 'SHSW-25':
-            _, settings = self.http_get("/settings") #todo
-            if settings.get('mode') == 'roller':
-                self._add_device(Roller(self))
-                self._add_device(PowerMeter(self, 1, [111, 112]))
-            else:
-                self._add_device(Relay(self, 1, 112, 111, 118))
-                self._add_device(Relay(self, 2, 122, 121, 128))
-                self._add_device(PowerMeter(self, 1, [111]))
-                self._add_device(PowerMeter(self, 2, [121]))
-            self._add_device(Switch(self, 1, 118))
-            self._add_device(Switch(self, 2, 128))
+            success, settings = self.http_get("/settings") #todo
+            if success:
+                if settings.get('mode') == 'roller':
+                    self._add_device(Roller(self))
+                    self._add_device(PowerMeter(self, 1, [111, 112]))
+                else:
+                    self._add_device(Relay(self, 1, 112, 111, 118))
+                    self._add_device(Relay(self, 2, 122, 121, 128))
+                    self._add_device(PowerMeter(self, 1, [111]))
+                    self._add_device(PowerMeter(self, 2, [121]))
+                self._add_device(Switch(self, 1, 118))
+                self._add_device(Switch(self, 2, 128))
                 #self._add_device(InfoSensor(self, 'temperature'))
+            #todo delayed reload
         elif self.type == 'SHSW-22':
             self._add_device(Relay(self, 1, 112, 111))
             self._add_device(Relay(self, 2, 122, 121))
@@ -188,12 +192,14 @@ class Block():
             self._add_device(Sensor(self, 33, 'temperature', 'tmp'))
             self._add_device(Sensor(self, 44, 'humidity', 'hum'))
         elif self.type == 'SHRGBW2':
-            _, settings = self.http_get("/settings") #todo
-            if settings.get('mode', 'color') == 'color':
-                self._add_device(RGBW2C(self))
-            else:
-                for channel in range(4):
-                    self._add_device(RGBW2W(self, channel + 1))
+            success, settings = self.http_get("/settings") #todo
+            if success:
+                if settings.get('mode', 'color') == 'color':
+                    self._add_device(RGBW2C(self))
+                else:
+                    for channel in range(4):
+                        self._add_device(RGBW2W(self, channel + 1))
+            #todo else delayed reload
         elif self.type == 'SHWT-1':
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
             self._add_device(Flood(self))
