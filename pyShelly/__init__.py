@@ -12,7 +12,9 @@ import time
 from .cloud import Cloud
 from .block import Block
 from .device import Device
-from .utils import exception_log
+from .utils import exception_log, timer
+from .coap import CoAP
+from .mdns import MDns
 #from .device.relay import Relay
 #from .device.switch import Switch
 #from .device.powermeter import Po
@@ -22,8 +24,6 @@ from .compat import s, b, ba2c
 from .const import (
     LOGGER,
     VERSION,
-    COAP_IP,
-    COAP_PORT,
     STATUS_RESPONSE_RELAYS,
     STATUS_RESPONSE_RELAY_OVER_POWER,
     STATUS_RESPONSE_RELAY_STATE,
@@ -75,90 +75,107 @@ class pyShelly():
         self.username = None
         self.password = None
         self.update_status_interval = None
-        self._coap_thread = None
         self._update_thread = None
         self._socket = None
         self.only_device_id = None
+        self.tmpl_name = "{room} - {name}"
 
         self.cloud = None
         self.cloud_server = None
         self.cloud_auth_key = None
 
+        self._coap = CoAP(self)
+        self._mdns = MDns(self)
+
+        self._shelly_by_ip = {}
+
+        self._send_discovery_timer = timer(timedelta(seconds=60))
+        self._check_by_ip_timer = timer(timedelta(seconds=60))
+
     def open(self):
         if self.cloud_auth_key and self.cloud_server:
-            self.cloud = Cloud(self.cloud_server, self.cloud_auth_key)
+            self.cloud = Cloud(self, self.cloud_server, self.cloud_auth_key)
             self.cloud.start()
-
-        self.init_socket()
-        self._coap_thread = threading.Thread(target=self._coap_loop)
-        self._coap_thread.name = "CoAP"
-        self._coap_thread.daemon = True
-        self._coap_thread.start()
+        if self._coap:
+            self._coap.start()
+        if self._mdns:
+            self._mdns.start()
         self._update_thread = threading.Thread(target=self._update_loop)
         self._update_thread.name = "Poll"
         self._update_thread.daemon = True
-        self._update_thread.start()
+        self._update_thread.start()    
+
+    def set_host_ip(self, host_ip):
+        if self._coap:
+            self._coap.host_ip = host_ip
+        if self._mdns:
+            self._mdns.host_ip = host_ip
 
     def version(self):
         return VERSION
-
-    def init_socket(self):
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM,
-                             socket.IPPROTO_UDP)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 10)
-        sock.bind(('', COAP_PORT))
-        mreq = struct.pack("=4sl", socket.inet_aton(COAP_IP),
-                           socket.INADDR_ANY)
-        sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
-        sock.settimeout(15)
-        self._socket = sock
 
     def close(self):
         if self.cloud:
             self.cloud.stop()
         self.stopped.set()
-        if self._coap_thread is not None:
-            self._coap_thread.join()
+        if self._coap:
+            self._coap.close()
+        if self._mdns:
+            self._mdns.close()
         if self._update_thread is not None:
             self._update_thread.join()
-        try:
-            self._socket.shutdown(socket.SHUT_RDWR)
-        except socket.error:
-            pass
-        self._socket.close()
+        if self._socket:
+            self._socket.close()
 
     def discover(self):
-        LOGGER.debug("Sending discover UDP")
-        msg = bytes(b'\x50\x01\x00\x0A\xb3cit\x01d\xFF')
-        self._socket.sendto(msg, (COAP_IP, COAP_PORT))
+        if self._coap:
+            self._coap.discover()
 
-    def add_device_by_host(self, host, device_id):
-        success, res = shelly_http_get(host, "/settings", self.username, self.password)
-        if success:
-            dev = res["device"]
-            device_type = dev["type"]
-            #id = dev["mac"][6:]
-            self._update_block(device_id, device_type,
-                               host, 'by_host', None)
+    def add_device_by_ip(self, ip_addr, src):
+        LOGGER.debug("Check add device by host %s %s", ip_addr, src)
+        if ip_addr not in self._shelly_by_ip:
+            LOGGER.info("Add device by host %s %s", ip_addr, src)
+            self._shelly_by_ip[ip_addr] = {'done':False, 'src':src}
 
-    def add_device(self, dev, code):
+    def check_by_ip(self):
+        for ip_addr in list(self._shelly_by_ip.keys()):
+            data = self._shelly_by_ip[ip_addr]
+            if not data['done']:
+                success, settings = shelly_http_get(
+                            ip_addr, "/settings", self.username, self.password)
+                if success:
+                    success, status = shelly_http_get(
+                            ip_addr, "/status", self.username, self.password)
+                    if success:
+                        self._shelly_by_ip[ip_addr]['done'] = True
+                        dev = settings["device"]
+                        device_id = dev["mac"][6:]
+                        device_type = dev["type"]
+                        ip_addr = status["wifi_sta"]["ip"]
+                        LOGGER.info("Add device from IP, %s, %s, %s",
+                                        device_id, device_type, ip_addr)
+                        self.update_block(device_id, device_type, ip_addr,
+                                          self._shelly_by_ip[ip_addr]['src'],
+                                          None)
+
+    def add_device(self, dev, discovery_src):
         LOGGER.debug('Add device')
+        dev.discovery_src = discovery_src
         self.devices.append(dev)
         for callback in self.cb_device_added:
-            callback(dev, code)
+            callback(dev, discovery_src)
 
-    def remove_device(self, dev, code):
+    def remove_device(self, dev, discovery_src):
         LOGGER.debug('Remove device')
         self.devices.remove(dev)
         for callback in self.cb_device_removed:
-            callback(dev, code)
+            callback(dev, discovery_src)
 
-    def _update_block(self, block_id, device_type, ipaddr, code, payload):
+    def update_block(self, block_id, device_type, ipaddr, src, payload):
         block_added = False
         if block_id not in self.blocks:
             block = self.blocks[block_id] = \
-                Block(self, block_id, device_type, ipaddr, code)
+                Block(self, block_id, device_type, ipaddr, src)
             block_added = True
 
         block = self.blocks[block_id]
@@ -171,155 +188,41 @@ class pyShelly():
             for callback in self.cb_block_added:
                 callback(block)
             for device in block.devices:
-                self.add_device(device, block.code)
+                self.add_device(device, block.discovery_src)
 
     def _update_loop(self):
         LOGGER.info("Start update loop, %s sec", self.update_status_interval)
         while not self.stopped.isSet():
             try:
-                any_hit = False
-                LOGGER.debug("Checking blocks")
+                #any_hit = False
+                LOGGER.debug(threading.active_count())
+                #LOGGER.debug("Checking blocks")
+                if self._check_by_ip_timer.check():
+                    self.check_by_ip()
+                if self._send_discovery_timer.check():
+                    self.discover()
                 for key in list(self.blocks.keys()):
                     block = self.blocks[key]
-                    #LOGGER.debug("Checking block, %s %s", block.id, block.last_update_status_info)
+                    #LOGGER.debug("Checking block, %s %s",
+                    # block.id, block.last_update_status_info)
                     if self.update_status_interval is not None and \
                         (block.last_update_status_info is None or \
                         datetime.now() - block.last_update_status_info \
                             > self.update_status_interval):
-                        any_hit = True
-                        LOGGER.debug("Polling block, %s %s", block.id, block.type)
+                        #any_hit = True
+                        LOGGER.debug("Polling block, %s %s",
+                                        block.id, block.type)
                         #todo ??
-                        #t = threading.Thread(
-                        #    target=block.update_status_information) 
-                        #t.daemon = True
-                        #t.start()
-                        try:
-                            block.update_status_information()
-                        except Exception as ex:
-                            exception_log(ex, "Error update block status")
-                if not any_hit:
-                    time.sleep(0.5)
+                        t = threading.Thread(
+                            target=block.update_status_information) 
+                        t.daemon = True
+                        t.start()
+                        #try:
+                        #    block.update_status_information()
+                        #except Exception as ex:
+                        #    exception_log(ex, "Error update block status")
+                time.sleep(0.5)
             except Exception as ex:
                 exception_log(ex, "Error update loop")
 
 
-    def _coap_loop(self):
-
-        time.sleep(10)  #Just wait some sec to get names from cloud etc
-
-        next_igmp_fix = datetime.now() + timedelta(minutes=1)
-
-        while not self.stopped.isSet():
-
-            try:
-
-                # This fix is needed if not sending IGMP reports correct
-                if self.igmp_fix_enabled and datetime.now() > next_igmp_fix:
-                    LOGGER.debug("IGMP fix")
-                    next_igmp_fix = datetime.now() + timedelta(minutes=1)
-                    mreq = struct.pack("=4sl", socket.inet_aton(COAP_IP),
-                                       socket.INADDR_ANY)
-                    try:
-                        self._socket.setsockopt(socket.IPPROTO_IP,
-                                                socket.IP_DROP_MEMBERSHIP,
-                                                mreq)
-                    except Exception as e:
-                        LOGGER.debug("Can't drop membership, %s", e)
-                    try:
-                        self._socket.setsockopt(socket.IPPROTO_IP,
-                                                socket.IP_ADD_MEMBERSHIP, mreq)
-                    except Exception as e:
-                        LOGGER.debug("Can't add membership, %s", e)
-
-                #todo add auto discover??
-
-                #LOGGER.debug("Wait for UDP message")
-
-                try:
-                    data_tmp, addr = self._socket.recvfrom(1024)
-                except socket.timeout:
-                    continue
-
-                ipaddr = addr[0]
-
-                #LOGGER.debug("Got UDP message")
-
-                data = bytearray(data_tmp)
-                LOGGER.debug("CoAP msg: %s %s", ipaddr, data_tmp)
-
-                pos = 0
-
-                #Receice messages with ip from proxy
-                if data[0] == 112 and data[1] == 114 \
-                   and data[2] == 120 and data[3] == 121:
-                    ipaddr = socket.inet_ntoa(data[4:8])
-                    pos = 8
-
-                byte = data[pos]
-                #ver = byte >> 6
-                #typex = (byte >> 4) & 0x3
-                #tokenlen = byte & 0xF
-
-                code = data[pos+1]
-                #msgid = 256 * data[2] + data[3]
-                LOGGER.debug("CoAP msg: %s %s %s", code, ipaddr, data)
-
-                pos = pos + 4
-
-                #LOGGER.debug(' Code: %s', code)
-
-                if code == 30 or code == 69:
-
-                    byte = data[pos]
-                    tot_delta = 0
-
-                    device_type = ''
-                    device_id = ''
-
-                    while byte != 0xFF:
-                        delta = byte >> 4
-                        length = byte & 0x0F
-
-                        if delta == 13:
-                            pos = pos + 1
-                            delta = data[pos] + 13
-                        elif delta == 14:
-                            pos = pos + 2
-                            delta = data[pos - 1] * 256 + data[pos] + 269
-
-                        tot_delta = tot_delta + delta
-
-                        if length == 13:
-                            pos = pos + 1
-                            length = data[pos] + 13
-                        elif length == 14:
-                            pos = pos + 2
-                            length = data[pos - 1] * 256 + data[pos] + 269
-
-                        value = data[pos + 1:pos + length]
-                        pos = pos + length + 1
-
-                        if tot_delta == 3332:
-                            device_type, device_id, _ = s(value).split('#', 2)
-
-                        byte = data[pos]
-
-                    payload = s(data[pos + 1:])
-
-                    if self.only_device_id is not None and \
-                            device_id != self.only_device_id:
-                        continue
-
-                    LOGGER.debug('CoAP Code: %s, Type %s, Id %s, Payload *%s*', code, device_type,
-                                  device_id, payload.replace(' ', ''))
-
-                    if code == 30:
-                        self._update_block(device_id, device_type,
-                                           ipaddr, code, payload)
-
-                    if code == 69:
-                        self._update_block(device_id, device_type,
-                                           ipaddr, code, None)
-
-            except Exception as ex:
-                exception_log(ex, "Error receiving UDP")

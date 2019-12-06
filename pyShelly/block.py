@@ -24,21 +24,23 @@ from .const import (
 )
 
 class Block():
-    def __init__(self, parent, block_id, block_type, ip_addr, code):
+    def __init__(self, parent, block_id, block_type, ip_addr, discovery_src):
         self.id = block_id
         self.type = block_type
         self.parent = parent
         self.ip_addr = ip_addr
         self.devices = []
-        self.code = code  # DEBUG
+        self.discovery_src = discovery_src
         self.cb_updated = []
         self.unavailable_after_sec = None
-        self._setup()
         self.info_values = {}
         self.last_update_status_info = None
         self.reload = False
         self.last_updated = None #datetime.now()
         self.error = None
+        self.discover_by_mdns = False
+        self.discover_by_coap = False
+        self._setup()
 
     def update(self, data, ip_addr):
         self.ip_addr = ip_addr  # If changed ip
@@ -52,10 +54,10 @@ class Block():
             for device in self.devices:
                 if hasattr(device, 'update'):
                     device.update(data)
-                self.parent.add_device(device, self.code)
+                self.parent.add_device(device, self.discovery_src)
             self.reload = False
 
-    def _raise_updated(self):
+    def raise_updated(self):
         for callback in self.cb_updated:
             callback(self)
 
@@ -63,7 +65,7 @@ class Block():
         """Update the status information."""
         self.last_update_status_info = datetime.now()
 
-        LOGGER.info("Get status from %s", self.id)
+        LOGGER.info("Get status from %s %s", self.id, self.friendly_name())
         success, status = self.http_get('/status', False)
         #LOGGER.debug(status)
         if not success or status == {}:
@@ -93,11 +95,12 @@ class Block():
             info_values[INFO_VALUE_CLOUD_STATUS] = 'disabled'
 
         self.info_values = info_values
-        self._raise_updated()
+        self.raise_updated()
 
         for dev in self.devices:
             try:
                 dev.update_status_information(status)
+                dev.raise_updated()
             except Exception as ex:
                 exception_log(ex, "Error update device status: {} {}", \
                     dev.id, dev.type)
@@ -107,7 +110,6 @@ class Block():
         success, res = shelly_http_get(self.ip_addr, url, \
                               self.parent.username, self.parent.password, \
                               log_error)
-
         return success, res
 
     def update_firmware(self):
@@ -209,12 +211,12 @@ class Block():
 
     def _add_device(self, dev):
         self.devices.append(dev)
-        #self.parent.add_device(dev, self.code)
+        #self.parent.add_device(dev, self.discovery_src)
         return dev
 
     def _reload_devices(self):
         for device in self.devices:
-            self.parent.remove_device(device, self.code)
+            self.parent.remove_device(device, self.discovery_src)
             device.close()
         self.devices = []
         self._setup()

@@ -4,6 +4,7 @@
 import base64
 import traceback
 import json
+from datetime import datetime
 from .compat import s
 
 try:
@@ -14,6 +15,19 @@ except:
 from .const import (
     LOGGER
 )
+
+class timer():
+    def __init__(self, interval):
+        self._interval = interval
+        self._last_time = None
+    def check(self):
+        if self._interval is not None:
+            now = datetime.now()
+            if self._last_time is None or \
+                    now - self._last_time > self._interval:
+                self._last_time = now
+                return True
+        return False
 
 def exception_log(ex, _msg, *args):
     """Log exception"""
@@ -28,9 +42,10 @@ def shelly_http_get(host, url, username, password, log_error=True):
     """Send HTTP GET request"""
     res = ""
     success = False
+    conn = None
     try:
         LOGGER.debug("http://%s%s", host, url)
-        conn = httplib.HTTPConnection(host, timeout=2)
+        conn = httplib.HTTPConnection(host, timeout=5)
         headers = {}
         if username is not None \
             and password is not None:
@@ -46,17 +61,18 @@ def shelly_http_get(host, url, username, password, log_error=True):
             #LOGGER.debug("Body: %s", body)
             res = json.loads(s(body))
             success = True
+            LOGGER.debug("http://%s%s - Ok", host, url)
         else:
             res = "Error, " + str(resp.status) \
                             + ' ' + str(resp.reason)
-            LOGGER.debug(res)
+            LOGGER.warning(res)
     except Exception as ex:
         success = False
         res = str(ex)
         if log_error:
             exception_log(ex, "Error http GET: http://{}{}", host, url)
         else:
-            LOGGER.debug(
+            LOGGER.warning(
                 "Fail http GET: %s %s %s", host, url, ex)
     finally:
         if conn:

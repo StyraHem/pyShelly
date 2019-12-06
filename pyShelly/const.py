@@ -5,10 +5,13 @@ import logging
 LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
-VERSION = "0.1.8"
+VERSION = "0.1.9"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
+
+MDNS_IP = "224.0.0.251"
+MDNS_PORT = 5353
 
 """Define constants for result from /status response from device"""
 STATUS_RESPONSE_RELAYS = 'relays'
@@ -35,7 +38,7 @@ STATUS_RESPONSE_ROLLERS_LAST_DIR = 'last_direction'
 STATUS_RESPONSE_ROLLERS_POSITION = 'current_pos'
 STATUS_RESPONSE_ROLLERS_POWER = 'power'
 
-SENSOR_UNAVAILABLE_SEC = 3600 * 13
+SENSOR_UNAVAILABLE_SEC = 3600 * 13 #13 hours
 
 INFO_VALUE_RSSI = 'rssi'
 INFO_VALUE_UPTIME = 'uptime'

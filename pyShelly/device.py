@@ -57,6 +57,7 @@ class Device(object):
 
     def _send_command(self, url):
         self.block.http_get(url)
+        self.block.update_status_interval = None #Force update
 
     def available(self):
         return self.block.available()
@@ -82,14 +83,14 @@ class Device(object):
             self.info_values = info_values
             need_update = True
         if need_update:
-            self._raise_updated()
+            self.raise_updated()
 
     def update_status_information(self,  _status):
         """Update the status information."""
         #pass
         #self._update(info_values={}})
 
-    def _raise_updated(self):
+    def raise_updated(self):
         for callback in self.cb_updated:
             callback(self)
 

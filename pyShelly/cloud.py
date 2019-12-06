@@ -16,7 +16,7 @@ except:
     import httplib
 
 class Cloud():
-    def __init__(self, server, key):
+    def __init__(self, root, server, key):
         self.auth_key = key
         self.server = server
         self._last_update = None
@@ -26,6 +26,7 @@ class Cloud():
         self._room_list = None
         self._cloud_thread = None
         self._last_post = datetime.now()
+        self._root = root
 
     def start(self):
         self._cloud_thread = threading.Thread(target=self._update_loop)
@@ -43,6 +44,7 @@ class Cloud():
                     datetime.now() - self._last_update \
                                     > self.update_interval:
                     self._last_update = datetime.now()
+                    LOGGER.debug("Update from cloud")
                     self._device_list = self.get_device_list()
                     self._room_list = self.get_room_list()
                 else:
@@ -71,9 +73,9 @@ class Cloud():
                 #LOGGER.debug("Body: %s", body)
                 json_body = json.loads(s(body))
             else:
-                print(resp.read())
+                LOGGER.warning("Error parce JSON from cloud")
         except Exception as ex:
-            LOGGER.debug("Error connect cloud, %s", ex)
+            LOGGER.warning("Error connect cloud, %s", ex)
         finally:
             if conn:
                 conn.close()
@@ -84,13 +86,20 @@ class Cloud():
         if self._device_list and _id in self._device_list:
             dev = self._device_list[_id]
             name = dev['name']
+            room = ""
             try:
                 room_id = dev['room_id']
-                if room_id in self._room_list:
-                    name += ' (' + self._room_list[room_id]['name'] + ')'
+                if room_id == '-10':
+                    room = '[Hidden]'
+                elif room_id in self._room_list:
+                    room = self._room_list[room_id]['name']
+                else:
+                    room = str(room_id)
             except:
                 pass
-            return name
+            tmpl = self._root.tmpl_name
+            value = tmpl.format( id=id, name=name, room=room )
+            return value
 
     def get_device_list(self):
         return self._post("interface/device/list")['data']['devices']
