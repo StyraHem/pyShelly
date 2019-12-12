@@ -72,6 +72,7 @@ class pyShelly():
         self.cb_device_removed = []
         # Used if igmp packages not sent correctly
         self.igmp_fix_enabled = False
+        self.mdns_enabled = False
         self.username = None
         self.password = None
         self.update_status_interval = None
@@ -85,14 +86,16 @@ class pyShelly():
         self.cloud_auth_key = None
 
         self._coap = CoAP(self)
-        self._mdns = MDns(self)
+        self._mdns = None #MDns(self)
 
         self._shelly_by_ip = {}
 
         self._send_discovery_timer = timer(timedelta(seconds=60))
         self._check_by_ip_timer = timer(timedelta(seconds=60))
 
-    def open(self):
+    def start(self):
+        if self.mdns_enabled:
+            self._mdns = MDns(self)
         if self.cloud_auth_key and self.cloud_server:
             self.cloud = Cloud(self, self.cloud_server, self.cloud_auth_key)
             self.cloud.start()
@@ -103,7 +106,7 @@ class pyShelly():
         self._update_thread = threading.Thread(target=self._update_loop)
         self._update_thread.name = "Poll"
         self._update_thread.daemon = True
-        self._update_thread.start()    
+        self._update_thread.start()
 
     def set_host_ip(self, host_ip):
         if self._coap:
@@ -195,7 +198,6 @@ class pyShelly():
         while not self.stopped.isSet():
             try:
                 #any_hit = False
-                LOGGER.debug(threading.active_count())
                 #LOGGER.debug("Checking blocks")
                 if self._check_by_ip_timer.check():
                     self.check_by_ip()

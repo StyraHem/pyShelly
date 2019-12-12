@@ -73,7 +73,7 @@ class Cloud():
                 #LOGGER.debug("Body: %s", body)
                 json_body = json.loads(s(body))
             else:
-                LOGGER.warning("Error parce JSON from cloud")
+                LOGGER.warning("Error receive JSON from cloud %s", resp.reason)
         except Exception as ex:
             LOGGER.warning("Error connect cloud, %s", ex)
         finally:

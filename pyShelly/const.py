@@ -5,7 +5,7 @@ import logging
 LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
-VERSION = "0.1.9"
+VERSION = "0.1.10"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
@@ -67,7 +67,7 @@ BLOCK_INFO_VALUES = {
     INFO_VALUE_DEVICE_TEMP : {ATTR_PATH : 'temperature',  ATTR_FMT : 'round'},
     INFO_VALUE_OVER_TEMPERATURE : {ATTR_PATH : 'overtemperature' },
     INFO_VALUE_HAS_FIRMWARE_UPDATE : {ATTR_PATH : 'update/has_update' },
-    INFO_VALUE_LATEST_FIRMWARE_VERSION : {ATTR_PATH : 'update/new_version' },   
+    INFO_VALUE_LATEST_FIRMWARE_VERSION : {ATTR_PATH : 'update/new_version' },
     INFO_VALUE_FW_VERSION : {ATTR_PATH : 'update/old_version' },
     INFO_VALUE_CLOUD_ENABLED : {ATTR_PATH : 'cloud/enabled' },
     INFO_VALUE_CLOUD_CONNECTED : {ATTR_PATH : 'cloud/connected' },
