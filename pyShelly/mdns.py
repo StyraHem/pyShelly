@@ -5,6 +5,7 @@ import threading
 from datetime import datetime, timedelta
 import socket
 import struct
+import time
 import re
 
 from .utils import exception_log
@@ -21,7 +22,6 @@ class MDns():
         self._thread = threading.Thread(target=self._loop)
         self._thread.name = "mDns"
         self._thread.daemon = True
-        self.host_ip = ''
         self._socket = None
 
     def start(self):
@@ -33,10 +33,15 @@ class MDns():
                              socket.IPPROTO_UDP)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 10)
-
-        sock.bind((self.host_ip, MDNS_PORT))
-        mreq = struct.pack("=4sl", socket.inet_aton(MDNS_IP),
-                           socket.INADDR_ANY)
+        sock.bind((self._root.host_ip, MDNS_PORT))
+        if self._root.host_ip:
+            mreq = struct.pack("=4s4s",
+                               socket.inet_aton(MDNS_IP),
+                               socket.inet_aton(self._root.host_ip))
+        else:
+            mreq = struct.pack("=4sl",
+                               socket.inet_aton(MDNS_IP),
+                               socket.INADDR_ANY)
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
         sock.settimeout(15)
         self._socket = sock
@@ -49,7 +54,7 @@ class MDns():
 
     def _loop(self):
 
-        #time.sleep(10)  #Just wait some sec to get names from cloud etc
+        time.sleep(10)  #Just wait some sec to get names from cloud etc
 
         next_igmp_fix = datetime.now() + timedelta(minutes=1)
 

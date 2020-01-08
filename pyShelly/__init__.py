@@ -4,6 +4,7 @@
 import base64
 from datetime import datetime, timedelta
 import json
+import asyncio
 import socket
 import struct
 import threading
@@ -86,9 +87,12 @@ class pyShelly():
         self.cloud_auth_key = None
 
         self._coap = CoAP(self)
-        self._mdns = None #MDns(self)
+        self._mdns = None
+        self.host_ip = ''
 
         self._shelly_by_ip = {}
+
+        #self.loop = asyncio.get_event_loop()
 
         self._send_discovery_timer = timer(timedelta(seconds=60))
         self._check_by_ip_timer = timer(timedelta(seconds=60))
@@ -103,16 +107,11 @@ class pyShelly():
             self._coap.start()
         if self._mdns:
             self._mdns.start()
+        #asyncio.ensure_future(self._update_loop())
         self._update_thread = threading.Thread(target=self._update_loop)
         self._update_thread.name = "Poll"
         self._update_thread.daemon = True
         self._update_thread.start()
-
-    def set_host_ip(self, host_ip):
-        if self._coap:
-            self._coap.host_ip = host_ip
-        if self._mdns:
-            self._mdns.host_ip = host_ip
 
     def version(self):
         return VERSION
@@ -137,29 +136,33 @@ class pyShelly():
     def add_device_by_ip(self, ip_addr, src):
         LOGGER.debug("Check add device by host %s %s", ip_addr, src)
         if ip_addr not in self._shelly_by_ip:
-            LOGGER.info("Add device by host %s %s", ip_addr, src)
+            LOGGER.debug("Add device by host %s %s", ip_addr, src)
             self._shelly_by_ip[ip_addr] = {'done':False, 'src':src}
 
     def check_by_ip(self):
         for ip_addr in list(self._shelly_by_ip.keys()):
             data = self._shelly_by_ip[ip_addr]
             if not data['done']:
+                done = False
                 success, settings = shelly_http_get(
-                            ip_addr, "/settings", self.username, self.password)
+                    ip_addr, "/settings", self.username, self.password, False)
                 if success:
                     success, status = shelly_http_get(
-                            ip_addr, "/status", self.username, self.password)
+                        ip_addr, "/status", self.username, self.password, False)
                     if success:
+                        done = True
                         self._shelly_by_ip[ip_addr]['done'] = True
                         dev = settings["device"]
                         device_id = dev["mac"][6:]
                         device_type = dev["type"]
                         ip_addr = status["wifi_sta"]["ip"]
-                        LOGGER.info("Add device from IP, %s, %s, %s",
-                                        device_id, device_type, ip_addr)
+                        LOGGER.debug("Add device from IP, %s, %s, %s",
+                                     device_id, device_type, ip_addr)
                         self.update_block(device_id, device_type, ip_addr,
                                           self._shelly_by_ip[ip_addr]['src'],
                                           None)
+                if not done:
+                    LOGGER.info("Error adding device, %s", ip_addr)
 
     def add_device(self, dev, discovery_src):
         LOGGER.debug('Add device')
@@ -175,6 +178,11 @@ class pyShelly():
             callback(dev, discovery_src)
 
     def update_block(self, block_id, device_type, ipaddr, src, payload):
+
+        if self.only_device_id is not None and \
+            block_id != self.only_device_id:
+            return
+
         block_added = False
         if block_id not in self.blocks:
             block = self.blocks[block_id] = \
@@ -196,6 +204,7 @@ class pyShelly():
     def _update_loop(self):
         LOGGER.info("Start update loop, %s sec", self.update_status_interval)
         while not self.stopped.isSet():
+            print("Update loop")
             try:
                 #any_hit = False
                 #LOGGER.debug("Checking blocks")
@@ -203,28 +212,33 @@ class pyShelly():
                     self.check_by_ip()
                 if self._send_discovery_timer.check():
                     self.discover()
+
+                now = datetime.now()
                 for key in list(self.blocks.keys()):
                     block = self.blocks[key]
                     #LOGGER.debug("Checking block, %s %s",
                     # block.id, block.last_update_status_info)
                     if self.update_status_interval is not None and \
                         (block.last_update_status_info is None or \
-                        datetime.now() - block.last_update_status_info \
+                        now - block.last_update_status_info \
                             > self.update_status_interval):
                         #any_hit = True
                         LOGGER.debug("Polling block, %s %s",
                                         block.id, block.type)
                         #todo ??
+                        block.last_update_status_info = now
                         t = threading.Thread(
-                            target=block.update_status_information) 
+                            target=block.update_status_information)
                         t.daemon = True
                         t.start()
                         #try:
                         #    block.update_status_information()
                         #except Exception as ex:
                         #    exception_log(ex, "Error update block status")
-                time.sleep(0.5)
+                print("Update loop done")
+                await asyncio.sleep(0.5)
             except Exception as ex:
                 exception_log(ex, "Error update loop")
+
 
 

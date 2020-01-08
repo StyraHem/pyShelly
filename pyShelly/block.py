@@ -202,6 +202,7 @@ class Block():
                     for channel in range(4):
                         self._add_device(RGBW2W(self, channel + 1))
             #todo else delayed reload
+            #Shelly Flood
         elif self.type == 'SHWT-1':
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
             self._add_device(Flood(self))
@@ -230,6 +231,10 @@ class Block():
         except:
             pass
         return self.type_name()
+
+    def room_name(self):
+        if self.parent.cloud:
+            return self.parent.cloud.get_room_name(self.id.lower())
 
     def type_name(self):
         """Type friendly name"""

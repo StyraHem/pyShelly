@@ -45,6 +45,10 @@ class Device(object):
         else:
             return name
 
+    def room_name(self):
+        if self.block.parent.cloud:
+            return self.block.parent.cloud.get_room_name(self.id.lower())
+
     def type_name(self):
         """Friendly type name"""
         try:
@@ -64,7 +68,7 @@ class Device(object):
 
     def _update(self, new_state=None, new_state_values=None, new_values=None,
                 info_values=None):
-        LOGGER.debug(
+        LOGGER.info(
             "Update id:%s state:%s stateValue:%s values:%s info_values:%s",
             self.id, new_state, new_state_values, new_values, info_values)
         need_update = False

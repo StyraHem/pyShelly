@@ -83,6 +83,7 @@ class Cloud():
         return json_body
 
     def get_device_name(self, _id):
+        """Return name using template for device"""
         if self._device_list and _id in self._device_list:
             dev = self._device_list[_id]
             name = dev['name']
@@ -98,8 +99,26 @@ class Cloud():
             except:
                 pass
             tmpl = self._root.tmpl_name
-            value = tmpl.format( id=id, name=name, room=room )
+            value = tmpl.format(id=id, name=name, room=room)
             return value
+        return None
+
+    def get_room_name(self, _id):
+        """Return room name of a device"""
+        room = ""
+        if self._device_list and _id in self._device_list:
+            dev = self._device_list[_id]
+            try:
+                room_id = dev['room_id']
+                if room_id == '-10':
+                    room = '[Hidden]'
+                elif room_id in self._room_list:
+                    room = self._room_list[room_id]['name']
+                else:
+                    room = str(room_id)
+            except:
+                pass
+        return room
 
     def get_device_list(self):
         return self._post("interface/device/list")['data']['devices']

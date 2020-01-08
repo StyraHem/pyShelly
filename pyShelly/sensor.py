@@ -3,7 +3,7 @@
 from .device import Device
 
 class Sensor(Device):
-    def __init__(self, block, pos, device_type, info_type):
+    def __init__(self, block, pos, device_type, status_attr):
         super(Sensor, self).__init__(block)
         self.id = block.id
         self.state = None
@@ -13,7 +13,7 @@ class Sensor(Device):
         self.is_device = False
         self._pos = pos
         self.sensor_type = device_type
-        self.info_type = info_type
+        self._status_attr = status_attr
 
     def update(self, data):
         value = float(data.get(self._pos))
@@ -21,20 +21,23 @@ class Sensor(Device):
 
     def update_status_information(self, status):
         """Update the status information."""
-        item = status.get(self.info_type)
+        item = status.get(self._status_attr)
         if item:
-            value = item['value']
+            if 'value' in item:
+                value = item['value']
+            else:
+                value = item
             self._update(None, None, {self.sensor_type : value})
 
 class BinarySensor(Sensor):
-    def __init__(self, block, pos, device_type):
-        super(BinarySensor, self).__init__(block, pos, device_type)
+    def __init__(self, block, pos, device_type, status_attr):
+        super(BinarySensor, self).__init__(block, pos, device_type, status_attr)
 
     def update(self, data):
         value = bool(data.get(self._pos))
-        self._update(None, None, { self.sensor_type : value })
+        self._update(None, None, {self.sensor_type : value})
 
 class Flood(BinarySensor):
     """Class to represent a flood sensor"""
     def __init__(self, block):
-        super(Flood, self).__init__(block, 23, 'flood')
+        super(Flood, self).__init__(block, 23, 'flood', 'flood')

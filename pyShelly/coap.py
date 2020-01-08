@@ -22,7 +22,6 @@ class CoAP():
         self._thread = threading.Thread(target=self._loop)
         self._thread.name = "CoAP"
         self._thread.daemon = True
-        self.host_ip = ''
         self._socket = None
 
     def start(self):
@@ -39,9 +38,15 @@ class CoAP():
                              socket.IPPROTO_UDP)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 10)
-        sock.bind((self.host_ip, COAP_PORT))
-        mreq = struct.pack("=4sl", socket.inet_aton(COAP_IP),
-                           socket.INADDR_ANY)
+        sock.bind((self._root.host_ip, COAP_PORT))
+        if self._root.host_ip:
+            mreq = struct.pack("=4s4s", 
+                               socket.inet_aton(COAP_IP),
+                               socket.inet_aton(self._root.host_ip))
+        else:
+            mreq = struct.pack("=4sl", 
+                               socket.inet_aton(COAP_IP),
+                               socket.INADDR_ANY)
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
         sock.settimeout(15)
         self._socket = sock
@@ -155,10 +160,6 @@ class CoAP():
                         byte = data[pos]
 
                     payload = s(data[pos + 1:])
-
-                    if self._root.only_device_id is not None and \
-                            device_id != self._root.only_device_id:
-                        continue
 
                     LOGGER.debug('CoAP Code: %s, Type %s, Id %s, Payload *%s*',
                                  code, device_type, device_id,
