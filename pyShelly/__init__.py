@@ -204,7 +204,6 @@ class pyShelly():
     def _update_loop(self):
         LOGGER.info("Start update loop, %s sec", self.update_status_interval)
         while not self.stopped.isSet():
-            print("Update loop")
             try:
                 #any_hit = False
                 #LOGGER.debug("Checking blocks")
@@ -235,8 +234,8 @@ class pyShelly():
                         #    block.update_status_information()
                         #except Exception as ex:
                         #    exception_log(ex, "Error update block status")
-                print("Update loop done")
-                await asyncio.sleep(0.5)
+                #await asyncio.sleep(0.5)
+                time.sleep(0.5)
             except Exception as ex:
                 exception_log(ex, "Error update loop")
 
