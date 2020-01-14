@@ -34,7 +34,7 @@ class Relay(Device):
         new_values = {}
         if self._power_idx is not None:
             consumption = data.get(self._power_idx)
-            new_values[INFO_VALUE_CONSUMPTION] = consumption
+            new_values[INFO_VALUE_CONSUMPTION] = round(consumption)
         if self._switch_idx is not None:
             switch_state = data.get(self._switch_idx)
             new_values[INFO_VALUE_SWITCH] = switch_state

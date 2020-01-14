@@ -35,5 +35,6 @@ class PowerMeter(Device):
 
     def update(self, data):
         """Get the power"""
-        consumption = sum(data.get(pos, 0) for pos in self._positions)
-        self._update(None, None, {INFO_VALUE_CONSUMPTION: consumption})
+        if self._positions:
+            consumption = sum(data.get(pos, 0) for pos in self._positions)
+            self._update(None, None, {INFO_VALUE_CONSUMPTION: consumption})

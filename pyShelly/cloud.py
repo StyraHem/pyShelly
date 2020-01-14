@@ -27,6 +27,7 @@ class Cloud():
         self._cloud_thread = None
         self._last_post = datetime.now()
         self._root = root
+        self.http_lock = threading.Lock()
 
     def start(self):
         self._cloud_thread = threading.Thread(target=self._update_loop)
@@ -53,16 +54,17 @@ class Cloud():
                 LOGGER.error("Error update cloud, %s", ex)
 
     def _post(self, path, params=None):
-        while datetime.now() - self._last_post < timedelta(seconds=2):
-            time.sleep(1)
-        self._last_post = datetime.now()
+        with self.http_lock:
+            while datetime.now() - self._last_post < timedelta(seconds=3):
+                time.sleep(1)
+            self._last_post = datetime.now()
 
         json_body = None
         params = params or {}
         try:
+            LOGGER.debug("POST to Shelly Cloud")
             conn = httplib.HTTPSConnection(self.server, timeout=5)
             headers = {'Content-Type' : 'application/x-www-form-urlencoded'}
-
             params["auth_key"] = self.auth_key
             conn.request("POST", "/" + path, urllib.parse.urlencode(params),
                          headers)
@@ -70,10 +72,10 @@ class Cloud():
 
             if resp.status == 200:
                 body = resp.read()
-                #LOGGER.debug("Body: %s", body)
                 json_body = json.loads(s(body))
             else:
-                LOGGER.warning("Error receive JSON from cloud %s", resp.reason)
+                LOGGER.warning("Error receive JSON from cloud, %s : %s", \
+                                resp.reason, resp.read())
         except Exception as ex:
             LOGGER.warning("Error connect cloud, %s", ex)
         finally:
@@ -137,7 +139,5 @@ class Cloud():
 
         for _id, device in resp['data']['devices'].items():
             room_id = device['room_id']
-            LOGGER.info("********** " + device["name"] + " " +
-                        rooms[room_id]['name'])
 
         return resp['data']['devices']

@@ -5,7 +5,7 @@ import logging
 LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
-VERSION = "0.1.12"
+VERSION = "0.1.14"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
@@ -56,6 +56,7 @@ INFO_VALUE_MQTT_CONNECTED = 'mqtt_connected'
 INFO_VALUE_CONSUMPTION = 'consumption'
 INFO_VALUE_SWITCH = 'switch'
 INFO_VALUE_BATTERY = 'battery'
+INFO_VALUE_LUX = 'lux'
 
 ATTR_PATH = 'path'
 ATTR_FMT = 'fmt'
@@ -64,7 +65,7 @@ BLOCK_INFO_VALUES = {
     INFO_VALUE_SSID : {ATTR_PATH :'wifi_sta/ssid'},
     INFO_VALUE_RSSI : {ATTR_PATH : 'wifi_sta/rssi'},
     INFO_VALUE_UPTIME : {ATTR_PATH : 'uptime'},
-    INFO_VALUE_DEVICE_TEMP : {ATTR_PATH : 'temperature',  ATTR_FMT : 'round'},
+    INFO_VALUE_DEVICE_TEMP : {ATTR_PATH : 'tmp/tC', ATTR_FMT : 'round'},
     INFO_VALUE_OVER_TEMPERATURE : {ATTR_PATH : 'overtemperature'},
     INFO_VALUE_HAS_FIRMWARE_UPDATE : {ATTR_PATH : 'update/has_update'},
     INFO_VALUE_LATEST_FIRMWARE_VERSION : {ATTR_PATH : 'update/new_version'},
@@ -75,6 +76,7 @@ BLOCK_INFO_VALUES = {
     INFO_VALUE_MQTT_CONNECTED : {ATTR_PATH : 'mqtt/connected'},
     INFO_VALUE_CONSUMPTION : {ATTR_PATH : 'consumption'},
     INFO_VALUE_BATTERY : {ATTR_PATH : 'bat/value'},
+    INFO_VALUE_LUX : {ATTR_PATH : 'lux/value'},
 }
 
 SHELLY_TYPES = {

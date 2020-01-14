@@ -19,6 +19,7 @@ class Device(object):
         self.state = None
         self.device_type = None
         self.device_sub_type = None #Used to make sensors unique
+        self.lazy_load = False
 
     def friendly_name(self):
         device_id = self.id.lower().split('-')
@@ -26,7 +27,7 @@ class Device(object):
             if self.block.parent.cloud:
                 name = None
                 ext = ''
-                if len(device_id) > 1 and int(device_id[1]) > 1:
+                if len(device_id) > 1 and int(device_id[1]) > 0:
                     id2 = device_id[0] + '_' + str(int(device_id[1])-1)
                     name = self.block.parent.cloud.get_device_name(id2)
                     ext = ' - ' + device_id[1]
@@ -86,13 +87,13 @@ class Device(object):
         if info_values is not None:
             self.info_values = info_values
             need_update = True
+        if self.lazy_load:
+            self.block.parent.callback_add_device(self)
         if need_update:
             self.raise_updated()
 
-    def update_status_information(self,  _status):
+    def update_status_information(self, _status):
         """Update the status information."""
-        #pass
-        #self._update(info_values={}})
 
     def raise_updated(self):
         for callback in self.cb_updated:

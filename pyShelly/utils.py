@@ -72,7 +72,7 @@ def shelly_http_get(host, url, username, password, log_error=True):
         if log_error:
             exception_log(ex, "Error http GET: http://{}{}", host, url)
         else:
-            LOGGER.warning(
+            LOGGER.debug(
                 "Fail http GET: %s %s %s", host, url, ex)
     finally:
         if conn:

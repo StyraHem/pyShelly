@@ -6,7 +6,7 @@ from .utils import shelly_http_get
 from .switch import Switch
 from .relay import Relay
 from .powermeter import PowerMeter
-from .sensor import Sensor, Flood
+from .sensor import Sensor, Flood, DoorWindow, ExtTemp
 from .light import RGBW2W, RGBW2C, RGBWW, Dimmer, Bulb
 from .roller import Roller
 from .utils import exception_log
@@ -40,6 +40,7 @@ class Block():
         self.error = None
         self.discover_by_mdns = False
         self.discover_by_coap = False
+        self.sleep_device = False
         self._setup()
 
     def update(self, data, ip_addr):
@@ -158,25 +159,30 @@ class Block():
             self._add_device(RGBW2W(self, 0))
             self._add_device(RGBW2W(self, 1))
         elif self.type == 'SHEM':
-            self._add_device(Relay(self, 1, 112))
+            self._add_device(Relay(self, 0, 112))
             self._add_device(PowerMeter(self, 1, [111]))
             self._add_device(PowerMeter(self, 2, [121]))
         #Shelly 1
         elif self.type == 'SHSW-1' or self.type == 'SHSK-1':
             self._add_device(Relay(self, 0, 112, None, 118))
             self._add_device(Switch(self, 0, 118))
+            self._add_device(ExtTemp(self, 0), True)
+            self._add_device(ExtTemp(self, 1), True)
+            self._add_device(ExtTemp(self, 2), True)
         #Shelly 1 PM
         elif self.type == 'SHSW-PM':
             self._add_device(Relay(self, 0, 112, 111, 118))
             self._add_device(PowerMeter(self, 0, [111]))
             self._add_device(Switch(self, 0, 118))
+            self._add_device(ExtTemp(self, 0), True)
+            self._add_device(ExtTemp(self, 1), True)
+            self._add_device(ExtTemp(self, 2), True)
         #Shelly 4 Pro
         elif self.type == 'SHSW-44':
             for channel in range(4):
                 pos = 112 + (channel * 10)
                 self._add_device(Relay(self, channel + 1, pos, pos-1))
-                self._add_device(PowerMeter(self, channel + 1,
-                                                    [pos - 1]))
+                self._add_device(PowerMeter(self, channel + 1, [pos - 1]))
         elif self.type == 'SHRGBWW-01':
             self._add_device(RGBWW(self))
         #Shelly Dimmer
@@ -184,15 +190,17 @@ class Block():
             self._add_device(Dimmer(self, 121, 111))
             self._add_device(Switch(self, 1, 131))
             self._add_device(Switch(self, 2, 141))
+            self._add_device(PowerMeter(self, 0, None), True)
         #Shelly PLUG'S
         elif (self.type == 'SHPLG-1' or self.type == 'SHPLG2-1' or
               self.type == 'SHPLG-S'):
             self._add_device(Relay(self, 0, 112, 111))
             self._add_device(PowerMeter(self, 0, [111]))
         elif self.type == 'SHHT-1':
+            self.sleep_device = True
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
-            self._add_device(Sensor(self, 33, 'temperature', 'tmp'))
-            self._add_device(Sensor(self, 44, 'humidity', 'hum'))
+            self._add_device(Sensor(self, 33, 'temperature', 'tmp/value'))
+            self._add_device(Sensor(self, 44, 'humidity', 'hum/value'))
         elif self.type == 'SHRGBW2':
             success, settings = self.http_get("/settings") #todo
             if success:
@@ -204,13 +212,20 @@ class Block():
             #todo else delayed reload
             #Shelly Flood
         elif self.type == 'SHWT-1':
+            self.sleep_device = True
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
             self._add_device(Flood(self))
-            self._add_device(Sensor(self, 33, 'temperature', 'tmp'))
+            self._add_device(Sensor(self, 33, 'temperature', 'tmp/value'))
+        elif self.type == 'SHDW-1':
+            self.sleep_device = True
+            self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
+            self._add_device(DoorWindow(self))
+            self._add_device(Sensor(self, 66, 'temperature', 'tmp/value'))
         #else:
         #    self._add_device(Unknown(self))
 
-    def _add_device(self, dev):
+    def _add_device(self, dev, lazy_load=False):
+        dev.lazy_load = lazy_load
         self.devices.append(dev)
         #self.parent.add_device(dev, self.discovery_src)
         return dev

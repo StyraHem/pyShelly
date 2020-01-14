@@ -137,7 +137,12 @@ class pyShelly():
         LOGGER.debug("Check add device by host %s %s", ip_addr, src)
         if ip_addr not in self._shelly_by_ip:
             LOGGER.debug("Add device by host %s %s", ip_addr, src)
-            self._shelly_by_ip[ip_addr] = {'done':False, 'src':src}
+            self._shelly_by_ip[ip_addr] = {'done':False, 'src':src,
+                                           'poll_block':None}
+        else:
+            block = self._shelly_by_ip[ip_addr]['poll_block']
+            self._poll_block(block)
+
 
     def check_by_ip(self):
         for ip_addr in list(self._shelly_by_ip.keys()):
@@ -161,6 +166,10 @@ class pyShelly():
                         self.update_block(device_id, device_type, ip_addr,
                                           self._shelly_by_ip[ip_addr]['src'],
                                           None)
+                        if block in self.blocks:
+                            block = self.blocks[device_id]
+                            if block and block.sleep_device:
+                                self._shelly_by_ip[ip_addr]['poll_block']=block
                 if not done:
                     LOGGER.info("Error adding device, %s", ip_addr)
 
@@ -168,8 +177,14 @@ class pyShelly():
         LOGGER.debug('Add device')
         dev.discovery_src = discovery_src
         self.devices.append(dev)
-        for callback in self.cb_device_added:
-            callback(dev, discovery_src)
+        if not dev.lazy_load:
+            self.callback_add_device(dev)
+
+    def callback_add_device(self, dev):
+        if hasattr(dev, 'discovery_src'):
+            for callback in self.cb_device_added:
+                dev.lazy_load = False
+                callback(dev, dev.discovery_src)
 
     def remove_device(self, dev, discovery_src):
         LOGGER.debug('Remove device')
@@ -178,7 +193,6 @@ class pyShelly():
             callback(dev, discovery_src)
 
     def update_block(self, block_id, device_type, ipaddr, src, payload):
-
         if self.only_device_id is not None and \
             block_id != self.only_device_id:
             return
@@ -201,43 +215,43 @@ class pyShelly():
             for device in block.devices:
                 self.add_device(device, block.discovery_src)
 
+        if block.sleep_device:
+            self._poll_block(block)
+
     def _update_loop(self):
         LOGGER.info("Start update loop, %s sec", self.update_status_interval)
         while not self.stopped.isSet():
             try:
-                #any_hit = False
                 #LOGGER.debug("Checking blocks")
                 if self._check_by_ip_timer.check():
                     self.check_by_ip()
                 if self._send_discovery_timer.check():
                     self.discover()
 
-                now = datetime.now()
                 for key in list(self.blocks.keys()):
                     block = self.blocks[key]
                     #LOGGER.debug("Checking block, %s %s",
                     # block.id, block.last_update_status_info)
-                    if self.update_status_interval is not None and \
-                        (block.last_update_status_info is None or \
-                        now - block.last_update_status_info \
-                            > self.update_status_interval):
-                        #any_hit = True
-                        LOGGER.debug("Polling block, %s %s",
-                                        block.id, block.type)
-                        #todo ??
-                        block.last_update_status_info = now
-                        t = threading.Thread(
-                            target=block.update_status_information)
-                        t.daemon = True
-                        t.start()
-                        #try:
-                        #    block.update_status_information()
-                        #except Exception as ex:
-                        #    exception_log(ex, "Error update block status")
-                #await asyncio.sleep(0.5)
+
+                    if not block.sleep_device:
+                        self._poll_block(block)
+
                 time.sleep(0.5)
             except Exception as ex:
                 exception_log(ex, "Error update loop")
 
+    def _poll_block(self, block):
+        now = datetime.now()
+        if self.update_status_interval is not None and \
+            (block.last_update_status_info is None or \
+            now - block.last_update_status_info \
+                > self.update_status_interval):
+
+            LOGGER.debug("Polling block, %s %s", block.id, block.type)
+            block.last_update_status_info = now
+            t = threading.Thread(
+                target=block.update_status_information)
+            t.daemon = True
+            t.start()
 
 

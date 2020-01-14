@@ -102,6 +102,9 @@ class CoAP():
                 data = bytearray(data_tmp)
                 LOGGER.debug("CoAP msg: %s %s", ipaddr, data_tmp)
 
+                if len(data) < 10:
+                    continue
+
                 pos = 0
 
                 #Receice messages with ip from proxy
