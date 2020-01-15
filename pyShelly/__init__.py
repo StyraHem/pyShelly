@@ -167,7 +167,7 @@ class pyShelly():
                         self.update_block(device_id, device_type, ip_addr,
                                           self._shelly_by_ip[ip_addr]['src'],
                                           None)
-                        if block in self.blocks:
+                        if device_id in self.blocks:
                             block = self.blocks[device_id]
                             if block and block.sleep_device:
                                 self._shelly_by_ip[ip_addr]['poll_block']=block
