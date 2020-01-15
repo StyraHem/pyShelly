@@ -141,7 +141,8 @@ class pyShelly():
                                            'poll_block':None}
         else:
             block = self._shelly_by_ip[ip_addr]['poll_block']
-            self._poll_block(block)
+            if block:
+                self._poll_block(block)
 
 
     def check_by_ip(self):
@@ -253,5 +254,3 @@ class pyShelly():
                 target=block.update_status_information)
             t.daemon = True
             t.start()
-
-
