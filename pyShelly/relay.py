@@ -20,6 +20,7 @@ class Relay(Device):
         if channel > 0:
             self.id += '-' + str(channel)
             self._channel = channel - 1
+            self.device_nr = channel
         else:
             self._channel = 0
         self._pos = pos
@@ -38,7 +39,7 @@ class Relay(Device):
         if self._switch_idx is not None:
             switch_state = data.get(self._switch_idx)
             new_values[INFO_VALUE_SWITCH] = switch_state
-        self._update(new_state, None, new_values)
+        self._update(new_state, None, None, new_values)
 
     def update_status_information(self, status):
         """Update the status information."""

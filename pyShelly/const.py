@@ -5,7 +5,7 @@ import logging
 LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
-VERSION = "0.1.16"
+VERSION = "0.1.17"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
@@ -20,6 +20,8 @@ STATUS_RESPONSE_RELAY_STATE = 'ison'
 
 STATUS_RESPONSE_METERS = 'meters'
 STATUS_RESPONSE_METERS_POWER = 'power'
+
+STATUS_RESPONSE_EMETERS = 'emeters'
 
 STATUS_RESPONSE_INPUTS = 'inputs'
 STATUS_RESPONSE_INPUTS_INPUT = 'input'
@@ -56,7 +58,6 @@ INFO_VALUE_MQTT_CONNECTED = 'mqtt_connected'
 INFO_VALUE_CONSUMPTION = 'consumption'
 INFO_VALUE_SWITCH = 'switch'
 INFO_VALUE_BATTERY = 'battery'
-INFO_VALUE_LUX = 'lux'
 
 ATTR_PATH = 'path'
 ATTR_FMT = 'fmt'
@@ -72,11 +73,9 @@ BLOCK_INFO_VALUES = {
     INFO_VALUE_FW_VERSION : {ATTR_PATH : 'update/old_version'},
     INFO_VALUE_CLOUD_ENABLED : {ATTR_PATH : 'cloud/enabled'},
     INFO_VALUE_CLOUD_CONNECTED : {ATTR_PATH : 'cloud/connected'},
-    #INFO_VALUE_CLOUD_STATUS : {ATTR_PATH : 'cloud/connected' },
     INFO_VALUE_MQTT_CONNECTED : {ATTR_PATH : 'mqtt/connected'},
     INFO_VALUE_CONSUMPTION : {ATTR_PATH : 'consumption'},
-    INFO_VALUE_BATTERY : {ATTR_PATH : 'bat/value'},
-    INFO_VALUE_LUX : {ATTR_PATH : 'lux/value'},
+    INFO_VALUE_BATTERY : {ATTR_PATH : 'bat/value'}
 }
 
 SHELLY_TYPES = {

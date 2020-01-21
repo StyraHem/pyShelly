@@ -86,6 +86,9 @@ class MDns():
                 except socket.timeout:
                     continue
 
+                if len(data_tmp) < 5:
+                    continue
+
                 ipaddr = addr[0]
 
                 data = bytearray(data_tmp)
@@ -99,7 +102,7 @@ class MDns():
 
                 if (answer > 0):
                     LOGGER.debug("mDns msg: %s %s", ipaddr, data_tmp)
-                    p = re.compile(b'shelly(?P<type>[a-z0-9-]+)-(?P<id>[A-F0-9]{6})\x05')
+                    p = re.compile(b'shelly(?P<type>[a-z0-9-]+)-(?P<id>[A-F0-9]{6,12})\x05')
                     m = p.search(data_tmp)
                     if m:
                         LOGGER.debug("mDns match Shelly")
@@ -107,4 +110,5 @@ class MDns():
                         self._root.add_device_by_ip(ipaddr, "mDns")
 
             except Exception as ex:
-                exception_log(ex, "Error receiving mDns UDP")
+                pass
+                #exception_log(ex, "Error receiving mDns UDP")

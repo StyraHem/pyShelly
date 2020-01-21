@@ -46,8 +46,12 @@ class Cloud():
                                     > self.update_interval:
                     self._last_update = datetime.now()
                     LOGGER.debug("Update from cloud")
-                    self._device_list = self.get_device_list()
-                    self._room_list = self.get_room_list()
+                    devices = self.get_device_list()
+                    if devices:
+                        self._device_list = devices
+                    rooms = self.get_room_list()
+                    if rooms:
+                        self._room_list = rooms
                 else:
                     time.sleep(5)
             except Exception as ex:

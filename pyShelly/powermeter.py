@@ -4,6 +4,7 @@ from .device import Device
 from .const import (
     #LOGGER,
     STATUS_RESPONSE_METERS,
+    STATUS_RESPONSE_EMETERS,
     STATUS_RESPONSE_METERS_POWER,
     INFO_VALUE_CONSUMPTION
 )
@@ -16,6 +17,7 @@ class PowerMeter(Device):
         if channel > 0:
             self.id += "-" + str(channel)
             self._channel = channel - 1
+            self.device_nr = channel
         else:
             self._channel = 0
         self._positions = positions
@@ -24,17 +26,23 @@ class PowerMeter(Device):
 
     def update_status_information(self, status):
         """Update the status information."""
-        info_values = {}
-        meters = status.get(STATUS_RESPONSE_METERS)
+        #info_values = {}
+        #state = None
+        if STATUS_RESPONSE_EMETERS in status:
+            meters = status.get(STATUS_RESPONSE_EMETERS) #Shelly EM
+        else:
+            meters = status.get(STATUS_RESPONSE_METERS)
         if meters:
             meter = meters[self._channel]
             if meter.get(STATUS_RESPONSE_METERS_POWER) is not None:
-                info_values[INFO_VALUE_CONSUMPTION] = \
-                    meter.get(STATUS_RESPONSE_METERS_POWER)
-            self._update(None, None, info_values)
+                #info_values[INFO_VALUE_CONSUMPTION] = \
+                #    meter.get(STATUS_RESPONSE_METERS_POWER)
+            #self._update(None, None, info_values)
+                self._update(meter.get(STATUS_RESPONSE_METERS_POWER))
 
     def update(self, data):
         """Get the power"""
         if self._positions:
             consumption = sum(data.get(pos, 0) for pos in self._positions)
-            self._update(None, None, {INFO_VALUE_CONSUMPTION: consumption})
+            #self._update(None, None, {INFO_VALUE_CONSUMPTION: consumption})
+            self._update(consumption)

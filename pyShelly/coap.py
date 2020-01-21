@@ -177,4 +177,5 @@ class CoAP():
                                            ipaddr, 'CoAP-discovery', None)
 
             except Exception as ex:
-                exception_log(ex, "Error receiving CoAP UDP")
+                pass
+                #exception_log(ex, "Error receiving CoAP UDP")

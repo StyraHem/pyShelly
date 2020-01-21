@@ -159,7 +159,7 @@ class pyShelly():
                         done = True
                         self._shelly_by_ip[ip_addr]['done'] = True
                         dev = settings["device"]
-                        device_id = dev["mac"][6:]
+                        device_id = dev["hostname"].rpartition('-')[2]
                         device_type = dev["type"]
                         ip_addr = status["wifi_sta"]["ip"]
                         LOGGER.debug("Add device from IP, %s, %s, %s",
@@ -170,7 +170,8 @@ class pyShelly():
                         if device_id in self.blocks:
                             block = self.blocks[device_id]
                             if block and block.sleep_device:
-                                self._shelly_by_ip[ip_addr]['poll_block']=block
+                                self._shelly_by_ip[ip_addr]['poll_block'] \
+                                    = block
                 if not done:
                     LOGGER.info("Error adding device, %s", ip_addr)
 

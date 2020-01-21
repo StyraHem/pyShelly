@@ -17,6 +17,7 @@ from .const import (
     INFO_VALUE_CLOUD_STATUS,
     INFO_VALUE_CLOUD_ENABLED,
     INFO_VALUE_CLOUD_CONNECTED,
+    INFO_VALUE_FW_VERSION,
     ATTR_PATH,
     ATTR_FMT,
     BLOCK_INFO_VALUES,
@@ -26,6 +27,7 @@ from .const import (
 class Block():
     def __init__(self, parent, block_id, block_type, ip_addr, discovery_src):
         self.id = block_id
+        self.unit_id = block_id
         self.type = block_type
         self.parent = parent
         self.ip_addr = ip_addr
@@ -140,7 +142,7 @@ class Block():
             if success:
                 if settings.get('mode') == 'roller':
                     self._add_device(Roller(self))
-                    self._add_device(PowerMeter(self, 1, [111, 112]))
+                    self._add_device(PowerMeter(self, 1, [111, 121]))
                 else:
                     self._add_device(Relay(self, 1, 112, 111, 118))
                     self._add_device(Relay(self, 2, 122, 121, 128))
@@ -220,7 +222,7 @@ class Block():
             self.sleep_device = True
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
             self._add_device(DoorWindow(self))
-            self._add_device(Sensor(self, 66, 'temperature', 'tmp/value'))
+            self._add_device(Sensor(self, 66, 'illuminance', 'lux/value'))
         #else:
         #    self._add_device(Unknown(self))
 
@@ -237,6 +239,9 @@ class Block():
         self.devices = []
         self._setup()
 
+    def fw_version(self):
+        return self.info_values.get(INFO_VALUE_FW_VERSION)
+
     def friendly_name(self):
         try:
             if self.parent.cloud:
@@ -245,7 +250,7 @@ class Block():
                     return name
         except:
             pass
-        return self.type_name()
+        return self.type_name() + ' - ' + self.id
 
     def room_name(self):
         if self.parent.cloud:

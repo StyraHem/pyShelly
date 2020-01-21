@@ -7,6 +7,7 @@ class Device(object):
     def __init__(self, block):
         self.block = block
         self.id = block.id
+        self.unit_id = block.id
         self.type = block.type
         self.ip_addr = block.ip_addr
         self.cb_updated = []
@@ -20,31 +21,32 @@ class Device(object):
         self.device_type = None
         self.device_sub_type = None #Used to make sensors unique
         self.lazy_load = False
+        self.device_nr = None
 
     def friendly_name(self):
         device_id = self.id.lower().split('-')
         try:
             if self.block.parent.cloud:
                 name = None
-                ext = ''
-                if len(device_id) > 1 and int(device_id[1]) > 0:
-                    id2 = device_id[0] + '_' + str(int(device_id[1])-1)
-                    name = self.block.parent.cloud.get_device_name(id2)
-                    ext = ' - ' + device_id[1]
+                add_nr = False
+                if len(device_id) > 1 and int(device_id[1]) > 1:
+                    cloud_id = device_id[0] + '_' + str(int(device_id[1])-1)
+                    name = self.block.parent.cloud.get_device_name(cloud_id)
+                    if not name:
+                        add_nr = True
                 if not name:
                     name = \
-                     self.block.parent.cloud.get_device_name(device_id[0])
-                    if name:
-                        name += ext
+                      self.block.parent.cloud.get_device_name(device_id[0])
+                    if add_nr:
+                        name += " - " + device_id[1]
                 if name:
                     return name
         except Exception as ex:
             LOGGER.debug("Error look up name, %s", ex)
-        name = self.type_name()
-        if len(device_id) > 1 and int(device_id[1]) > 1:
-            return name + ' - ' + device_id[1]
-        else:
-            return name
+        name = self.type_name() + ' - ' + self.id
+        #if self.device_nr:
+        #   name += ' - ' + str(self.device_nr)
+        return name
 
     def room_name(self):
         if self.block.parent.cloud:
@@ -94,6 +96,9 @@ class Device(object):
 
     def update_status_information(self, _status):
         """Update the status information."""
+
+    def fw_version(self):
+        return self.block.fw_version()
 
     def raise_updated(self):
         for callback in self.cb_updated:

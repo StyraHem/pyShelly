@@ -16,6 +16,7 @@ class Switch(Device):
         if channel > 0:
             self.id += "-" + str(channel)
             self._channel = channel - 1
+            self.device_nr = channel
         else:
             self._channel = 0
         self._position = position
@@ -25,7 +26,8 @@ class Switch(Device):
     def update(self, data):
         """Get the power"""
         state = data.get(self._position)
-        self._update(None, None, {INFO_VALUE_SWITCH: state})
+        #self._update(None, None, {INFO_VALUE_SWITCH: state})
+        self._update(state)
 
     def update_status_information(self, status):
         """Update the status information."""
@@ -34,4 +36,5 @@ class Switch(Device):
         if inputs:
             value = inputs[self._channel]
             new_state = value.get(STATUS_RESPONSE_INPUTS_INPUT, None)
-            self._update(None, None, {INFO_VALUE_SWITCH: new_state})
+            #self._update(None, None, {INFO_VALUE_SWITCH: new_state})
+            self._update(new_state)
