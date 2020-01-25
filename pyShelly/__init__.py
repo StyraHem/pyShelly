@@ -44,7 +44,7 @@ from .const import (
     INFO_VALUE_CLOUD_ENABLED,
     INFO_VALUE_CLOUD_CONNECTED,
     INFO_VALUE_MQTT_CONNECTED,
-    INFO_VALUE_CONSUMPTION,
+    INFO_VALUE_CURRENT_CONSUMPTION,
     INFO_VALUE_SWITCH,
     INFO_VALUE_BATTERY,
     ATTR_PATH,
@@ -210,6 +210,7 @@ class pyShelly():
         if payload:
             data = {d[1]:d[2] for d in json.loads(payload)['G']}
             block.update(data, ipaddr)
+            block.payload = payload
 
         if block_added:
             for callback in self.cb_block_added:

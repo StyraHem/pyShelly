@@ -4,7 +4,7 @@ from .device import Device
 
 from .const import (
     #LOGGER,
-    INFO_VALUE_CONSUMPTION,
+    INFO_VALUE_CURRENT_CONSUMPTION,
     STATUS_RESPONSE_ROLLERS,
     STATUS_RESPONSE_ROLLERS_STATE,
     STATUS_RESPONSE_ROLLERS_LAST_DIR,
@@ -40,7 +40,7 @@ class Roller(Device):
         self.position = data.get(113)
         consumption = data.get(111, 0) + data.get(121, 0)
         state = self.position != 0
-        self._update(state, None, None, {INFO_VALUE_CONSUMPTION:consumption})
+        self._update(state, None, None, {INFO_VALUE_CURRENT_CONSUMPTION:consumption})
 
     def update_status_information(self, status):
         """Update the status information."""
@@ -53,7 +53,7 @@ class Roller(Device):
             self.position = roller[STATUS_RESPONSE_ROLLERS_POSITION]
             consumption = roller[STATUS_RESPONSE_ROLLERS_POWER]
             state = self.position != 0
-            self._update(state, None, None, {INFO_VALUE_CONSUMPTION:consumption})
+            self._update(state, None, None, {INFO_VALUE_CURRENT_CONSUMPTION:consumption})
 
     def up(self):
         self._send_command("/roller/0?go=" + ("open"))

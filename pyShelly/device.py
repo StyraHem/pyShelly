@@ -24,9 +24,9 @@ class Device(object):
         self.device_nr = None
 
     def friendly_name(self):
-        device_id = self.id.lower().split('-')
         try:
             if self.block.parent.cloud:
+                device_id = self.id.lower().split('-')
                 name = None
                 add_nr = False
                 if len(device_id) > 1 and int(device_id[1]) > 1:
@@ -50,7 +50,14 @@ class Device(object):
 
     def room_name(self):
         if self.block.parent.cloud:
-            return self.block.parent.cloud.get_room_name(self.id.lower())
+            device_id = self.id.lower().split('-')
+            room = None
+            if len(device_id) > 1 and int(device_id[1]) > 1:
+                room = self.block.parent.cloud.get_room_name(
+                    device_id[0] + "_" + device_id[1])
+            if room is None:
+                room = self.block.parent.cloud.get_room_name(device_id[0])
+            return room
 
     def type_name(self):
         """Friendly type name"""

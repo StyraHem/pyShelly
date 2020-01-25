@@ -2,8 +2,6 @@
 
 from .device import Device
 from .const import (
-    #LOGGER,
-    INFO_VALUE_SWITCH,
     STATUS_RESPONSE_INPUTS,
     STATUS_RESPONSE_INPUTS_INPUT
 )
@@ -26,8 +24,7 @@ class Switch(Device):
     def update(self, data):
         """Get the power"""
         state = data.get(self._position)
-        #self._update(None, None, {INFO_VALUE_SWITCH: state})
-        self._update(state)
+        self._update(state > 0)
 
     def update_status_information(self, status):
         """Update the status information."""
@@ -36,5 +33,4 @@ class Switch(Device):
         if inputs:
             value = inputs[self._channel]
             new_state = value.get(STATUS_RESPONSE_INPUTS_INPUT, None)
-            #self._update(None, None, {INFO_VALUE_SWITCH: new_state})
-            self._update(new_state)
+            self._update(new_state > 0)

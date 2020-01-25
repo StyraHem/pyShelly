@@ -7,7 +7,8 @@ from .switch import Switch
 from .relay import Relay
 from .powermeter import PowerMeter
 from .sensor import Sensor, Flood, DoorWindow, ExtTemp
-from .light import RGBW2W, RGBW2C, RGBWW, Dimmer, Bulb
+from .light import RGBW2W, RGBW2C, RGBWW, Bulb
+from .dimmer import Dimmer
 from .roller import Roller
 from .utils import exception_log
 
@@ -18,6 +19,7 @@ from .const import (
     INFO_VALUE_CLOUD_ENABLED,
     INFO_VALUE_CLOUD_CONNECTED,
     INFO_VALUE_FW_VERSION,
+    INFO_VALUE_PAYLOAD,
     ATTR_PATH,
     ATTR_FMT,
     BLOCK_INFO_VALUES,
@@ -43,6 +45,7 @@ class Block():
         self.discover_by_mdns = False
         self.discover_by_coap = False
         self.sleep_device = False
+        self.payload = None
         self._setup()
 
     def update(self, data, ip_addr):
@@ -88,6 +91,9 @@ class Block():
                 if fmt == "round":
                     data = round(data, 0)
                 info_values[name] = data
+
+        if self.payload:
+            info_values[INFO_VALUE_PAYLOAD] = self.payload
 
         if info_values.get(INFO_VALUE_CLOUD_ENABLED):
             if info_values.get(INFO_VALUE_CLOUD_CONNECTED):
@@ -142,7 +148,7 @@ class Block():
             if success:
                 if settings.get('mode') == 'roller':
                     self._add_device(Roller(self))
-                    self._add_device(PowerMeter(self, 1, [111, 121]))
+                    self._add_device(PowerMeter(self, 1, [111, 121], [0,1]))
                 else:
                     self._add_device(Relay(self, 1, 112, 111, 118))
                     self._add_device(Relay(self, 2, 122, 121, 128))
@@ -211,6 +217,7 @@ class Block():
                 else:
                     for channel in range(4):
                         self._add_device(RGBW2W(self, channel + 1))
+            self._add_device(Switch(self, 0, 118))
             #todo else delayed reload
             #Shelly Flood
         elif self.type == 'SHWT-1':

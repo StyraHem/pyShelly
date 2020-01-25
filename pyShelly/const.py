@@ -5,7 +5,7 @@ import logging
 LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
-VERSION = "0.1.17"
+VERSION = "0.1.18"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
@@ -20,6 +20,7 @@ STATUS_RESPONSE_RELAY_STATE = 'ison'
 
 STATUS_RESPONSE_METERS = 'meters'
 STATUS_RESPONSE_METERS_POWER = 'power'
+STATUS_RESPONSE_METERS_TOTAL = 'total'
 
 STATUS_RESPONSE_EMETERS = 'emeters'
 
@@ -55,9 +56,11 @@ INFO_VALUE_CLOUD_STATUS = 'cloud_status'
 INFO_VALUE_CLOUD_ENABLED = 'cloud_enabled'
 INFO_VALUE_CLOUD_CONNECTED = 'cloud_connected'
 INFO_VALUE_MQTT_CONNECTED = 'mqtt_connected'
-INFO_VALUE_CONSUMPTION = 'consumption'
+INFO_VALUE_CURRENT_CONSUMPTION = 'current_consumption'
 INFO_VALUE_SWITCH = 'switch'
 INFO_VALUE_BATTERY = 'battery'
+INFO_VALUE_PAYLOAD = 'payload'
+INFO_VALUE_TOTAL_CONSUMPTION = 'total_consumption'
 
 ATTR_PATH = 'path'
 ATTR_FMT = 'fmt'
@@ -74,7 +77,7 @@ BLOCK_INFO_VALUES = {
     INFO_VALUE_CLOUD_ENABLED : {ATTR_PATH : 'cloud/enabled'},
     INFO_VALUE_CLOUD_CONNECTED : {ATTR_PATH : 'cloud/connected'},
     INFO_VALUE_MQTT_CONNECTED : {ATTR_PATH : 'mqtt/connected'},
-    INFO_VALUE_CONSUMPTION : {ATTR_PATH : 'consumption'},
+    INFO_VALUE_CURRENT_CONSUMPTION : {ATTR_PATH : 'consumption'},
     INFO_VALUE_BATTERY : {ATTR_PATH : 'bat/value'}
 }
 

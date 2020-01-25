@@ -5,12 +5,18 @@ from .device import Device
 
 from .const import (
     #LOGGER,
-    STATUS_RESPONSE_RELAYS,
-    INFO_VALUE_CONSUMPTION,
-    STATUS_RESPONSE_RELAY_OVER_POWER,
+    INFO_VALUE_CURRENT_CONSUMPTION,
+    INFO_VALUE_TOTAL_CONSUMPTION,
     INFO_VALUE_OVER_POWER,
+    INFO_VALUE_SWITCH,
+    STATUS_RESPONSE_RELAYS,
+    STATUS_RESPONSE_RELAY_OVER_POWER,
     STATUS_RESPONSE_RELAY_STATE,
-    INFO_VALUE_SWITCH
+    STATUS_RESPONSE_METERS,
+    STATUS_RESPONSE_METERS_POWER,
+    STATUS_RESPONSE_METERS_TOTAL,
+    STATUS_RESPONSE_INPUTS,
+    STATUS_RESPONSE_INPUTS_INPUT
 )
 
 class Relay(Device):
@@ -29,32 +35,46 @@ class Relay(Device):
         self.state = None
         self.device_type = "RELAY"
         self.is_sensor = power_idx is not None
+        self.info_values = {}
 
     def update(self, data):
         new_state = data.get(self._pos) == 1
-        new_values = {}
         if self._power_idx is not None:
             consumption = data.get(self._power_idx)
-            new_values[INFO_VALUE_CONSUMPTION] = round(consumption)
+            self.info_values[INFO_VALUE_CURRENT_CONSUMPTION] = round(consumption)
         if self._switch_idx is not None:
             switch_state = data.get(self._switch_idx)
-            new_values[INFO_VALUE_SWITCH] = switch_state
-        self._update(new_state, None, None, new_values)
+            self.info_values[INFO_VALUE_SWITCH] = switch_state > 0
+        self._update(new_state, None, None, self.info_values)
 
     def update_status_information(self, status):
         """Update the status information."""
         new_state = None
-        info_values = {}
         relays = status.get(STATUS_RESPONSE_RELAYS)
         if relays:
             relay = relays[self._channel]
             if relay.get(STATUS_RESPONSE_RELAY_OVER_POWER) is not None:
-                info_values[INFO_VALUE_OVER_POWER] = \
+                self.info_values[INFO_VALUE_OVER_POWER] = \
                     relay.get(STATUS_RESPONSE_RELAY_OVER_POWER)
             if relay.get(STATUS_RESPONSE_RELAY_STATE) is not None:
                 new_state = relay.get(STATUS_RESPONSE_RELAY_STATE)
+        meters = status.get(STATUS_RESPONSE_METERS)
+        if meters and len(meters) > self._channel:
+            meter = meters[self._channel]
+            if meter.get(STATUS_RESPONSE_METERS_POWER) is not None:
+                self.info_values[INFO_VALUE_CURRENT_CONSUMPTION] = \
+                    round(float(meter.get(STATUS_RESPONSE_METERS_POWER)))
+            if meter.get(STATUS_RESPONSE_METERS_TOTAL) is not None:
+                self.info_values[INFO_VALUE_TOTAL_CONSUMPTION] = \
+                  round(float(meter.get(STATUS_RESPONSE_METERS_TOTAL)) / 60, 2)
 
-            self._update(new_state, info_values=info_values)
+        inputs = status.get(STATUS_RESPONSE_INPUTS)
+        if inputs:
+            value = inputs[self._channel]
+            if value.get(STATUS_RESPONSE_INPUTS_INPUT) is not None:
+                self.info_values[INFO_VALUE_SWITCH] = \
+                    value.get(STATUS_RESPONSE_INPUTS_INPUT) > 0
+        self._update(new_state, info_values=self.info_values)
 
     def turn_on(self):
         self._send_command("/relay/" + str(self._channel) + "?turn=on")

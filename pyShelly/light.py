@@ -12,68 +12,11 @@ from .const import (
     STATUS_RESPONSE_LIGHTS_RED,
     STATUS_RESPONSE_LIGHTS_GREEN,
     STATUS_RESPONSE_LIGHTS_BLUE,
-    STATUS_RESPONSE_LIGHTS_MODE
+    STATUS_RESPONSE_LIGHTS_MODE,
+    #STATUS_RESPONSE_INPUTS,
+    #STATUS_RESPONSE_INPUTS_INPUT,
+    #INFO_VALUE_SWITCH
 )
-
-class Dimmer(Device):
-    def __init__(self, block, state_pos, dim_pos):
-        super(Dimmer, self).__init__(block)
-        self.id = block.id
-        self.device_type = "DIMMER"
-        self.url = "/light/0"
-        self.state = None
-        self.brightness = None
-        self.state_pos = state_pos
-        self.dim_pos = dim_pos
-
-    def update(self, data):
-        new_state = data.get(self.state_pos) == 1
-        self.brightness = data.get(self.dim_pos)
-        values = { 'brightness': self.brightness}
-        self._update(new_state, values)
-
-    def update_status_information(self, status):
-        """Update the status information."""
-        new_state = None
-        lights = status.get(STATUS_RESPONSE_LIGHTS)
-        values = {}
-        if lights:
-            light = lights[0]
-            new_state = light.get(STATUS_RESPONSE_LIGHTS_STATE, None)
-            self.brightness = \
-                light.get(STATUS_RESPONSE_LIGHTS_BRIGHTNESS, None)
-            values['brightness'] = self.brightness
-            self._update(new_state, values)
-
-    def _send_data(self, state, brightness=None):
-        url = self.url + "?"
-
-        if state is not None:
-            if not state or brightness == 0:
-                url += "turn=off"
-                self._send_command(url)
-                return
-            url += "turn=on&"
-
-        if brightness is not None:
-            url += "brightness=" + str(brightness) + "&"
-
-        self._send_command(url)
-
-    def turn_on(self, brightness=None):
-        self._send_data(True, brightness)
-
-    #def set_values(self, brightness=None):
-    #    self._send_data(None, brightness)
-
-    def turn_off(self):
-        self._send_data(False)
-
-    def get_dim_value(self):
-        return self.brightness
-
-    def set_dim_value(self, value):
-        self._send_data(True, value)
 
 class Light(Device):
     def __init__(self, block, state_pos, channel=0):
@@ -97,6 +40,7 @@ class Light(Device):
 
         self.state_pos = state_pos
         self._channel = channel
+        self.info_values = {}
 
     def update(self, data):
         success, settings = self.block.http_get(self.url) #todo
@@ -124,12 +68,15 @@ class Light(Device):
 
         self.effect = int(settings.get('effect', 0))
 
+        if 118 in data:
+            self.info_values['switch'] = data.get(118) > 0
+
         values = {'mode': self.mode, 'brightness': self.brightness,
                   'rgb': self.rgb, 'temp': self.temp,
                   'white_value': self.white_value,
                   'effect': self.effect}
 
-        self._update(new_state, values)
+        self._update(new_state, values, None, self.info_values)
 
     def update_status_information(self, status):
         """Update the status information."""
@@ -162,7 +109,7 @@ class Light(Device):
                       'rgb': self.rgb, 'temp': self.temp,
                       'white_value': self.white_value,
                       'effect': self.effect}
-            self._update(new_state, values)
+            self._update(new_state, values, None, self.info_values)
 
     def _send_data(self, state, brightness=None, rgb=None, temp=None,
                    mode=None, effect=None, white_value=None):
@@ -173,7 +120,6 @@ class Light(Device):
                 url += "turn=off"
                 self._send_command(url)
                 return
-
             url += "turn=on&"
 
         if mode is not None:
@@ -251,9 +197,11 @@ class RGBW2W(Light):
         if 181 in data:
             new_state = data.get(151 + self._channel * 10) == 1
             self.brightness = data.get(111 + self._channel * 10)
+            if 118 in data:
+                self.info_values['switch'] = data.get(118) > 0
             values = {'mode': self.mode, 'brightness': self.brightness}
                       #'rgb': self.rgb, 'temp': self.temp}
-            self._update(new_state, values)
+            self._update(new_state, values, None, self.info_values)
         else:
             self._reload_block()
 

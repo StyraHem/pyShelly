@@ -57,9 +57,9 @@ class Cloud():
             except Exception as ex:
                 LOGGER.error("Error update cloud, %s", ex)
 
-    def _post(self, path, params=None):
+    def _post(self, path, params=None, retry=0):
         with self.http_lock:
-            while datetime.now() - self._last_post < timedelta(seconds=3):
+            while datetime.now() - self._last_post < timedelta(seconds=2):
                 time.sleep(1)
             self._last_post = datetime.now()
 
@@ -78,8 +78,11 @@ class Cloud():
                 body = resp.read()
                 json_body = json.loads(s(body))
             else:
-                LOGGER.warning("Error receive JSON from cloud, %s : %s", \
-                                resp.reason, resp.read())
+                if retry < 2:
+                    return self._post(path, params, retry + 1)
+                else:
+                    LOGGER.warning("Error receive JSON from cloud, %s : %s", \
+                                   resp.reason, resp.read())
         except Exception as ex:
             LOGGER.warning("Error connect cloud, %s", ex)
         finally:
@@ -111,7 +114,7 @@ class Cloud():
 
     def get_room_name(self, _id):
         """Return room name of a device"""
-        room = ""
+        room = None
         if self._device_list and _id in self._device_list:
             dev = self._device_list[_id]
             try:
