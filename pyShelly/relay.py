@@ -66,7 +66,7 @@ class Relay(Device):
                     round(float(meter.get(STATUS_RESPONSE_METERS_POWER)))
             if meter.get(STATUS_RESPONSE_METERS_TOTAL) is not None:
                 self.info_values[INFO_VALUE_TOTAL_CONSUMPTION] = \
-                  round(float(meter.get(STATUS_RESPONSE_METERS_TOTAL)) / 60, 2)
+                  round(float(meter.get(STATUS_RESPONSE_METERS_TOTAL)) / 60)
 
         inputs = status.get(STATUS_RESPONSE_INPUTS)
         if inputs:

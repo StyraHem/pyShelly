@@ -49,7 +49,7 @@ class PowerMeter(Device):
                     total += float(meter.get(STATUS_RESPONSE_METERS_TOTAL))
             self.state = power
             self.info_values[INFO_VALUE_TOTAL_CONSUMPTION] \
-                = round(total / 60, 2)
+                = round(total / 60)
             self._update(self.state, info_values=self.info_values)
 
     def update(self, data):
