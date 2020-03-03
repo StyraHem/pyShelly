@@ -18,7 +18,7 @@ except:
 class Cloud():
     def __init__(self, root, server, key):
         self.auth_key = key
-        self.server = server
+        self.server = server.replace("https://", "")
         self._last_update = None
         self._stopped = threading.Event()
         self.update_interval = timedelta(minutes=1)

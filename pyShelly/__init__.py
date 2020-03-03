@@ -144,7 +144,6 @@ class pyShelly():
             if block:
                 self._poll_block(block)
 
-
     def check_by_ip(self):
         for ip_addr in list(self._shelly_by_ip.keys()):
             data = self._shelly_by_ip[ip_addr]
@@ -222,7 +221,7 @@ class pyShelly():
             self._poll_block(block)
 
     def _update_loop(self):
-        LOGGER.info("Start update loop, %s sec", self.update_status_interval)
+        LOGGER.debug("Start update loop, %s sec", self.update_status_interval)
         while not self.stopped.isSet():
             try:
                 #LOGGER.debug("Checking blocks")

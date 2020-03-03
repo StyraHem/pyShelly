@@ -78,7 +78,7 @@ class Device(object):
 
     def _update(self, new_state=None, new_state_values=None, new_values=None,
                 info_values=None):
-        LOGGER.info(
+        LOGGER.debug(
             "Update id:%s state:%s stateValue:%s values:%s info_values:%s",
             self.id, new_state, new_state_values, new_values, info_values)
         need_update = False
@@ -116,3 +116,4 @@ class Device(object):
 
     def _reload_block(self):
         self.block.reload = True
+

@@ -7,7 +7,7 @@ from .switch import Switch
 from .relay import Relay
 from .powermeter import PowerMeter
 from .sensor import Sensor, Flood, DoorWindow, ExtTemp
-from .light import RGBW2W, RGBW2C, RGBWW, Bulb
+from .light import RGBW2W, RGBW2C, RGBWW, Bulb, Duo
 from .dimmer import Dimmer
 from .roller import Roller
 from .utils import exception_log
@@ -46,7 +46,9 @@ class Block():
         self.discover_by_coap = False
         self.sleep_device = False
         self.payload = None
+        self.settings = None
         self._setup()
+        self._available = None
 
     def update(self, data, ip_addr):
         self.ip_addr = ip_addr  # If changed ip
@@ -71,7 +73,13 @@ class Block():
         """Update the status information."""
         self.last_update_status_info = datetime.now()
 
-        LOGGER.info("Get status from %s %s", self.id, self.friendly_name())
+        if self.available() != self._available:
+            self._available = self.available()
+            self.raise_updated()
+            for dev in self.devices:
+                dev.raise_updated()
+
+        LOGGER.debug("Get status from %s %s", self.id, self.friendly_name())
         success, status = self.http_get('/status', False)
         #LOGGER.debug(status)
         if not success or status == {}:
@@ -89,7 +97,7 @@ class Block():
             if data is not None:
                 fmt = attr.get(ATTR_FMT, None)
                 if fmt == "round":
-                    data = round(data, 0)
+                    data = round(data)
                 info_values[name] = data
 
         if self.payload:
@@ -125,15 +133,24 @@ class Block():
         """Start firmware update"""
         self.http_get("/ota?update=1")
 
+    def poll_settings(self):
+        if self.type in SHELLY_TYPES and \
+            SHELLY_TYPES[self.type].get('battery'):
+                return
+        success, settings = self.http_get("/settings")
+        if success:
+            self.settings = settings
+
     def _setup(self):
+        #Get settings
+        self.poll_settings()
         #Shelly BULB
         if self.type == 'SHBLB-1' or self.type == 'SHCL-255':
             self._add_device(Bulb(self))
         #Shelly 2
         elif self.type == 'SHSW-21':
-            success, settings = self.http_get("/settings") #todo
-            if success:
-                if settings.get('mode') == 'roller':
+            if self.settings:
+                if self.settings.get('mode') == 'roller':
                     self._add_device(Roller(self))
                 else:
                     self._add_device(Relay(self, 1, 112, 111, 118))
@@ -144,9 +161,8 @@ class Block():
             #else delayed reload
         #Shelly 2.5
         elif self.type == 'SHSW-25':
-            success, settings = self.http_get("/settings") #todo
-            if success:
-                if settings.get('mode') == 'roller':
+            if self.settings:
+                if self.settings.get('mode') == 'roller':
                     self._add_device(Roller(self))
                     self._add_device(PowerMeter(self, 1, [111, 121], [0,1]))
                 else:
@@ -168,8 +184,14 @@ class Block():
             self._add_device(RGBW2W(self, 1))
         elif self.type == 'SHEM':
             self._add_device(Relay(self, 0, 112))
-            self._add_device(PowerMeter(self, 1, [111]))
-            self._add_device(PowerMeter(self, 2, [121]))
+            self._add_device(PowerMeter(self, 1, [111], voltage_to_block=True))
+            self._add_device(PowerMeter(self, 2, [121], voltage_to_block=True))
+        #Shelly 3EM
+        elif self.type == 'SHEM-3':
+            self._add_device(Relay(self, 0, 112))
+            self._add_device(PowerMeter(self, 1, [111], None, 116, 114, 115))
+            self._add_device(PowerMeter(self, 2, [121], None, 126, 124, 125))
+            self._add_device(PowerMeter(self, 3, [131], None, 136, 134, 135))
         #Shelly 1
         elif self.type == 'SHSW-1' or self.type == 'SHSK-1':
             self._add_device(Relay(self, 0, 112, None, 118))
@@ -188,9 +210,13 @@ class Block():
         #Shelly 4 Pro
         elif self.type == 'SHSW-44':
             for channel in range(4):
-                pos = 112 + (channel * 10)
-                self._add_device(Relay(self, channel + 1, pos, pos-1))
-                self._add_device(PowerMeter(self, channel + 1, [pos - 1]))
+                relay_pos = 112 + (channel * 10)
+                power_pos = 111 + (channel * 10)
+                switch_pos = 118 + (channel * 10)
+                self._add_device(
+                    Relay(self, channel + 1, relay_pos, power_pos, switch_pos))
+                self._add_device(PowerMeter(self, channel + 1, [power_pos]))
+                self._add_device(Switch(self, channel + 1, switch_pos))
         elif self.type == 'SHRGBWW-01':
             self._add_device(RGBWW(self))
         #Shelly Dimmer
@@ -210,16 +236,15 @@ class Block():
             self._add_device(Sensor(self, 33, 'temperature', 'tmp/value'))
             self._add_device(Sensor(self, 44, 'humidity', 'hum/value'))
         elif self.type == 'SHRGBW2':
-            success, settings = self.http_get("/settings") #todo
-            if success:
-                if settings.get('mode', 'color') == 'color':
+            if self.settings:
+                if self.settings.get('mode', 'color') == 'color':
                     self._add_device(RGBW2C(self))
                 else:
                     for channel in range(4):
                         self._add_device(RGBW2W(self, channel + 1))
             self._add_device(Switch(self, 0, 118))
             #todo else delayed reload
-            #Shelly Flood
+        #Shelly Flood
         elif self.type == 'SHWT-1':
             self.sleep_device = True
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
@@ -230,8 +255,8 @@ class Block():
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
             self._add_device(DoorWindow(self))
             self._add_device(Sensor(self, 66, 'illuminance', 'lux/value'))
-        #else:
-        #    self._add_device(Unknown(self))
+        elif self.type == 'SHBDUO-1':
+            self._add_device(Duo(self))
 
     def _add_device(self, dev, lazy_load=False):
         dev.lazy_load = lazy_load

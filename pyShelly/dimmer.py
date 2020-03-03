@@ -80,9 +80,6 @@ class Dimmer(Device):
     def turn_on(self, brightness=None):
         self._send_data(True, brightness)
 
-    #def set_values(self, brightness=None):
-    #    self._send_data(None, brightness)
-
     def turn_off(self):
         self._send_data(False)
 
