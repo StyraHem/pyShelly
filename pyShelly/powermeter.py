@@ -55,16 +55,17 @@ class PowerMeter(Device):
             factor = 60
         if meters:
             power = 0
-            total = 0
-            total_returned = 0
+            total = None
+            total_returned = None
             for meterpos in self.meters:
                 meter = meters[meterpos]
                 if meter.get(STATUS_RESPONSE_METERS_POWER) is not None:
                     power += float(meter.get(STATUS_RESPONSE_METERS_POWER))
                 if meter.get(STATUS_RESPONSE_METERS_TOTAL) is not None:
-                    total += float(meter.get(STATUS_RESPONSE_METERS_TOTAL))
+                    total = (total or 0) + \
+                        float(meter.get(STATUS_RESPONSE_METERS_TOTAL))
                 if meter.get(STATUS_RESPONSE_METERS_TOTAL_RETURNED) is not None:
-                    total_returned += \
+                    total_returned = (total_returned or 0) + \
                         float(meter.get(STATUS_RESPONSE_METERS_TOTAL_RETURNED))
                 if meter.get(STATUS_RESPONSE_METERS_VOLTAGE) is not None:
                     if self._voltage_to_block:
@@ -84,11 +85,12 @@ class PowerMeter(Device):
                     self.info_values[INFO_VALUE_CURRENT] = \
                         float(meter.get(STATUS_RESPONSE_METERS_CURRENT))
             self.state = power
-            if total_returned:
+            if total_returned is not None:
                 self.info_values[INFO_VALUE_TOTAL_RETURNED] \
                     = round(total_returned / factor)
-            self.info_values[INFO_VALUE_TOTAL_CONSUMPTION] \
-                = round(total / factor)
+            if total is not None:
+                self.info_values[INFO_VALUE_TOTAL_CONSUMPTION] \
+                    = round(total / factor)
             self._update(self.state, info_values=self.info_values)
 
     def update(self, data):

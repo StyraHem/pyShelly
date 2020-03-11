@@ -13,9 +13,11 @@ from .const import (
     STATUS_RESPONSE_LIGHTS_GREEN,
     STATUS_RESPONSE_LIGHTS_BLUE,
     STATUS_RESPONSE_LIGHTS_MODE,
+    STATUS_RESPONSE_LIGHTS_POWER,
     #STATUS_RESPONSE_INPUTS,
     #STATUS_RESPONSE_INPUTS_INPUT,
     #INFO_VALUE_SWITCH
+    INFO_VALUE_CURRENT_CONSUMPTION
 )
 
 class LightWhite(Device):
@@ -105,7 +107,7 @@ class LightWhite(Device):
         self._send_data(True, color_temp=value)
 
 class LightRGB(Device):
-    def __init__(self, block, state_pos, channel=0):
+    def __init__(self, block, state_pos, channel=0, power_pos=None):
         super(LightRGB, self).__init__(block)
         self.id = block.id
         self.state = None
@@ -125,6 +127,7 @@ class LightRGB(Device):
         self.support_white_value = False
 
         self.state_pos = state_pos
+        self.power_pos = power_pos
         self._channel = channel
         self.info_values = {}
 
@@ -156,6 +159,10 @@ class LightRGB(Device):
 
         if 118 in data:
             self.info_values['switch'] = data.get(118) > 0
+
+        if self.power_pos and self.power_pos in data:
+            self.info_values[INFO_VALUE_CURRENT_CONSUMPTION] \
+                = data.get(self.power_pos)
 
         values = {'mode': self.mode, 'brightness': self.brightness,
                   'rgb': self.rgb, 'color_temp': self.color_temp,
@@ -189,6 +196,10 @@ class LightRGB(Device):
             self.color_temp = int(light.get('temp', 0))
 
             self.effect = int(light.get('effect', 0))
+
+            if STATUS_RESPONSE_LIGHTS_POWER in light:
+                self.info_values[INFO_VALUE_CURRENT_CONSUMPTION] \
+                    = light[STATUS_RESPONSE_LIGHTS_POWER]
 
             new_state = light.get(STATUS_RESPONSE_LIGHTS_STATE, None)
             values = {'mode': self.mode, 'brightness': self.brightness,
@@ -273,7 +284,7 @@ class RGBWW(LightRGB):
 
 class RGBW2W(LightRGB):
     def __init__(self, block, channel):
-        super(RGBW2W, self).__init__(block, 161, channel)
+        super(RGBW2W, self).__init__(block, 161, channel, 201 + channel * 10)
         self.id = self.id + '-' + str(channel)
         self._channel = channel - 1
         self.mode = "white"
@@ -287,6 +298,9 @@ class RGBW2W(LightRGB):
             self.brightness = data.get(111 + self._channel * 10)
             if 118 in data:
                 self.info_values['switch'] = data.get(118) > 0
+            if self.power_pos and self.power_pos in data:
+                self.info_values[INFO_VALUE_CURRENT_CONSUMPTION] \
+                    = data.get(self.power_pos)
             values = {'mode': self.mode, 'brightness': self.brightness}
                       #'rgb': self.rgb, 'temp': self.temp}
             self._update(new_state, values, None, self.info_values)
@@ -295,7 +309,7 @@ class RGBW2W(LightRGB):
 
 class RGBW2C(LightRGB):
     def __init__(self, block):
-        super(RGBW2C, self).__init__(block, 161)
+        super(RGBW2C, self).__init__(block, 161, 0, 211)
         self.mode = "color"
         self.url = "/color/0"
         self.effects_list = EFFECTS_RGBW2

@@ -1,6 +1,8 @@
 """Block is a physical device"""
 # pylint: disable=broad-except, bare-except
 
+import re
+
 from datetime import datetime
 from .utils import shelly_http_get
 from .switch import Switch
@@ -26,6 +28,8 @@ from .const import (
     SHELLY_TYPES
 )
 
+REGEX_VER = r"^20(\d{6}).+v(\d+\.\d+\.\d+)@"
+
 class Block():
     def __init__(self, parent, block_id, block_type, ip_addr, discovery_src):
         self.id = block_id
@@ -35,6 +39,7 @@ class Block():
         self.ip_addr = ip_addr
         self.devices = []
         self.discovery_src = discovery_src
+        self.protocols = []
         self.cb_updated = []
         self.unavailable_after_sec = None
         self.info_values = {}
@@ -85,6 +90,9 @@ class Block():
         if not success or status == {}:
             return
 
+        if 'poll' not in self.protocols:
+            self.protocols.append("poll")
+
         self.last_updated = datetime.now()
 
         #Put status in info_values
@@ -98,6 +106,10 @@ class Block():
                 fmt = attr.get(ATTR_FMT, None)
                 if fmt == "round":
                     data = round(data)
+                if fmt == "ver":
+                    ver = re.search(REGEX_VER, data)
+                    if ver:
+                        data = ver.group(2) + " (" + ver.group(1) + ")"
                 info_values[name] = data
 
         if self.payload:
@@ -153,7 +165,7 @@ class Block():
                 if self.settings.get('mode') == 'roller':
                     self._add_device(Roller(self))
                 else:
-                    self._add_device(Relay(self, 1, 112, 111, 118))
+                    self._add_device(Relay(self, 1, 112, None, 118))
                     self._add_device(Relay(self, 2, 122, None, 128))
                 self._add_device(Switch(self, 1, 118))
                 self._add_device(Switch(self, 2, 128))
@@ -235,13 +247,17 @@ class Block():
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
             self._add_device(Sensor(self, 33, 'temperature', 'tmp/value'))
             self._add_device(Sensor(self, 44, 'humidity', 'hum/value'))
+        #Shellyy RGBW2
         elif self.type == 'SHRGBW2':
             if self.settings:
                 if self.settings.get('mode', 'color') == 'color':
                     self._add_device(RGBW2C(self))
+                    self._add_device(PowerMeter(self, 0, [211]))
                 else:
                     for channel in range(4):
                         self._add_device(RGBW2W(self, channel + 1))
+                        self._add_device(PowerMeter(self, channel+1, \
+                                                            [211+channel*10]))
             self._add_device(Switch(self, 0, 118))
             #todo else delayed reload
         #Shelly Flood

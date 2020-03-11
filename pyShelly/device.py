@@ -76,6 +76,10 @@ class Device(object):
     def available(self):
         return self.block.available()
 
+    @property
+    def protocols(self):
+        return self.block.protocols
+
     def _update(self, new_state=None, new_state_values=None, new_values=None,
                 info_values=None):
         LOGGER.debug(

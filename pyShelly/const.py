@@ -5,7 +5,7 @@ import logging
 LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
-VERSION = "0.1.20"
+VERSION = "0.1.21"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
@@ -39,6 +39,7 @@ STATUS_RESPONSE_LIGHTS_MODE = 'mode'
 STATUS_RESPONSE_LIGHTS_RED = 'red'
 STATUS_RESPONSE_LIGHTS_GREEN = 'green'
 STATUS_RESPONSE_LIGHTS_BLUE = 'blue'
+STATUS_RESPONSE_LIGHTS_POWER = 'power'
 
 STATUS_RESPONSE_ROLLERS = 'rollers'
 STATUS_RESPONSE_ROLLERS_STATE = 'state'
@@ -81,8 +82,10 @@ BLOCK_INFO_VALUES = {
     INFO_VALUE_DEVICE_TEMP : {ATTR_PATH : 'tmp/tC', ATTR_FMT : 'round'},
     INFO_VALUE_OVER_TEMPERATURE : {ATTR_PATH : 'overtemperature'},
     INFO_VALUE_HAS_FIRMWARE_UPDATE : {ATTR_PATH : 'update/has_update'},
-    INFO_VALUE_LATEST_FIRMWARE_VERSION : {ATTR_PATH : 'update/new_version'},
-    INFO_VALUE_FW_VERSION : {ATTR_PATH : 'update/old_version'},
+    INFO_VALUE_LATEST_FIRMWARE_VERSION : {ATTR_PATH : 'update/new_version',
+                                          ATTR_FMT : 'ver'},
+    INFO_VALUE_FW_VERSION : {ATTR_PATH : 'update/old_version',
+                             ATTR_FMT : 'ver'},
     INFO_VALUE_CLOUD_ENABLED : {ATTR_PATH : 'cloud/enabled'},
     INFO_VALUE_CLOUD_CONNECTED : {ATTR_PATH : 'cloud/connected'},
     INFO_VALUE_MQTT_CONNECTED : {ATTR_PATH : 'mqtt/connected'},

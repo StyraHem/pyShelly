@@ -91,7 +91,6 @@ class pyShelly():
         self.host_ip = ''
 
         self._shelly_by_ip = {}
-
         #self.loop = asyncio.get_event_loop()
 
         self._send_discovery_timer = timer(timedelta(seconds=60))
@@ -205,6 +204,9 @@ class pyShelly():
             block_added = True
 
         block = self.blocks[block_id]
+
+        if not src in block.protocols:
+            block.protocols.append(src)
 
         if payload:
             data = {d[1]:d[2] for d in json.loads(payload)['G']}

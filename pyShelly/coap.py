@@ -40,11 +40,11 @@ class CoAP():
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 10)
         sock.bind((self._root.host_ip, COAP_PORT))
         if self._root.host_ip:
-            mreq = struct.pack("=4s4s", 
+            mreq = struct.pack("=4s4s",
                                socket.inet_aton(COAP_IP),
                                socket.inet_aton(self._root.host_ip))
         else:
-            mreq = struct.pack("=4sl", 
+            mreq = struct.pack("=4sl",
                                socket.inet_aton(COAP_IP),
                                socket.INADDR_ANY)
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, mreq)
@@ -72,8 +72,15 @@ class CoAP():
                         datetime.now() > next_igmp_fix:
                     LOGGER.debug("IGMP fix")
                     next_igmp_fix = datetime.now() + timedelta(minutes=1)
-                    mreq = struct.pack("=4sl", socket.inet_aton(COAP_IP),
-                                       socket.INADDR_ANY)
+                    if self._root.host_ip:
+                        mreq = struct.pack("=4s4s",
+                               socket.inet_aton(COAP_IP),
+                               socket.inet_aton(self._root.host_ip))
+                    else:
+                        mreq = struct.pack("=4sl",
+                               socket.inet_aton(COAP_IP),
+                               socket.INADDR_ANY)
+
                     try:
                         self._socket.setsockopt(socket.IPPROTO_IP,
                                                 socket.IP_DROP_MEMBERSHIP,
@@ -170,12 +177,12 @@ class CoAP():
 
                     if code == 30:
                         self._root.update_block(device_id, device_type,
-                                           ipaddr, 'CoAP-message', payload)
+                                           ipaddr, 'CoAP-msg', payload)
 
                     if code == 69:
                         self._root.update_block(device_id, device_type,
                                            ipaddr, 'CoAP-discovery', None)
 
             except Exception as ex:
-                pass
+                LOGGER.debug("Error receive CoAP %s", str(ex))
                 #exception_log(ex, "Error receiving CoAP UDP")

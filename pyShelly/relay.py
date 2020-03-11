@@ -58,15 +58,16 @@ class Relay(Device):
                     relay.get(STATUS_RESPONSE_RELAY_OVER_POWER)
             if relay.get(STATUS_RESPONSE_RELAY_STATE) is not None:
                 new_state = relay.get(STATUS_RESPONSE_RELAY_STATE)
-        meters = status.get(STATUS_RESPONSE_METERS)
-        if meters and len(meters) > self._channel:
-            meter = meters[self._channel]
-            if meter.get(STATUS_RESPONSE_METERS_POWER) is not None:
-                self.info_values[INFO_VALUE_CURRENT_CONSUMPTION] = \
-                    round(float(meter.get(STATUS_RESPONSE_METERS_POWER)))
-            if meter.get(STATUS_RESPONSE_METERS_TOTAL) is not None:
-                self.info_values[INFO_VALUE_TOTAL_CONSUMPTION] = \
-                  round(float(meter.get(STATUS_RESPONSE_METERS_TOTAL)) / 60)
+        if self._power_idx:
+            meters = status.get(STATUS_RESPONSE_METERS)
+            if meters and len(meters) > self._channel:
+                meter = meters[self._channel]
+                if meter.get(STATUS_RESPONSE_METERS_POWER) is not None:
+                    self.info_values[INFO_VALUE_CURRENT_CONSUMPTION] = \
+                        round(float(meter.get(STATUS_RESPONSE_METERS_POWER)))
+                if meter.get(STATUS_RESPONSE_METERS_TOTAL) is not None:
+                    self.info_values[INFO_VALUE_TOTAL_CONSUMPTION] = \
+                    round(float(meter.get(STATUS_RESPONSE_METERS_TOTAL)) / 60)
 
         inputs = status.get(STATUS_RESPONSE_INPUTS)
         if inputs:
