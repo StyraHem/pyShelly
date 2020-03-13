@@ -22,6 +22,7 @@ class Device(object):
         self.device_sub_type = None #Used to make sensors unique
         self.lazy_load = False
         self.device_nr = None
+        self.master = False
 
     def friendly_name(self):
         try:
