@@ -39,6 +39,9 @@ This library was created for Shelly Plugins for Home Assistant and Telldus Tells
 - Shelly Flood
 - Shelly Door/Window
 - Shelly Dimmer
+- Shelly EM
+- Shelly 3EM
+- Shelly DUO
 
 ## Usage
 
