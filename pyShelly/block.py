@@ -74,15 +74,16 @@ class Block():
         for callback in self.cb_updated:
             callback(self)
 
-    def update_status_information(self):
-        """Update the status information."""
-        self.last_update_status_info = datetime.now()
-
+    def check_available(self):
         if self.available() != self._available:
             self._available = self.available()
             self.raise_updated()
             for dev in self.devices:
                 dev.raise_updated()
+
+    def update_status_information(self):
+        """Update the status information."""
+        self.last_update_status_info = datetime.now()
 
         LOGGER.debug("Get status from %s %s", self.id, self.friendly_name())
         success, status = self.http_get('/status', False)

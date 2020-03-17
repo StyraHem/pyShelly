@@ -67,7 +67,7 @@ class Cloud():
         params = params or {}
         try:
             LOGGER.debug("POST to Shelly Cloud")
-            conn = httplib.HTTPSConnection(self.server, timeout=5)
+            conn = httplib.HTTPSConnection(self.server, timeout=15)
             headers = {'Content-Type' : 'application/x-www-form-urlencoded'}
             params["auth_key"] = self.auth_key
             conn.request("POST", "/" + path, urllib.parse.urlencode(params),

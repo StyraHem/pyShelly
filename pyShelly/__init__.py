@@ -234,13 +234,13 @@ class pyShelly():
 
                 for key in list(self.blocks.keys()):
                     block = self.blocks[key]
-                    #LOGGER.debug("Checking block, %s %s",
-                    # block.id, block.last_update_status_info)
 
                     if not block.sleep_device:
                         self._poll_block(block)
 
-                time.sleep(0.5)
+                    block.check_available()
+
+                time.sleep(1)
             except Exception as ex:
                 exception_log(ex, "Error update loop")
 
