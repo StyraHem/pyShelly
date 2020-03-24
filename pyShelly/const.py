@@ -5,7 +5,7 @@ import logging
 LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
-VERSION = "0.1.23"
+VERSION = "0.1.24"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683

@@ -89,6 +89,7 @@ class pyShelly():
         self._coap = CoAP(self)
         self._mdns = None
         self.host_ip = ''
+        self.bind_ip = ''
 
         self._shelly_by_ip = {}
         #self.loop = asyncio.get_event_loop()

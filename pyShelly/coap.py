@@ -38,7 +38,7 @@ class CoAP():
                              socket.IPPROTO_UDP)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 10)
-        sock.bind((self._root.host_ip, COAP_PORT))
+        sock.bind((self._root.bind_ip, COAP_PORT))
         if self._root.host_ip:
             mreq = struct.pack("=4s4s",
                                socket.inet_aton(COAP_IP),
