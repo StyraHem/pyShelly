@@ -47,10 +47,13 @@ class Roller(Device):
         rollers = status.get(STATUS_RESPONSE_ROLLERS)
         if rollers:
             roller = rollers[0]
-            #{"state":"stop","power":0.00,"is_valid":true,"safety_switch":false,"stop_reason":"normal","last_direction":"open","current_pos":10,"calibrating":false,"positioning":true}
+            self.support_position = roller.get("positioning", False)
             self.motion_state = roller[STATUS_RESPONSE_ROLLERS_STATE]
             self.last_direction = roller[STATUS_RESPONSE_ROLLERS_LAST_DIR]
             self.position = roller[STATUS_RESPONSE_ROLLERS_POSITION]
+            if self.position < 0 or self.position > 100:
+                self.position = 0
+                self.support_position = False
             consumption = roller[STATUS_RESPONSE_ROLLERS_POWER]
             state = self.position != 0
             self._update(state, None, None, {INFO_VALUE_CURRENT_CONSUMPTION:consumption})
@@ -65,4 +68,5 @@ class Roller(Device):
         self._send_command("/roller/0?go=stop")
 
     def set_position(self, pos):
-        self._send_command("/roller/0?go=to_pos&roller_pos=" + str(pos))
+        if self.support_position:
+            self._send_command("/roller/0?go=to_pos&roller_pos=" + str(pos))
