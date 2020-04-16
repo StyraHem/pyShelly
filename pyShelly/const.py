@@ -5,7 +5,7 @@ import logging
 LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
-VERSION = "0.1.25"
+VERSION = "0.1.26"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
@@ -116,6 +116,8 @@ SHELLY_TYPES = {
     'SHWT-1': {'name': "Shelly Flood", 'battery' : True},
     'SHDM-1': {'name': "Shelly Dimmer"},
     'SHDW-1': {'name': "Shelly Door/Window", 'battery' : True},
+    'SHBDUO-1': {'name': "Shelly Duo"},
+    'SHBVIN-1': {'name': "Shelly Vintage"}
 }
 
 EFFECTS_RGBW2 = [

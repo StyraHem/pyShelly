@@ -63,8 +63,8 @@ def shelly_http_get(host, url, username, password, log_error=True):
             success = True
             LOGGER.debug("http://%s%s - Ok", host, url)
         else:
-            res = "Error, " + str(resp.status) \
-                            + ' ' + str(resp.reason)
+            res = "Error, {} {} http://{}{}".format(
+                resp.status, resp.reason, host, url)
             LOGGER.warning(res)
     except Exception as ex:
         success = False

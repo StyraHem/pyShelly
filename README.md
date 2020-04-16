@@ -42,6 +42,7 @@ This library was created for Shelly Plugins for Home Assistant and Telldus Tells
 - Shelly EM
 - Shelly 3EM
 - Shelly DUO
+- Shelly Vintage
 
 ## Usage
 

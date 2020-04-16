@@ -21,7 +21,7 @@ from .const import (
 )
 
 class LightWhite(Device):
-    def __init__(self, block, state_pos, bright_pos, temp_pos):
+    def __init__(self, block, state_pos, bright_pos, temp_pos=None):
         super(LightWhite, self).__init__(block)
         self.id = block.id
         self.state = None
@@ -322,3 +322,7 @@ class Duo(LightWhite):
         self.support_color_temp = True
         self._color_temp_min = 2700
         self._color_temp_max = 6500
+
+class Vintage(LightWhite):
+    def __init__(self, block):
+        super(Vintage, self).__init__(block, 121, 111)

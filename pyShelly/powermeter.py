@@ -22,7 +22,8 @@ from .const import (
 class PowerMeter(Device):
     """Class to represent a power meter value"""
     def __init__(self, block, channel, positions, meters=None, volt_pos=None,
-                 pf_pos=None, current_pos=None, voltage_to_block=False):
+                 pf_pos=None, current_pos=None, voltage_to_block=False,
+                 tot_pos=None):
         super(PowerMeter, self).__init__(block)
         self.id = block.id
         if channel > 0:
@@ -38,6 +39,7 @@ class PowerMeter(Device):
         self._positions = positions
         self._volt_pos = volt_pos
         self._pf_pos = pf_pos
+        self._tot_pos = tot_pos
         self._current_pos = current_pos
         self._voltage_to_block = voltage_to_block
         self.sensor_values = {}
@@ -115,5 +117,9 @@ class PowerMeter(Device):
             update = True
             self.info_values[INFO_VALUE_CURRENT] = \
                 round(data[self._current_pos], 2)
+        if self._tot_pos and self._tot_pos in data:
+            update = True
+            self.info_values[INFO_VALUE_TOTAL_CONSUMPTION] = \
+                round(data[self._tot_pos]/60)
         if update:
             self._update(self.state, info_values=self.info_values)

@@ -9,7 +9,7 @@ from .switch import Switch
 from .relay import Relay
 from .powermeter import PowerMeter
 from .sensor import Sensor, Flood, DoorWindow, ExtTemp
-from .light import RGBW2W, RGBW2C, RGBWW, Bulb, Duo
+from .light import RGBW2W, RGBW2C, RGBWW, Bulb, Duo, Vintage
 from .dimmer import Dimmer
 from .roller import Roller
 from .utils import exception_log
@@ -274,6 +274,10 @@ class Block():
             self._add_device(Sensor(self, 66, 'illuminance', 'lux/value'))
         elif self.type == 'SHBDUO-1':
             self._add_device(Duo(self))
+            self._add_device(PowerMeter(self, 0, [213], tot_pos=214))
+        elif self.type == 'SHVIN-1':
+            self._add_device(Vintage(self))
+            self._add_device(PowerMeter(self, 0, [213], tot_pos=214))
 
     def _add_device(self, dev, lazy_load=False):
         dev.lazy_load = lazy_load
