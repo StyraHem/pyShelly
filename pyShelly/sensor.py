@@ -43,6 +43,15 @@ class ExtTemp(Sensor):
         super(ExtTemp, self).__init__(block, 119+idx*10, 'temperature', \
             'ext_temperature/' + str(idx) + "/tC", idx)
         self.sleep_device = False
+        self.ext_sensor = idx
+
+class ExtHumidity(Sensor):
+    """Class to represent a external humidity sensor"""
+    def __init__(self, block, idx):
+        super(ExtHumidity, self).__init__(block, 120+idx*10, 'humidity', \
+            'ext_humidity/' + str(idx) + "/hum", idx)
+        self.sleep_device = False
+        self.ext_sensor = 1
 
 class BinarySensor(Sensor):
     """Abstract class to represent binary sensor"""

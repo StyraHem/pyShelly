@@ -60,8 +60,9 @@ class Relay(Device):
                 new_state = relay.get(STATUS_RESPONSE_RELAY_STATE)
         if self._power_idx:
             meters = status.get(STATUS_RESPONSE_METERS)
-            if meters and len(meters) > self._channel:
-                meter = meters[self._channel]
+            if meters and len(meters) > 0:
+                idx = min(self._channel, len(meters)-1)
+                meter = meters[idx]
                 if meter.get(STATUS_RESPONSE_METERS_POWER) is not None:
                     self.info_values[INFO_VALUE_CURRENT_CONSUMPTION] = \
                         round(float(meter.get(STATUS_RESPONSE_METERS_POWER)))

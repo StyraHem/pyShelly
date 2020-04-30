@@ -91,11 +91,25 @@ class Cloud():
 
         return json_body
 
-    def get_device_name(self, _id):
+    def get_device_name(self, _id, idx=None, _ext_sensor=None):
         """Return name using template for device"""
-        if self._device_list and _id in self._device_list:
-            dev = self._device_list[_id]
+        dev = None
+        add_idx = idx and idx > 1
+        if idx:
+            dev = self._device_list.get(_id + '_' + str(idx-1))
+            if dev:
+                add_idx = False
+        if not dev:
+            dev = self._device_list.get(_id)
+        if dev:
             name = dev['name']
+            if _ext_sensor is not None and 'external_sensors_names' in dev:
+                ext_sensors = dev['external_sensors_names']
+                if str(_ext_sensor) in ext_sensors:
+                    ext_name = ext_sensors[str(_ext_sensor)]['name']
+                    if ext_name != 'unnamed':
+                        name = ext_name
+                        add_idx = False
             room = ""
             try:
                 room_id = dev['room_id']
@@ -109,6 +123,8 @@ class Cloud():
                 pass
             tmpl = self._root.tmpl_name
             value = tmpl.format(id=id, name=name, room=room)
+            if add_idx:
+                value = value + " - " + str(idx)
             return value
         return None
 

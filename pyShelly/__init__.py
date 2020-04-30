@@ -135,7 +135,6 @@ class pyShelly():
             self._coap.discover()
 
     def add_device_by_ip(self, ip_addr, src):
-        LOGGER.debug("Check add device by host %s %s", ip_addr, src)
         if ip_addr not in self._shelly_by_ip:
             LOGGER.debug("Add device by host %s %s", ip_addr, src)
             self._shelly_by_ip[ip_addr] = {'done':False, 'src':src,
@@ -143,6 +142,8 @@ class pyShelly():
         else:
             block = self._shelly_by_ip[ip_addr]['poll_block']
             if block:
+                if not src in block.protocols:
+                    block.protocols.append(src)
                 self._poll_block(block)
 
     def check_by_ip(self):
@@ -173,7 +174,8 @@ class pyShelly():
                                 self._shelly_by_ip[ip_addr]['poll_block'] \
                                     = block
                 if not done:
-                    LOGGER.info("Error adding device, %s", ip_addr)
+                    LOGGER.info("Error adding device, %s %s",
+                                ip_addr, data['src'])
 
     def add_device(self, dev, discovery_src):
         LOGGER.debug('Add device')

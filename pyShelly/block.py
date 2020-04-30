@@ -8,7 +8,7 @@ from .utils import shelly_http_get
 from .switch import Switch
 from .relay import Relay
 from .powermeter import PowerMeter
-from .sensor import Sensor, Flood, DoorWindow, ExtTemp
+from .sensor import Sensor, Flood, DoorWindow, ExtTemp, ExtHumidity
 from .light import RGBW2W, RGBW2C, RGBWW, Bulb, Duo, Vintage
 from .dimmer import Dimmer
 from .roller import Roller
@@ -166,8 +166,8 @@ class Block():
                 if self.settings.get('mode') == 'roller':
                     self._add_device(Roller(self))
                 else:
-                    self._add_device(Relay(self, 1, 112, None, 118))
-                    self._add_device(Relay(self, 2, 122, None, 128))
+                    self._add_device(Relay(self, 1, 112, 111, 118))
+                    self._add_device(Relay(self, 2, 122, 111, 128))
                 self._add_device(Switch(self, 1, 118))
                 self._add_device(Switch(self, 2, 128))
                 self._add_device(PowerMeter(self, 0, [111]))
@@ -177,7 +177,7 @@ class Block():
             if self.settings:
                 if self.settings.get('mode') == 'roller':
                     self._add_device(Roller(self))
-                    self._add_device(PowerMeter(self, 1, [111, 121], [0,1]))
+                    self._add_device(PowerMeter(self, 1, [111, 121], [0, 1]))
                 else:
                     self._add_device(Relay(self, 1, 112, 111, 118))
                     self._add_device(Relay(self, 2, 122, 121, 128))
@@ -212,6 +212,7 @@ class Block():
             self._add_device(ExtTemp(self, 0), True)
             self._add_device(ExtTemp(self, 1), True)
             self._add_device(ExtTemp(self, 2), True)
+            self._add_device(ExtHumidity(self, 0), True)
         #Shelly 1 PM
         elif self.type == 'SHSW-PM':
             self._add_device(Relay(self, 0, 112, 111, 118))
@@ -220,6 +221,7 @@ class Block():
             self._add_device(ExtTemp(self, 0), True)
             self._add_device(ExtTemp(self, 1), True)
             self._add_device(ExtTemp(self, 2), True)
+            self._add_device(ExtHumidity(self, 0), True)
         #Shelly 4 Pro
         elif self.type == 'SHSW-44':
             for channel in range(4):

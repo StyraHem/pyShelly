@@ -5,7 +5,10 @@ import re
 import ipaddress
 from zeroconf import ( ServiceBrowser, Zeroconf )
 
-MATCH_NAME = re.compile("(?P<name>shelly.+)-(?P<id>[0-9A-F]+)._http._tcp.local.")
+MATCH_NAME = \
+    re.compile("(?P<devtype>shelly.+)-(?P<id>[0-9A-F]+)._http._tcp.local.")
+
+EXCLUDE = ['shellydw', 'shellyht', 'shellyflood']
 
 class MDns:
 
@@ -15,6 +18,9 @@ class MDns:
     def add_service(self, zeroconf, type, name):
         test = MATCH_NAME.fullmatch(name)
         if test:
+            dev_type = test.group('devtype')
+            if dev_type in EXCLUDE:
+                return
             info = zeroconf.get_service_info(type, name)
             for addr in info.addresses:
                 ipaddr = str(ipaddress.IPv4Address(addr))
