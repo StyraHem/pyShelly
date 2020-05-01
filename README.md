@@ -25,6 +25,7 @@ This library was created for Shelly Plugins for Home Assistant and Telldus Tells
 
 - Shelly 1
 - Shelly 1 PM (bug in firmware)
+- Shelly Addon for 1/1PM, temp and humidity
 - Shelly 2 (relay or roller mode)
 - Shelly 4 Pro
 - Shelly PLUG
