@@ -5,8 +5,8 @@ import codecs
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
+with open("README.md", "r", encoding="utf-8") as fh:
+    LONG_DESCRIPTION = fh.read()
 
 def read(*parts):
     with codecs.open(os.path.join(here, *parts), 'r') as fp:
@@ -26,7 +26,7 @@ setuptools.setup(
     author="StyraHem / Tarra AB",
     author_email="info@styrahem.se",
     description="Library for Shelly smart home devices",
-    long_description=long_description,
+    long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
     url="https://github.com/StyraHem/pyShelly",
     packages=setuptools.find_packages(),

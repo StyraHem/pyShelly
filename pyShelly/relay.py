@@ -37,6 +37,11 @@ class Relay(Device):
         self.is_sensor = power_idx is not None
         self.info_values = {}
 
+    def as_light(self):
+        if self.block.parent.cloud:
+            return self.block.parent.cloud.get_relay_usage(self.id,
+                                                           self._channel)
+
     def update(self, data):
         new_state = data.get(self._pos) == 1
         if self._power_idx is not None:

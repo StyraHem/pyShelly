@@ -35,7 +35,7 @@ class Device(object):
                 name = self.block.parent.cloud.get_device_name(device_id[0],
                                                                idx,
                                                                self.ext_sensor)
-                
+
                 # if len(device_id) > 1 and int(device_id[1]) > 1:
                 #     cloud_id = device_id[0] + '_' + str(int(device_id[1])-1)
                 #     name = self.block.parent.cloud.get_device_name(cloud_id,
