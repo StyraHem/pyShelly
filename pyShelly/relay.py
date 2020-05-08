@@ -39,8 +39,9 @@ class Relay(Device):
 
     def as_light(self):
         if self.block.parent.cloud:
-            return self.block.parent.cloud.get_relay_usage(self.id,
+            usage = self.block.parent.cloud.get_relay_usage(self.unit_id,
                                                            self._channel)
+            return usage == 'light'
 
     def update(self, data):
         new_state = data.get(self._pos) == 1

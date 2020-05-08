@@ -248,7 +248,7 @@ class Block():
         elif self.type == 'SHHT-1':
             self.sleep_device = True
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
-            self._add_device(Sensor(self, 33, 'temperature', 'tmp/value'))
+            self._add_device(Sensor(self, 33, 'temperature', 'tmp/tC'))
             self._add_device(Sensor(self, 44, 'humidity', 'hum/value'))
         #Shellyy RGBW2
         elif self.type == 'SHRGBW2':
@@ -268,7 +268,7 @@ class Block():
             self.sleep_device = True
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
             self._add_device(Flood(self))
-            self._add_device(Sensor(self, 33, 'temperature', 'tmp/value'))
+            self._add_device(Sensor(self, 33, 'temperature', 'tmp/tC'))
         elif self.type == 'SHDW-1':
             self.sleep_device = True
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC

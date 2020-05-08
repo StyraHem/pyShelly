@@ -3,6 +3,7 @@
 
 import json
 import time
+import asyncio
 import urllib
 import threading
 from datetime import datetime, timedelta
@@ -39,6 +40,15 @@ class Cloud():
         self._stopped.set()
 
     def _update_loop(self):
+        if self._root.loop:
+            asyncio.set_event_loop(self._root.loop)
+        try:
+            cloud = self._root.load_cache('cloud')
+            if cloud:
+                self._device_list = cloud['device_list']
+                self._room_list = cloud['room_list']
+        except:
+            LOGGER.error("Error load cloud cache, %s", ex)
         while not self._stopped.isSet():
             try:
                 if self._last_update is None or \
@@ -49,9 +59,15 @@ class Cloud():
                     devices = self.get_device_list()
                     if devices:
                         self._device_list = devices
+
                     rooms = self.get_room_list()
                     if rooms:
                         self._room_list = rooms
+
+                    self._root.save_cache('cloud', \
+                        {'device_list' : self._device_list,
+                         'room_list' : self._room_list}
+                    )
                 else:
                     time.sleep(5)
             except Exception as ex:
@@ -128,6 +144,14 @@ class Cloud():
             return value
         return None
 
+    def get_relay_usage(self, _id, channel):
+        dev_id = (_id + "_" + str(channel) if channel else _id).lower()
+        if self._device_list and dev_id in self._device_list:
+            dev = self._device_list[dev_id]
+            if 'relay_usage' in dev:
+                return dev['relay_usage']
+        return None
+
     def get_room_name(self, _id):
         """Return room name of a device"""
         room = None
@@ -146,21 +170,12 @@ class Cloud():
         return room
 
     def get_device_list(self):
-        return self._post("interface/device/list")['data']['devices']
+        resp = self._post("interface/device/list")
+        return resp['data']['devices'] if resp else None
 
     def get_status(self):
         self._post("device/all_status")
 
     def get_room_list(self):
         resp = self._post("interface/room/list")
-        return resp['data']['rooms']
-
-    def get_list_xxx(self):
-        rooms = self.get_room_list()
-        time.sleep(2)
-        resp = self._post("interface/device/list")
-
-        for _id, device in resp['data']['devices'].items():
-            room_id = device['room_id']
-
-        return resp['data']['devices']
+        return resp['data']['rooms'] if resp else None

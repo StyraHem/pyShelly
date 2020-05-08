@@ -64,7 +64,7 @@ except:
     import httplib
 
 class pyShelly():
-    def __init__(self):
+    def __init__(self, loop=None):
         LOGGER.info("Init  %s", VERSION)
         self.stopped = threading.Event()
         self.blocks = {}
@@ -72,6 +72,8 @@ class pyShelly():
         self.cb_block_added = []
         self.cb_device_added = []
         self.cb_device_removed = []
+        self.cb_save_cache = None
+        self.cb_load_cache = None
         # Used if igmp packages not sent correctly
         self.igmp_fix_enabled = False
         self.mdns_enabled = False
@@ -94,9 +96,22 @@ class pyShelly():
 
         self._shelly_by_ip = {}
         #self.loop = asyncio.get_event_loop()
+        if loop:
+            self.loop = loop
+        else:
+            self.loop = asyncio.get_event_loop()
 
         self._send_discovery_timer = timer(timedelta(seconds=60))
         self._check_by_ip_timer = timer(timedelta(seconds=60))
+
+    def load_cache(self, name):
+        if self.cb_load_cache:
+            return self.cb_load_cache(name)
+        return None
+
+    def save_cache(self, name, data):
+        if self.cb_save_cache:
+            self.cb_save_cache(name, data)
 
     def start(self):
         if self.mdns_enabled:
