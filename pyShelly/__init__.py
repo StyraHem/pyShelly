@@ -15,6 +15,7 @@ from .block import Block
 from .device import Device
 from .utils import exception_log, timer
 from .coap import CoAP
+from .mqtt import MQTT
 from .mdns import MDns
 
 #from .device.relay import Relay
@@ -91,6 +92,7 @@ class pyShelly():
 
         self._coap = CoAP(self)
         self._mdns = None
+        self._mqtt = MQTT(self)
         self.host_ip = ''
         self.bind_ip = ''
 
@@ -123,6 +125,8 @@ class pyShelly():
             self._coap.start()
         if self._mdns:
             self._mdns.start()
+        if self._mqtt:
+            self._mqtt.start()
         #asyncio.ensure_future(self._update_loop())
         self._update_thread = threading.Thread(target=self._update_loop)
         self._update_thread.name = "Poll"
@@ -140,6 +144,8 @@ class pyShelly():
             self._coap.close()
         if self._mdns:
             self._mdns.close()
+        if self._mqtt:
+            self._mqtt.close()
         if self._update_thread is not None:
             self._update_thread.join()
         if self._socket:
@@ -211,13 +217,16 @@ class pyShelly():
         for callback in self.cb_device_removed:
             callback(dev, discovery_src)
 
-    def update_block(self, block_id, device_type, ipaddr, src, payload):
+    def update_block(self, block_id, device_type, ipaddr, src, payload,
+                     force_poll=False):
         if self.only_device_id is not None and \
             block_id != self.only_device_id:
             return
 
         block_added = False
         if block_id not in self.blocks:
+            if not ipaddr:
+                return
             block = self.blocks[block_id] = \
                 Block(self, block_id, device_type, ipaddr, src)
             block_added = True
@@ -238,8 +247,8 @@ class pyShelly():
             for device in block.devices:
                 self.add_device(device, block.discovery_src)
 
-        if block.sleep_device:
-            self._poll_block(block)
+        if block.sleep_device or force_poll:
+            self._poll_block(block, force_poll)
 
     def _update_loop(self):
         LOGGER.debug("Start update loop, %s sec", self.update_status_interval)
@@ -259,16 +268,17 @@ class pyShelly():
 
                     block.check_available()
 
-                time.sleep(1)
+                time.sleep(10)
             except Exception as ex:
                 exception_log(ex, "Error update loop")
 
-    def _poll_block(self, block):
+    def _poll_block(self, block, force=False):
         now = datetime.now()
-        if self.update_status_interval is not None and \
+        if force or \
+            (self.update_status_interval is not None and \
             (block.last_update_status_info is None or \
             now - block.last_update_status_info \
-                > self.update_status_interval):
+                > self.update_status_interval)):
 
             LOGGER.debug("Polling block, %s %s", block.id, block.type)
             block.last_update_status_info = now

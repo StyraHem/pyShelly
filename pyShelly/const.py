@@ -5,7 +5,7 @@ import logging
 LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
-VERSION = "0.1.29"
+VERSION = "0.1.30"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
@@ -95,30 +95,31 @@ BLOCK_INFO_VALUES = {
 }
 
 SHELLY_TYPES = {
-    'SHSW-1': {'name': "Shelly 1"},
-    'SHSW-21': {'name': "Shelly 2"},
+    'SHSW-1': {'name': "Shelly 1", 'mqtt':'shelly1'},
+    'SHSW-21': {'name': "Shelly 2", 'mqtt':'shellyswitch'},
     'SHSW-22': {'name': "Shelly HD Pro"},
-    'SHSW-25': {'name': "Shelly 2.5"},
-    'SHSW-44': {'name': "Shelly 4 Pro"},
-    'SHPLG-1': {'name': "Shelly Plug"},
+    'SHSW-25': {'name': "Shelly 2.5", 'mqtt':'shellyswitch25'},
+    'SHSW-44': {'name': "Shelly 4 Pro", 'mqtt':'shelly4pro'},
+    'SHPLG-1': {'name': "Shelly Plug", 'mqtt':'shellyplug'},
     'SHPLG2-1': {'name': "Shelly Plug"},
-    'SHPLG-S': {'name': "Shelly Plug S"},
+    'SHPLG-S': {'name': "Shelly Plug S", 'mqtt':'shellyplug-s'},
     'SHRGBWW-01': {'name': "Shelly RGBWW"},
-    'SHBLB-1': {'name': "Shelly Bulb"},
-    'SHHT-1': {'name': "Shelly H&T", 'battery' : True},
-    'SHRGBW2': {'name': "Shelly RGBW2"},
-    'SHEM': {'name': "Shelly EM"},
-    'SHEM-3': {'name': "Shelly 3EM"},
+    'SHBLB-1': {'name': "Shelly Bulb", 'mqtt':'shellybulb'},
+    'SHHT-1': {'name': "Shelly H&T", 'battery' : True, 'mqtt':'shellyht'},
+    'SHRGBW2': {'name': "Shelly RGBW2", 'mqtt':'shellyrgbw2'},
+    'SHEM': {'name': "Shelly EM", 'mqtt':'shellyem'},
+    'SHEM-3': {'name': "Shelly 3EM", 'mqtt':'shellyem3'},
     'SHCL-255': {'name': "Shelly Bulb"},
     'SH2LED-1': {'name': "Shelly 2LED"},
     'SHSK-1': {'name': "Shelly Socket"},
-    'SHSW-PM': {'name': "Shelly 1 PM"},
-    'SHWT-1': {'name': "Shelly Flood", 'battery' : True},
-    'SHDM-1': {'name': "Shelly Dimmer"},
-    'SHDW-1': {'name': "Shelly Door/Window", 'battery' : True},
-    'SHBDUO-1': {'name': "Shelly Duo"},
-    'SHBVIN-1': {'name': "Shelly Vintage"}
+    'SHSW-PM': {'name': "Shelly 1 PM", 'mqtt':'shelly1pm'},
+    'SHWT-1': {'name': "Shelly Flood", 'battery' : True, 'mqtt':'shellyflood'},
+    'SHDM-1': {'name': "Shelly Dimmer", 'mqtt':'shellydimmer'},
+    'SHDW-1': {'name': "Shelly Door/Window", 'battery' : True, 'mqtt':'shellydw'},
+    'SHBDUO-1': {'name': "Shelly Duo", 'mqtt':'ShellyBulbDuo'},
+    'SHBVIN-1': {'name': "Shelly Vintage", 'mqtt':'ShellyVintage'}
 }
+
 
 EFFECTS_RGBW2 = [
     {'name': "Off", 'effect': 0},
