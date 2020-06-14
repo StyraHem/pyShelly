@@ -274,7 +274,7 @@ class Block():
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
             self._add_device(DoorWindow(self))
             self._add_device(Sensor(self, 66, 'illuminance', 'lux/value'))
-            self._add_device(Sensor(self, 88, 'tilt', 'angle/degrees'))
+            self._add_device(Sensor(self, 88, 'tilt', 'accel/tilt'))
             self._add_device(Vibration(self))
         elif self.type == 'SHBDUO-1':
             self._add_device(Duo(self))

@@ -83,5 +83,5 @@ class Vibration(BinarySensor):
     """Class to represent a vibration sensor"""
     def __init__(self, block):
         super(Vibration, self).__init__(
-            block, 99, 'vibration', 'sensor/state')
+            block, 99, 'vibration', 'accel/vibration')
         self.sleep_device = True
