@@ -8,7 +8,7 @@ from .utils import shelly_http_get
 from .switch import Switch
 from .relay import Relay
 from .powermeter import PowerMeter
-from .sensor import Sensor, Flood, DoorWindow, ExtTemp, ExtHumidity
+from .sensor import Sensor, Flood, DoorWindow, ExtTemp, ExtHumidity, Vibration
 from .light import RGBW2W, RGBW2C, RGBWW, Bulb, Duo, Vintage
 from .dimmer import Dimmer
 from .roller import Roller
@@ -274,6 +274,8 @@ class Block():
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
             self._add_device(DoorWindow(self))
             self._add_device(Sensor(self, 66, 'illuminance', 'lux/value'))
+            self._add_device(Sensor(self, 88, 'tilt', 'angle/degrees'))
+            self._add_device(Vibration(self))
         elif self.type == 'SHBDUO-1':
             self._add_device(Duo(self))
             self._add_device(PowerMeter(self, 0, [213], tot_pos=214))

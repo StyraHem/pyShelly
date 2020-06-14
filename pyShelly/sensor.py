@@ -78,3 +78,10 @@ class DoorWindow(BinarySensor):
         super(DoorWindow, self).__init__(
             block, 55, 'door_window', 'sensor/state')
         self.sleep_device = True
+
+class Vibration(BinarySensor):
+    """Class to represent a vibration sensor"""
+    def __init__(self, block):
+        super(Vibration, self).__init__(
+            block, 99, 'vibration', 'sensor/state')
+        self.sleep_device = True
