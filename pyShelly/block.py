@@ -234,8 +234,8 @@ class Block():
                 self._add_device(Switch(self, channel + 1, switch_pos))
         elif self.type == 'SHRGBWW-01':
             self._add_device(RGBWW(self))
-        #Shelly Dimmer
-        elif self.type == 'SHDM-1':
+        #Shelly Dimmer / Shelly Dimmer 2
+        elif self.type == 'SHDM-1' or self.type == 'SHDM-2':
             self._add_device(Dimmer(self, 121, 111))
             self._add_device(Switch(self, 1, 131))
             self._add_device(Switch(self, 2, 141))
