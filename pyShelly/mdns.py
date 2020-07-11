@@ -26,6 +26,10 @@ class MDns:
                 ipaddr = str(ipaddress.IPv4Address(addr))
                 self._root.add_device_by_ip(ipaddr, "mDns")
 
+    def update_service(self, zconf, type, name):
+        """ Update a service in the collection. """
+        self.add_service(zconf, type, name)
+
     def __init__(self, root):
         self._root = root
         self._zeroconf = None

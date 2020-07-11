@@ -171,6 +171,9 @@ class CoAP():
 
                     payload = s(data[pos + 1:])
 
+                    if payload: #Fix for DW2 payload error
+                        payload = payload.replace(",,",",").replace("][", "],[")
+
                     LOGGER.debug('CoAP Code: %s, Type %s, Id %s, Payload *%s*',
                                  code, device_type, device_id,
                                  payload.replace(' ', ''))
@@ -184,5 +187,6 @@ class CoAP():
                                            ipaddr, 'CoAP-discovery', None)
 
             except Exception as ex:
-                LOGGER.debug("Error receive CoAP %s", str(ex))
+                #LOGGER.debug("Error receive CoAP %s", str(ex))
+                LOGGER.exception("Error receive CoAP")
                 #exception_log(ex, "Error receiving CoAP UDP")

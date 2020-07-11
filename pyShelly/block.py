@@ -8,7 +8,8 @@ from .utils import shelly_http_get
 from .switch import Switch
 from .relay import Relay
 from .powermeter import PowerMeter
-from .sensor import Sensor, Flood, DoorWindow, ExtTemp, ExtHumidity
+from .sensor import (Sensor, BinarySensor, Flood, DoorWindow, ExtTemp,
+                     ExtHumidity, Gas)
 from .light import RGBW2W, RGBW2C, RGBWW, Bulb, Duo, Vintage
 from .dimmer import Dimmer
 from .roller import Roller
@@ -17,13 +18,24 @@ from .utils import exception_log
 from .const import (
     LOGGER,
     SENSOR_UNAVAILABLE_SEC,
+    INFO_VALUE_DEVICE_TEMP,
     INFO_VALUE_CLOUD_STATUS,
     INFO_VALUE_CLOUD_ENABLED,
     INFO_VALUE_CLOUD_CONNECTED,
     INFO_VALUE_FW_VERSION,
     INFO_VALUE_PAYLOAD,
+    INFO_VALUE_BATTERY,
+    INFO_VALUE_ILLUMINANCE,
+    INFO_VALUE_TILT,
+    INFO_VALUE_VIBRATION,
+    INFO_VALUE_TEMP,
+    INFO_VALUE_PPM,
+    INFO_VALUE_SENSOR,
+    INFO_VALUE_TOTAL_WORK_TIME,
     ATTR_PATH,
     ATTR_FMT,
+    ATTR_POS,
+    ATTR_AUTO_SET,
     BLOCK_INFO_VALUES,
     SHELLY_TYPES
 )
@@ -43,6 +55,7 @@ class Block():
         self.cb_updated = []
         self.unavailable_after_sec = None
         self.info_values = {}
+        self.info_values_updated = {}
         self.last_update_status_info = None
         self.reload = False
         self.last_updated = None #datetime.now()
@@ -52,12 +65,27 @@ class Block():
         self.sleep_device = False
         self.payload = None
         self.settings = None
+        self.exclude_info_values = []
+        self._info_value_cfg = None
         self._setup()
         self._available = None
 
     def update(self, data, ip_addr):
         self.ip_addr = ip_addr  # If changed ip
         self.last_updated = datetime.now()
+        if self._info_value_cfg:
+            need_update = False
+            for iv, cfg in self._info_value_cfg.items():
+                if ATTR_POS in cfg:
+                    pos = cfg[ATTR_POS]
+                    if pos in data:
+                        value = data.get(pos)
+                        self.info_values_updated[iv] = datetime.now()
+                        if self.info_values.get(iv)!=value:
+                            self.info_values[iv] = value
+                            need_update = True
+            if need_update:
+                self.raise_updated()
         for dev in self.devices:
             dev.ip_addr = ip_addr
             if hasattr(dev, 'update'):
@@ -74,6 +102,24 @@ class Block():
         for callback in self.cb_updated:
             callback(self)
 
+    def loop(self):
+        if self._info_value_cfg:
+            for iv, cfg in self._info_value_cfg.items():
+                if ATTR_AUTO_SET in cfg:
+                    value = self.info_values.get(iv)
+                    param = cfg.get(ATTR_AUTO_SET)
+                    new_val = param[0]
+                    if value != new_val:
+                        time = self.info_values_updated.get(iv)
+                        delay = param[1]
+                        print(delay)
+                        if time:
+                            diff = datetime.now() - time
+                            print(diff.total_seconds())
+                            if diff.total_seconds() > delay:
+                                self.info_values[iv] = new_val
+                                self.raise_updated()
+
     def check_available(self):
         if self.available() != self._available:
             self._available = self.available()
@@ -81,13 +127,35 @@ class Block():
             for dev in self.devices:
                 dev.raise_updated()
 
+    def _update_info_value(self, name, status, cfg):
+        value = status
+        path = cfg.get(ATTR_PATH)
+        if not path:
+            return
+        for key in path.split('/'):
+            if value is not None:
+                if key in ('0','1','2'):
+                    value = value[int(key)]
+                else:
+                    value = value.get(key, None)
+        if value is not None:
+            fmt = cfg.get(ATTR_FMT, None)
+            #if fmt == "round":
+            #    data = round(data)
+            if fmt == "ver":
+                ver = re.search(REGEX_VER, value)
+                if ver:
+                    value = ver.group(2) + " (" + ver.group(1) + ")"
+            self.info_values[name] = value
+            self.info_values_updated[name] = datetime.now()
+
     def update_status_information(self):
         """Update the status information."""
         self.last_update_status_info = datetime.now()
 
         LOGGER.debug("Get status from %s %s", self.id, self.friendly_name())
         success, status = self.http_get('/status', False)
-        #LOGGER.debug(status)
+
         if not success or status == {}:
             return
 
@@ -97,34 +165,26 @@ class Block():
         self.last_updated = datetime.now()
 
         #Put status in info_values
-        info_values = {}
-        for name, attr in BLOCK_INFO_VALUES.items():
-            data = status
-            path = attr[ATTR_PATH]
-            for key in path.split('/'):
-                data = data.get(key, None) if data is not None else None
-            if data is not None:
-                fmt = attr.get(ATTR_FMT, None)
-                if fmt == "round":
-                    data = round(data)
-                if fmt == "ver":
-                    ver = re.search(REGEX_VER, data)
-                    if ver:
-                        data = ver.group(2) + " (" + ver.group(1) + ")"
-                info_values[name] = data
+        for name, cfg in BLOCK_INFO_VALUES.items():
+            if name in self.exclude_info_values:
+                continue
+            self._update_info_value(name, status, cfg)
+
+        if self._info_value_cfg:
+            for name, cfg in self._info_value_cfg.items():
+                self._update_info_value(name, status, cfg)
 
         if self.payload:
-            info_values[INFO_VALUE_PAYLOAD] = self.payload
+            self.info_values[INFO_VALUE_PAYLOAD] = self.payload
 
-        if info_values.get(INFO_VALUE_CLOUD_ENABLED):
-            if info_values.get(INFO_VALUE_CLOUD_CONNECTED):
-                info_values[INFO_VALUE_CLOUD_STATUS] = 'connected'
+        if self.info_values.get(INFO_VALUE_CLOUD_ENABLED):
+            if self.info_values.get(INFO_VALUE_CLOUD_CONNECTED):
+                self.info_values[INFO_VALUE_CLOUD_STATUS] = 'connected'
             else:
-                info_values[INFO_VALUE_CLOUD_STATUS] = 'disconnected'
+                self.info_values[INFO_VALUE_CLOUD_STATUS] = 'disconnected'
         else:
-            info_values[INFO_VALUE_CLOUD_STATUS] = 'disabled'
+            self.info_values[INFO_VALUE_CLOUD_STATUS] = 'disabled'
 
-        self.info_values = info_values
         self.raise_updated()
 
         for dev in self.devices:
@@ -235,7 +295,8 @@ class Block():
         elif self.type == 'SHRGBWW-01':
             self._add_device(RGBWW(self))
         #Shelly Dimmer
-        elif self.type == 'SHDM-1':
+        elif self.type in ('SHDM-1', 'SHDM-2'):
+            self._info_value_cfg = {INFO_VALUE_DEVICE_TEMP : {ATTR_POS : 311}}
             self._add_device(Dimmer(self, 121, 111))
             self._add_device(Switch(self, 1, 131))
             self._add_device(Switch(self, 2, 141))
@@ -272,14 +333,52 @@ class Block():
         elif self.type == 'SHDW-1':
             self.sleep_device = True
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
-            self._add_device(DoorWindow(self))
-            self._add_device(Sensor(self, 66, 'illuminance', 'lux/value'))
+            self._info_value_cfg = {INFO_VALUE_BATTERY : {ATTR_POS : 77},
+                                    INFO_VALUE_TILT : {ATTR_POS : 88},
+                                    INFO_VALUE_VIBRATION : {ATTR_POS : 99,
+                                                            ATTR_AUTO_SET: [0, 60]},
+                                    INFO_VALUE_ILLUMINANCE: {ATTR_POS : 66}
+            }
+            self._add_device(DoorWindow(self, 55))
+        elif self.type == 'SHDW-2':
+            self.sleep_device = True
+            self.exclude_info_values.append(INFO_VALUE_DEVICE_TEMP)
+            self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
+            self._info_value_cfg = {INFO_VALUE_BATTERY : {ATTR_POS : 3111},
+                                    INFO_VALUE_TILT : {ATTR_POS : 3109},
+                                    INFO_VALUE_VIBRATION :
+                                        {ATTR_POS : 6110,
+                                         ATTR_AUTO_SET: [0, 60]},
+                                    INFO_VALUE_TEMP: {ATTR_POS : 3101},
+                                    INFO_VALUE_ILLUMINANCE: {ATTR_POS : 3106}
+            }
+            self._add_device(DoorWindow(self, 3108))
         elif self.type == 'SHBDUO-1':
             self._add_device(Duo(self))
             self._add_device(PowerMeter(self, 0, [213], tot_pos=214))
         elif self.type == 'SHVIN-1':
             self._add_device(Vintage(self))
             self._add_device(PowerMeter(self, 0, [213], tot_pos=214))
+        elif self.type == 'SHBTN-1':
+            self._add_device(Switch(self, 0, 118, 119, 120, True))
+        elif self.type == 'SHIX3-1':
+            self._add_device(Switch(self, 1, 118, 119, 120))
+            self._add_device(Switch(self, 2, 128, 129, 130))
+            self._add_device(Switch(self, 3, 138, 139, 140))
+        elif self.type == 'SHGS-1':
+            self._info_value_cfg = {INFO_VALUE_PPM : {ATTR_POS : 122},
+                                    INFO_VALUE_SENSOR : {ATTR_POS : 118}
+            }
+            self._add_device(Gas(self, 119))
+        elif self.type == 'SHAIR-1':
+            self._info_value_cfg = {
+                INFO_VALUE_TEMP: {ATTR_POS : 119},
+                INFO_VALUE_TOTAL_WORK_TIME: {ATTR_POS : 121,
+                                       ATTR_PATH : 'ext_sensors/0'}
+            }
+            self._add_device(Relay(self, 0, 112, 111, 118))
+            self._add_device(PowerMeter(self, 0, [111]))
+            self._add_device(Switch(self, 0, 118))
 
     def _add_device(self, dev, lazy_load=False):
         dev.lazy_load = lazy_load

@@ -130,3 +130,6 @@ class Device(object):
     def _reload_block(self):
         self.block.reload = True
 
+    def loop(self):
+        pass
+
