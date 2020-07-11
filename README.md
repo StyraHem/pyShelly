@@ -20,6 +20,8 @@ This library was created for Shelly Plugins for Home Assistant and Telldus Tells
 - Support user name and password
 - Coexist with Shelly Cloud and Shelly app
 - Support static and dynamic ip address
+- mDns and MQTT discovery
+- Cloud support (Get names of devices etc)
 
 ## Devices supported
 
