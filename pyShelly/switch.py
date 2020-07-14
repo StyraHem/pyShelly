@@ -3,6 +3,7 @@
 from .device import Device
 from threading import Timer
 from .const import (
+    LOGGER,
     STATUS_RESPONSE_INPUTS,
     STATUS_RESPONSE_INPUTS_INPUT,
     STATUS_RESPONSE_INPUTS_EVENT,
@@ -39,11 +40,11 @@ class Switch(Device):
             if self.event_cnt and self.event_cnt != event_cnt:
                 self.event_cnt = event_cnt
                 if self._simulate_state:
-                    state = True
+                    state = 1
                     self.timer = Timer(1,self._turn_off)
                     self.timer.start()
         self._update(state > 0, {'last_event' : self.last_event,
-                                 'event_cnt' : self.event_cnt})
+                                           'event_cnt' : self.event_cnt})
 
     def update_status_information(self, status):
         """Update the status information."""

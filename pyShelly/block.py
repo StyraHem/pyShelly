@@ -134,10 +134,7 @@ class Block():
             return
         for key in path.split('/'):
             if value is not None:
-                if key in ('0','1','2'):
-                    value = value[int(key)]
-                else:
-                    value = value.get(key, None)
+                value = value.get(key, None)
         if value is not None:
             fmt = cfg.get(ATTR_FMT, None)
             #if fmt == "round":
@@ -372,9 +369,10 @@ class Block():
             self._add_device(Gas(self, 119))
         elif self.type == 'SHAIR-1':
             self._info_value_cfg = {
-                INFO_VALUE_TEMP: {ATTR_POS : 119},
+                INFO_VALUE_TEMP: {ATTR_POS : 119,
+                                  ATTR_PATH : 'ext_temperatures/0'},
                 INFO_VALUE_TOTAL_WORK_TIME: {ATTR_POS : 121,
-                                       ATTR_PATH : 'ext_sensors/0'}
+                                             ATTR_PATH : 'total_work_time'}
             }
             self._add_device(Relay(self, 0, 112, 111, 118))
             self._add_device(PowerMeter(self, 0, [111]))
