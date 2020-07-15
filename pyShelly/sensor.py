@@ -20,21 +20,20 @@ class Sensor(Device):
         self._status_attr = status_attr
 
     def format(self, value):
-        if value is None:
-            return None
         return float(value)
 
     def update(self, data):
         if self._pos:
             value = data.get(self._pos)
-            self._update(self.format(value))
+            if value is not None:
+                self._update(self.format(value))
 
     def update_status_information(self, status):
         """Update the status information."""
         data = status
         for key in self._status_attr.split('/'):
-            data = data.get(key, None) if data is not None else None
-        if data:
+            data = data.get(key) if data is not None else None
+        if data is not None:
             #self._update(None, None, {self.sensor_type:self.format(data)})
             self._update(self.format(data))
 
