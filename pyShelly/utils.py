@@ -66,6 +66,14 @@ def shelly_http_get(host, url, username, password, log_error=True):
             res = "Error, {} {} http://{}{}".format(
                 resp.status, resp.reason, host, url)
             LOGGER.warning(res)
+    except (httplib.HTTPException, socket.error):
+        msg = "Timeout connecting to http://%s%s".format(host, url)
+        try:
+          res = socket.gethostbyaddr(host)
+          msg += " [ %s ]".format(res)
+        except:
+          pass
+        LOGGER.error(msg)
     except Exception as ex:
         success = False
         res = str(ex)
