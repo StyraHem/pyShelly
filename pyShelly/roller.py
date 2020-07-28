@@ -10,6 +10,7 @@ from .const import (
     STATUS_RESPONSE_ROLLERS_LAST_DIR,
     STATUS_RESPONSE_ROLLERS_POSITION,
     STATUS_RESPONSE_ROLLERS_POWER,
+    LOGGER
 )
 
 class Roller(Device):
@@ -54,6 +55,7 @@ class Roller(Device):
             if self.position < 0 or self.position > 100:
                 self.position = 0
                 self.support_position = False
+                LOGGER.warning("Roller \"%s\" is missing calibration, positioning disabled", self.friendly_name())
             consumption = roller[STATUS_RESPONSE_ROLLERS_POWER]
             state = self.position != 0
             self._update(state, None, None, {INFO_VALUE_CURRENT_CONSUMPTION:consumption})
