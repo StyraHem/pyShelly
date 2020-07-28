@@ -132,11 +132,11 @@ class LightRGB(Device):
         self.info_values = {}
 
     def update(self, data):
-        # success, settings = self.block.http_get(self.url) #todo
-        # if not success:
-        #     return
+        success, settings = self.block.http_get(self.url) #todo
+        if not success:
+            return
 
-        # mode = settings.get('mode', 'color')
+        self.mode = settings.get('mode', 'color')
         # if mode != self.mode:
         #     if not self.allow_switch_mode and self.mode is not None:
         #         self._reload_block()

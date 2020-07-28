@@ -20,6 +20,8 @@ This library was created for Shelly Plugins for Home Assistant and Telldus Tells
 - Support user name and password
 - Coexist with Shelly Cloud and Shelly app
 - Support static and dynamic ip address
+- mDns and MQTT discovery
+- Cloud support (Get names of devices etc)
 
 ## Devices supported
 
@@ -39,11 +41,17 @@ This library was created for Shelly Plugins for Home Assistant and Telldus Tells
 - Shelly 2LED
 - Shelly Flood
 - Shelly Door/Window
+- Shelly Door/Window 2
 - Shelly Dimmer
+- Shelly Dimmer 2
 - Shelly EM
 - Shelly 3EM
 - Shelly DUO
 - Shelly Vintage
+- Shelly i3
+- Shelly Button 1
+- Shelly Gas
+- Shelly Air (not tested)
 
 ## Usage
 

@@ -94,13 +94,14 @@ class MQTT():
                 self._mqtt_types[item['mqtt']]=key
 
     def start(self):
-        self._init_socket()
-        self._thread.start()
+        if self._root.mqtt_port > 0:
+            self._init_socket()
+            self._thread.start()
 
     def _init_socket(self):
         # Create a TCP/IP socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.bind((self._root.bind_ip, 9955))
+        sock.bind((self._root.bind_ip, self._root.mqtt_port))
         sock.listen(1)
         self._socket = sock
 
@@ -116,4 +117,5 @@ class MQTT():
                 LOGGER.exception("Error connect MQTT")
 
     def close(self):
-        self._socket.close()
+        if self._socket:
+            self._socket.close()

@@ -95,6 +95,7 @@ class pyShelly():
         self._mqtt = MQTT(self)
         self.host_ip = ''
         self.bind_ip = ''
+        self.mqtt_port = 0
 
         self._shelly_by_ip = {}
         #self.loop = asyncio.get_event_loop()
@@ -267,6 +268,7 @@ class pyShelly():
                         self._poll_block(block)
 
                     block.check_available()
+                    block.loop()
 
                 time.sleep(10)
             except Exception as ex:

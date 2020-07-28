@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from .device import Device
+from .const import INFO_VALUE_VIBRATION
 
 class Sensor(Device):
     def __init__(self, block, pos, device_type, status_attr, index=None):
@@ -24,16 +25,15 @@ class Sensor(Device):
     def update(self, data):
         if self._pos:
             value = data.get(self._pos)
-            if not value is None:
-                #self._update(None, None, {self.sensor_type:self.format(value)})
+            if value is not None:
                 self._update(self.format(value))
 
     def update_status_information(self, status):
         """Update the status information."""
         data = status
         for key in self._status_attr.split('/'):
-            data = data.get(key, None) if data is not None else None
-        if data:
+            data = data.get(key) if data is not None else None
+        if data is not None:
             #self._update(None, None, {self.sensor_type:self.format(data)})
             self._update(self.format(data))
 
@@ -74,7 +74,20 @@ class Flood(BinarySensor):
 
 class DoorWindow(BinarySensor):
     """Class to represent a door/window sensor"""
-    def __init__(self, block):
+    def __init__(self, block, position):
         super(DoorWindow, self).__init__(
-            block, 55, 'door_window', 'sensor/state')
+            block, position, 'door_window', 'sensor/state')
         self.sleep_device = True
+
+class Gas(Sensor):
+    """Class to represent a door/window sensor"""
+    def __init__(self, block, position):
+        super(Gas, self).__init__(
+            block, position, 'gas', 'gas_sensor/alarm_state')
+
+    def format(self, value):
+        if value == 'none':
+            return "no alarm"
+        if value in ('mild', 'heavy'):
+            return value + "alarm"
+        return value

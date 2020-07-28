@@ -5,7 +5,7 @@ import logging
 LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
-VERSION = "0.1.30"
+VERSION = "0.1.33"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
@@ -30,6 +30,8 @@ STATUS_RESPONSE_EMETERS = 'emeters'
 
 STATUS_RESPONSE_INPUTS = 'inputs'
 STATUS_RESPONSE_INPUTS_INPUT = 'input'
+STATUS_RESPONSE_INPUTS_EVENT = 'event'
+STATUS_RESPONSE_INPUTS_EVENT_CNT = 'event_cnt'
 
 STATUS_RESPONSE_LIGHTS = 'lights'
 STATUS_RESPONSE_LIGHTS_STATE = 'ison'
@@ -71,15 +73,24 @@ INFO_VALUE_TOTAL_RETURNED = 'total_returned'
 INFO_VALUE_VOLTAGE = 'voltage'
 INFO_VALUE_POWER_FACTOR = 'power_factor'
 INFO_VALUE_CURRENT = 'current'
+INFO_VALUE_TILT = 'tilt'
+INFO_VALUE_VIBRATION = 'vibration'
+INFO_VALUE_TEMP = 'temperature'
+INFO_VALUE_ILLUMINANCE = 'illuminance'
+INFO_VALUE_PPM = 'ppm'
+INFO_VALUE_SENSOR = 'sensor'
+INFO_VALUE_TOTAL_WORK_TIME = 'total_work_time'
 
 ATTR_PATH = 'path'
 ATTR_FMT = 'fmt'
+ATTR_POS = 'pos'
+ATTR_AUTO_SET = 'auto_set'
 
 BLOCK_INFO_VALUES = {
     INFO_VALUE_SSID : {ATTR_PATH :'wifi_sta/ssid'},
     INFO_VALUE_RSSI : {ATTR_PATH : 'wifi_sta/rssi'},
     INFO_VALUE_UPTIME : {ATTR_PATH : 'uptime'},
-    INFO_VALUE_DEVICE_TEMP : {ATTR_PATH : 'tmp/tC', ATTR_FMT : 'round'},
+    INFO_VALUE_DEVICE_TEMP : {ATTR_PATH : 'tmp/tC'}, #, ATTR_FMT : 'round'},
     INFO_VALUE_OVER_TEMPERATURE : {ATTR_PATH : 'overtemperature'},
     INFO_VALUE_HAS_FIRMWARE_UPDATE : {ATTR_PATH : 'update/has_update'},
     INFO_VALUE_LATEST_FIRMWARE_VERSION : {ATTR_PATH : 'update/new_version',
@@ -91,7 +102,14 @@ BLOCK_INFO_VALUES = {
     INFO_VALUE_MQTT_CONNECTED : {ATTR_PATH : 'mqtt/connected'},
     #INFO_VALUE_CURRENT_CONSUMPTION : {ATTR_PATH : 'consumption'},
     #INFO_VALUE_VOLTAGE : {ATTR_PATH : 'voltage', ATTR_FMT : 'round'},
-    INFO_VALUE_BATTERY : {ATTR_PATH : 'bat/value'}
+    INFO_VALUE_BATTERY : {ATTR_PATH : 'bat/value'},
+    INFO_VALUE_TILT : {ATTR_PATH : 'accel/tilt'},
+    INFO_VALUE_VIBRATION : {ATTR_PATH : 'accel/vibration'},
+    #INFO_VALUE_TEMP : {ATTR_PATH : 'tmp/tC'},
+    INFO_VALUE_ILLUMINANCE : {ATTR_PATH : 'lux/value'},
+    INFO_VALUE_PPM : {ATTR_PATH : 'concentration/ppm'},
+    INFO_VALUE_SENSOR : {ATTR_PATH : 'gas_sensor/sensor_state'},
+    INFO_VALUE_TOTAL_WORK_TIME : {ATTR_PATH : 'total_work_time'},
 }
 
 SHELLY_TYPES = {
@@ -115,11 +133,18 @@ SHELLY_TYPES = {
     'SHSW-PM': {'name': "Shelly 1 PM", 'mqtt':'shelly1pm'},
     'SHWT-1': {'name': "Shelly Flood", 'battery' : True, 'mqtt':'shellyflood'},
     'SHDM-1': {'name': "Shelly Dimmer", 'mqtt':'shellydimmer'},
-    'SHDW-1': {'name': "Shelly Door/Window", 'battery' : True, 'mqtt':'shellydw'},
+    'SHDM-2': {'name': "Shelly Dimmer 2", 'mqtt':'shellydimmer2'},
+    'SHDW-1': {'name': "Shelly Door/Window", 'battery' : True,
+               'mqtt':'shellydw'},
+    'SHDW-2': {'name': "Shelly Door/Window 2", 'battery' : True,
+               'mqtt':'shellydw2'},
     'SHBDUO-1': {'name': "Shelly Duo", 'mqtt':'ShellyBulbDuo'},
-    'SHBVIN-1': {'name': "Shelly Vintage", 'mqtt':'ShellyVintage'}
+    'SHBVIN-1': {'name': "Shelly Vintage", 'mqtt':'ShellyVintage'},
+    'SHBTN-1': {'name': "Shelly Button 1", 'mqtt':'shellybutton1'},
+    'SHIX3-1': {'name': "Shelly i3", 'mqtt':'shellyix3'},
+    'SHGS-1': {'name': "Shelly Gas", 'mqtt':'shellygas'},
+    'SHAIR-1': {'name': "Shelly Air", 'mqtt':'ShellyAir'}
 }
-
 
 EFFECTS_RGBW2 = [
     {'name': "Off", 'effect': 0},
