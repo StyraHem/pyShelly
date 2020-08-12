@@ -22,9 +22,9 @@ class Sensor(Device):
     def format(self, value):
         return float(value)
 
-    def update(self, data):
+    def update_coap(self, payload):
         if self._pos:
-            value = data.get(self._pos)
+            value = self.coap_get(payload, self._pos)
             if value is not None:
                 self._update(self.format(value))
 
@@ -40,16 +40,16 @@ class Sensor(Device):
 class ExtTemp(Sensor):
     """Class to represent a external temp sensor"""
     def __init__(self, block, idx):
-        super(ExtTemp, self).__init__(block, 119+idx*10, 'temperature', \
-            'ext_temperature/' + str(idx) + "/tC", idx)
+        super(ExtTemp, self).__init__(block, [119+idx*10, 3101+idx*100], \
+            'temperature', 'ext_temperature/' + str(idx) + "/tC", idx)
         self.sleep_device = False
         self.ext_sensor = idx
 
 class ExtHumidity(Sensor):
     """Class to represent a external humidity sensor"""
     def __init__(self, block, idx):
-        super(ExtHumidity, self).__init__(block, 120+idx*10, 'humidity', \
-            'ext_humidity/' + str(idx) + "/hum", idx)
+        super(ExtHumidity, self).__init__(block, [120+idx*10, 3103+idx*100], \
+            'humidity', 'ext_humidity/' + str(idx) + "/hum", idx)
         self.sleep_device = False
         self.ext_sensor = 1
 

@@ -13,6 +13,8 @@ COAP_PORT = 5683
 MDNS_IP = "224.0.0.251"
 MDNS_PORT = 5353
 
+REGEX_VER = r"^20(\d{6}).+v(\d+\.\d+\.\d+(-rc\d)?)@"
+
 """Define constants for result from /status response from device"""
 STATUS_RESPONSE_RELAYS = 'relays'
 STATUS_RESPONSE_RELAY_OVER_POWER = 'overpower'
@@ -90,8 +92,8 @@ BLOCK_INFO_VALUES = {
     INFO_VALUE_SSID : {ATTR_PATH :'wifi_sta/ssid'},
     INFO_VALUE_RSSI : {ATTR_PATH : 'wifi_sta/rssi'},
     INFO_VALUE_UPTIME : {ATTR_PATH : 'uptime'},
-    INFO_VALUE_DEVICE_TEMP : {ATTR_PATH : 'tmp/tC'}, #, ATTR_FMT : 'round'},
-    INFO_VALUE_OVER_TEMPERATURE : {ATTR_PATH : 'overtemperature'},
+    INFO_VALUE_DEVICE_TEMP : {ATTR_PATH : 'tmp/tC', ATTR_POS: 3104}, #, ATTR_FMT : 'round'},
+    INFO_VALUE_OVER_TEMPERATURE : {ATTR_PATH : 'overtemperature', ATTR_POS: 6101},
     INFO_VALUE_HAS_FIRMWARE_UPDATE : {ATTR_PATH : 'update/has_update'},
     INFO_VALUE_LATEST_FIRMWARE_VERSION : {ATTR_PATH : 'update/new_version',
                                           ATTR_FMT : 'ver'},

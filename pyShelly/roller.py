@@ -24,23 +24,25 @@ class Roller(Device):
         self.support_position = False
         self.motion_state = ""
         self.last_direction = ""
+        self.info_values = {}
         success, settings = self.block.http_get("/roller/0") #Todo move
         if success:
             self.support_position = settings.get("positioning", False)
 
-    def update(self, data):
+    def update_coap(self, payload):
         """Update current state"""
         self.motion_state = ""
-        if data.get(112):
+        if payload.get(112):
             self.motion_state = "open"
-        if data.get(122):
+        if payload.get(122):
             self.motion_state = "close"
         if self.motion_state:
             self.last_direction = self.motion_state
-        self.position = data.get(113)
-        consumption = data.get(111, 0) + data.get(121, 0)
+        self.position = payload.get(113)
+        self.info_values[INFO_VALUE_CURRENT_CONSUMPTION] = \
+            payload.get(111, 0) + payload.get(121, 0)
         state = self.position != 0
-        self._update(state, None, None, {INFO_VALUE_CURRENT_CONSUMPTION:consumption})
+        self._update(state, None, None, self.info_values)
 
     def update_status_information(self, status):
         """Update the status information."""
@@ -54,9 +56,10 @@ class Roller(Device):
             if self.position < 0 or self.position > 100:
                 self.position = 0
                 self.support_position = False
-            consumption = roller[STATUS_RESPONSE_ROLLERS_POWER]
+            self.info_values[INFO_VALUE_CURRENT_CONSUMPTION] = \
+                roller[STATUS_RESPONSE_ROLLERS_POWER]
             state = self.position != 0
-            self._update(state, None, None, {INFO_VALUE_CURRENT_CONSUMPTION:consumption})
+            self._update(state, None, None, self.info_values)
 
     def up(self):
         self._send_command("/roller/0?go=" + ("open"))
