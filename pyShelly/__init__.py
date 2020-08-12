@@ -59,11 +59,6 @@ from .const import (
 
 __version__ = VERSION
 
-try:
-    import http.client as httplib
-except:
-    import httplib
-
 class pyShelly():
     def __init__(self, loop=None):
         LOGGER.info("Init  %s", VERSION)
