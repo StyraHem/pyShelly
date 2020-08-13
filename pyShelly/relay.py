@@ -43,15 +43,12 @@ class Relay(Device):
             INFO_VALUE_CURRENT_CONSUMPTION : {
                 ATTR_POS: power_idx,
                 ATTR_PATH: 'meters/$/power',
-                ATTR_FMT: ['float', 'round']
+                ATTR_FMT: ['float','round:2']
             },
             INFO_VALUE_TOTAL_CONSUMPTION : {
-                ATTR_POS: 4101,
+                ATTR_POS: 4103 + self._channel * 100,
                 ATTR_PATH: 'meters/$/total',
-                ATTR_FMT: {
-                    'STATUS' : ['float','/60','round'],
-                    'COAP' : ['float','round']
-                }
+                ATTR_FMT: ['float','/60','round:2']
             },
             INFO_VALUE_SWITCH : {
                 ATTR_POS: switch_idx,
@@ -59,7 +56,7 @@ class Relay(Device):
                 ATTR_FMT: 'bool'
             },
             INFO_VALUE_OVER_POWER : {
-                ATTR_POS: 6102,
+                ATTR_POS: 6102 + self._channel * 100,
                 ATTR_PATH: 'relays/$/overpower',
                 ATTR_FMT: 'bool'
             }

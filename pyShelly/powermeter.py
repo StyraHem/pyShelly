@@ -25,8 +25,8 @@ from .const import (
 class PowerMeter(Device):
     """Class to represent a power meter value"""
     def __init__(self, block, channel, positions, meters=None, volt_pos=None,
-                 pf_pos=None, current_pos=None, voltage_to_block=False,
-                 tot_pos=None):
+                 pf_pos=None, current_pos=None,
+                 tot_pos=None, voltage_to_block=False):
         super(PowerMeter, self).__init__(block)
         self.id = block.id
         if channel > 0:
@@ -65,11 +65,11 @@ class PowerMeter(Device):
                 ATTR_PATH: 'meters/$/current',
                 ATTR_FMT: ['float']
             },
-            INFO_VALUE_CURRENT_CONSUMPTION : {
-                ATTR_POS: meters,
-                ATTR_PATH: 'meters/$/power',
-                ATTR_FMT: ['float', 'round']
-            },
+            # INFO_VALUE_CURRENT_CONSUMPTION : {
+            #     ATTR_POS: positions,
+            #     ATTR_PATH: 'meters/$/power',
+            #     ATTR_FMT: ['float', 'round']
+            # },
             INFO_VALUE_TOTAL_CONSUMPTION : {
                 ATTR_POS: tot_pos,
                 ATTR_PATH: 'meters/$/total',

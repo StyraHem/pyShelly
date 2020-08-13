@@ -24,6 +24,7 @@ from .const import (
     INFO_VALUE_HAS_FIRMWARE_UPDATE,
     INFO_VALUE_FW_VERSION,
     INFO_VALUE_LATEST_FIRMWARE_VERSION,
+    INFO_VALUE_LATEST_BETA_FW_VERSION,
     INFO_VALUE_PAYLOAD,
     INFO_VALUE_BATTERY,
     INFO_VALUE_ILLUMINANCE,
@@ -152,8 +153,8 @@ class Block(Base):
             self.info_values[INFO_VALUE_CLOUD_STATUS] = 'disabled'
 
         #self.info_values[INFO_VALUE_HAS_FIRMWARE_UPDATE] = self.has_fw_update()
-        #self.info_values[INFO_VALUE_LATEST_FIRMWARE_VERSION] = \
-        #    self.latest_fw_version()
+        self.info_values[INFO_VALUE_LATEST_BETA_FW_VERSION] = \
+            self.latest_fw_version(True)
 
         self.raise_updated()
 
@@ -175,9 +176,11 @@ class Block(Base):
                               log_error)
         return success, res
 
-    def update_firmware(self):
+    def update_firmware(self, beta = False):
         """Start firmware update"""
-        url = None #self.parent._firmware_mgr.url(self.type, False)
+        url = None
+        if beta:
+            url = self.parent._firmware_mgr.url(self.type, False)
         if url:
             self.http_get("/ota?url=" + url)
         else:
@@ -245,6 +248,12 @@ class Block(Base):
               self.type == 'SHPLG-S':
             self._add_device(Relay(self, 0, [112,1101], [111, 4101]))
             self._add_device(PowerMeter(self, 0, [111, 4101]))
+        #Shelly 3EM
+        elif self.type == 'SHEM-3':
+            self._add_device(Relay(self, 0, [112,1101]))
+            self._add_device(PowerMeter(self, 1, [111, 4105], None, [116, 4108], [114, 4110], [115, 4109], 4106))
+            self._add_device(PowerMeter(self, 2, [121, 4205], None, [126, 4208], [124, 4210], [125, 4209], 4206))
+            self._add_device(PowerMeter(self, 3, [131, 4305], None, [136, 4308], [134, 4310], [135, 4309], 4306))
         elif self.type == 'SH2LED-1':
             self._add_device(RGBW2W(self, 0))
             self._add_device(RGBW2W(self, 1))
@@ -252,21 +261,17 @@ class Block(Base):
             self._add_device(Relay(self, 0, 112))
             self._add_device(PowerMeter(self, 1, [111], voltage_to_block=True))
             self._add_device(PowerMeter(self, 2, [121], voltage_to_block=True))
-        #Shelly 3EM
-        elif self.type == 'SHEM-3':
-            self._add_device(Relay(self, 0, 112))
-            self._add_device(PowerMeter(self, 1, [111], None, 116, 114, 115))
-            self._add_device(PowerMeter(self, 2, [121], None, 126, 124, 125))
-            self._add_device(PowerMeter(self, 3, [131], None, 136, 134, 135))
         #Shelly 4 Pro
         elif self.type == 'SHSW-44':
             for channel in range(4):
-                relay_pos = 112 + (channel * 10)
-                power_pos = 111 + (channel * 10)
-                switch_pos = 118 + (channel * 10)
+                c10 = channel * 10
+                c100 = channel * 100
+                relay_pos = [112 + c10, 1101 + c100]
+                power_pos = [111 + c10, 4101 + c100]
+                switch_pos = [118 + c10, 2101 + c100]
                 self._add_device(
                     Relay(self, channel + 1, relay_pos, power_pos, switch_pos))
-                self._add_device(PowerMeter(self, channel + 1, [power_pos]))
+                self._add_device(PowerMeter(self, channel + 1, power_pos))
                 self._add_device(Switch(self, channel + 1, switch_pos))
         elif self.type == 'SHRGBWW-01':
             self._add_device(RGBWW(self))
@@ -368,12 +373,16 @@ class Block(Base):
     def fw_version(self):
         return self.info_values.get(INFO_VALUE_FW_VERSION)
 
-    def latest_fw_version(self):
-        return self.info_values.get(INFO_VALUE_LATEST_FIRMWARE_VERSION)
-        #return  self.parent._firmware_mgr.version(self.type, True)
+    def latest_fw_version(self, beta = False):
+        if beta:
+            return  self.parent._firmware_mgr.version(self.type, True)
+        else:
+            return self.info_values.get(INFO_VALUE_LATEST_FIRMWARE_VERSION)
 
-    def has_fw_update(self):
-        return self.fw_version() != self.latest_fw_version()
+    def has_fw_update(self, beta = False):
+        latest = self.latest_fw_version(beta)
+        current = self.fw_version()
+        return latest and current and latest != current
 
     def friendly_name(self):
         try:

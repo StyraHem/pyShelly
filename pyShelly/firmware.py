@@ -32,7 +32,7 @@ class firmware_manager():
     def format(self, value):
         ver = re.search(REGEX_VER, value)
         if ver:
-            return ver.group(2) + " (" + ver.group(1) + ")"
+            return ver.group(2) # + " (" + ver.group(1) + ")"
         return value
 
     def version(self, shelly_type, beta):
