@@ -58,7 +58,7 @@ This library was created for Shelly Plugins for Home Assistant and Telldus Tells
 ```python
 shelly = pyShelly()
 shelly.cb_device_added.append(device_added)
-shelly.open()
+shelly.start()
 shelly.discover()
 
 def device_added(dev):
