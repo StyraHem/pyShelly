@@ -14,7 +14,6 @@ from .const import (
     COAP_IP,
     COAP_PORT
 )
-
 class CoAP():
 
     def __init__(self, root):

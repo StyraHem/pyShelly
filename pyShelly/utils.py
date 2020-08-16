@@ -4,9 +4,9 @@
 import base64
 import traceback
 import json
+import urllib
 from datetime import datetime
 from .compat import s
-
 try:
     import http.client as httplib
 except:
