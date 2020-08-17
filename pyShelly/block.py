@@ -338,9 +338,9 @@ class Block(Base):
         elif self.type == 'SHBTN-1':
             self._add_device(Switch(self, 0, 118, 119, 120, True))
         elif self.type == 'SHIX3-1':
-            self._add_device(Switch(self, 1, 118, 119, 120))
-            self._add_device(Switch(self, 2, 128, 129, 130))
-            self._add_device(Switch(self, 3, 138, 139, 140))
+            self._add_device(Switch(self, 1, [118, 2101], [119, 2102], [120, 2103]))
+            self._add_device(Switch(self, 1, [128, 2201], [129, 2202], [130, 2203]))
+            self._add_device(Switch(self, 1, [138, 2301], [139, 2302], [140, 2303]))
         elif self.type == 'SHGS-1':
             self._info_value_cfg = {INFO_VALUE_PPM : {ATTR_POS : 122},
                                     INFO_VALUE_SENSOR : {ATTR_POS : 118}
