@@ -353,9 +353,9 @@ class Block(Base):
                 INFO_VALUE_TOTAL_WORK_TIME: {ATTR_POS : 121,
                                              ATTR_PATH : 'total_work_time'}
             }
-            self._add_device(Relay(self, 0, 112, 111, 118))
-            self._add_device(PowerMeter(self, 0, [111]))
-            self._add_device(Switch(self, 0, 118))
+            self._add_device(Relay(self, 0, [112,1101], [111, 4101], [118, 2101]))
+            self._add_device(PowerMeter(self, 0, [111, 4101]))
+            self._add_device(Switch(self, 0, [118, 2101], 2102, 2103))
 
     def _add_device(self, dev, lazy_load=False):
         dev.lazy_load = lazy_load
