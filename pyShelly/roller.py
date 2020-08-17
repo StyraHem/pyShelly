@@ -3,7 +3,7 @@
 from .device import Device
 
 from .const import (
-    #LOGGER,
+    LOGGER,
     INFO_VALUE_CURRENT_CONSUMPTION,
     STATUS_RESPONSE_ROLLERS,
     STATUS_RESPONSE_ROLLERS_STATE,
@@ -56,6 +56,7 @@ class Roller(Device):
             if self.position < 0 or self.position > 100:
                 self.position = 0
                 self.support_position = False
+                LOGGER.warning("Roller \"%s\" is missing calibration, positioning disabled", self.friendly_name())
             self.info_values[INFO_VALUE_CURRENT_CONSUMPTION] = \
                 roller[STATUS_RESPONSE_ROLLERS_POWER]
             state = self.position != 0
