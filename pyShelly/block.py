@@ -349,7 +349,7 @@ class Block(Base):
         elif self.type == 'SHAIR-1':
             self._info_value_cfg = {
                 INFO_VALUE_TEMP: {ATTR_POS : 119,
-                                  ATTR_PATH : 'ext_temperatures/0'},
+                                  ATTR_PATH : 'ext_temperature/0/tC'},
                 INFO_VALUE_TOTAL_WORK_TIME: {ATTR_POS : 121,
                                              ATTR_PATH : 'total_work_time'}
             }
