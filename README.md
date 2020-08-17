@@ -56,13 +56,20 @@ This library was created for Shelly Plugins for Home Assistant and Telldus Tells
 ## Usage
 
 ```python
+from pyShelly import pyShelly
+
+def device_added(dev,code):
+  print (dev," ",code)
+
 shelly = pyShelly()
+print("version:",shelly.version())
+
 shelly.cb_device_added.append(device_added)
-shelly.open()
+shelly.start()
 shelly.discover()
 
-def device_added(dev):
-  print (dev.devType)
+while True:
+    pass 
 ```
 
 ## Feedback
