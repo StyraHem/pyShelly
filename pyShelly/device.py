@@ -2,9 +2,11 @@
 # pylint: disable=broad-except, bare-except
 
 from .const import LOGGER, SHELLY_TYPES
+from .base import Base
 
-class Device(object):
+class Device(Base):
     def __init__(self, block):
+        super(Device, self).__init__()
         self.block = block
         self.id = block.id
         self.unit_id = block.id

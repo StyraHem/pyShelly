@@ -42,12 +42,12 @@ class LightWhite(Device):
         self._color_temp_max = None
 
 
-    def update(self, data):
-        self.state = data.get(self.state_pos) == 1
-        if self.bright_pos and self.bright_pos in data:
-            self.brightness = int(data.get(self.bright_pos))
-        if self.temp_pos and self.temp_pos in data:
-            self.color_temp = int(data.get(self.temp_pos))
+    def update_coap(self, payload):
+        self.state = payload.get(self.state_pos) == 1
+        if self.bright_pos and self.bright_pos in payload:
+            self.brightness = int(payload.get(self.bright_pos))
+        if self.temp_pos and self.temp_pos in payload:
+            self.color_temp = int(payload.get(self.temp_pos))
 
         values = {'brightness': self.brightness, "color_temp": self.color_temp}
 
@@ -131,7 +131,7 @@ class LightRGB(Device):
         self._channel = channel
         self.info_values = {}
 
-    def update(self, data):
+    def update_coap(self, payload):
         success, settings = self.block.http_get(self.url) #todo
         if not success:
             return
@@ -143,7 +143,7 @@ class LightRGB(Device):
         #         return
         #     self.mode = mode
 
-        new_state = data.get(self.state_pos) == 1
+        new_state = payload.get(self.state_pos) == 1
 
         if self.mode == 'color':
             self.brightness = int(settings.get('gain', 0))
@@ -151,18 +151,18 @@ class LightRGB(Device):
         else:
             self.brightness = int(settings.get('brightness', 0))
 
-        self.rgb = [data.get(111), data.get(121), data.get(131)]
+        self.rgb = [payload.get(111), payload.get(121), payload.get(131)]
 
         self.color_temp = int(settings.get('temp', 0))
 
         self.effect = int(settings.get('effect', 0))
 
-        if 118 in data:
-            self.info_values['switch'] = data.get(118) > 0
+        if 118 in payload:
+            self.info_values['switch'] = payload.get(118) > 0
 
-        if self.power_pos and self.power_pos in data:
+        if self.power_pos and self.power_pos in payload:
             self.info_values[INFO_VALUE_CURRENT_CONSUMPTION] \
-                = data.get(self.power_pos)
+                = payload.get(self.power_pos)
 
         values = {'mode': self.mode, 'brightness': self.brightness,
                   'rgb': self.rgb, 'color_temp': self.color_temp,
@@ -292,15 +292,15 @@ class RGBW2W(LightRGB):
         self.effects_list = None
         self.allow_switch_mode = False
 
-    def update(self, data):
-        if 181 in data:
-            new_state = data.get(151 + self._channel * 10) == 1
-            self.brightness = data.get(111 + self._channel * 10)
-            if 118 in data:
-                self.info_values['switch'] = data.get(118) > 0
-            if self.power_pos and self.power_pos in data:
+    def update_coap(self, payload):
+        if 181 in payload:
+            new_state = payload.get(151 + self._channel * 10) == 1
+            self.brightness = payload.get(111 + self._channel * 10)
+            if 118 in payload:
+                self.info_values['switch'] = payload.get(118) > 0
+            if self.power_pos and self.power_pos in payload:
                 self.info_values[INFO_VALUE_CURRENT_CONSUMPTION] \
-                    = data.get(self.power_pos)
+                    = payload.get(self.power_pos)
             values = {'mode': self.mode, 'brightness': self.brightness}
                       #'rgb': self.rgb, 'temp': self.temp}
             self._update(new_state, values, None, self.info_values)

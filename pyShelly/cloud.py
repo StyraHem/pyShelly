@@ -68,6 +68,7 @@ class Cloud():
                         {'device_list' : self._device_list,
                          'room_list' : self._room_list}
                     )
+
                 else:
                     time.sleep(5)
             except Exception as ex:

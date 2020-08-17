@@ -17,6 +17,7 @@ from .utils import exception_log, timer
 from .coap import CoAP
 from .mqtt import MQTT
 from .mdns import MDns
+from .firmware import firmware_manager
 
 #from .device.relay import Relay
 #from .device.switch import Switch
@@ -41,6 +42,7 @@ from .const import (
     INFO_VALUE_SSID,
     INFO_VALUE_HAS_FIRMWARE_UPDATE,
     INFO_VALUE_LATEST_FIRMWARE_VERSION,
+    INFO_VALUE_LATEST_BETA_FW_VERSION,
     INFO_VALUE_FW_VERSION,
     INFO_VALUE_CLOUD_STATUS,
     INFO_VALUE_CLOUD_ENABLED,
@@ -93,9 +95,11 @@ class pyShelly():
         self._coap = CoAP(self)
         self._mdns = None
         self._mqtt = MQTT(self)
+        self._firmware_mgr =  firmware_manager(self)
         self.host_ip = ''
         self.bind_ip = ''
         self.mqtt_port = 0
+        self.firmware_url = None
 
         self._shelly_by_ip = {}
         #self.loop = asyncio.get_event_loop()
@@ -239,7 +243,7 @@ class pyShelly():
 
         if payload:
             data = {d[1]:d[2] for d in json.loads(payload)['G']}
-            block.update(data, ipaddr)
+            block.update_coap(data, ipaddr)
             block.payload = payload
 
         if block_added:

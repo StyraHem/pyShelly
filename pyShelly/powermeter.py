@@ -16,14 +16,17 @@ from .const import (
     INFO_VALUE_TOTAL_RETURNED,
     INFO_VALUE_VOLTAGE,
     INFO_VALUE_POWER_FACTOR,
-    INFO_VALUE_CURRENT
+    INFO_VALUE_CURRENT,
+    ATTR_POS,
+    ATTR_PATH,
+    ATTR_FMT
 )
 
 class PowerMeter(Device):
     """Class to represent a power meter value"""
     def __init__(self, block, channel, positions, meters=None, volt_pos=None,
-                 pf_pos=None, current_pos=None, voltage_to_block=False,
-                 tot_pos=None):
+                 pf_pos=None, current_pos=None,
+                 tot_pos=None, voltage_to_block=False):
         super(PowerMeter, self).__init__(block)
         self.id = block.id
         if channel > 0:
@@ -46,10 +49,44 @@ class PowerMeter(Device):
         self.device_type = "POWERMETER"
         self.info_values = {}
         self.state = None
+        self._info_value_cfg = {
+            INFO_VALUE_VOLTAGE : {
+                ATTR_POS: volt_pos,
+                ATTR_PATH: 'meters/$/voltage',
+                ATTR_FMT: ['float']
+            },
+            INFO_VALUE_POWER_FACTOR : {
+                ATTR_POS: pf_pos,
+                ATTR_PATH: 'meters/$/pf',
+                ATTR_FMT: ['float']
+            },
+            STATUS_RESPONSE_METERS_CURRENT : {
+                ATTR_POS: current_pos,
+                ATTR_PATH: 'meters/$/current',
+                ATTR_FMT: ['float']
+            },
+            # INFO_VALUE_CURRENT_CONSUMPTION : {
+            #     ATTR_POS: positions,
+            #     ATTR_PATH: 'meters/$/power',
+            #     ATTR_FMT: ['float', 'round']
+            # },
+            INFO_VALUE_TOTAL_CONSUMPTION : {
+                ATTR_POS: tot_pos,
+                ATTR_PATH: 'meters/$/total',
+                ATTR_FMT: ['float','/60','round']
+            },
+            INFO_VALUE_TOTAL_RETURNED :
+            {
+                #ATTR_POS: meters,
+                ATTR_PATH: 'meters/$/total_returned',
+                ATTR_FMT: ['float','/60','round']
+            }
+        }
 
+    """
     def update_status_information(self, status):
-        """Update the status information."""
-        factor = 1
+        ""Update the status information.""
+         factor = 1
         if STATUS_RESPONSE_EMETERS in status:
             meters = status.get(STATUS_RESPONSE_EMETERS) #Shelly EM
         else:
@@ -93,33 +130,34 @@ class PowerMeter(Device):
             if total is not None:
                 self.info_values[INFO_VALUE_TOTAL_CONSUMPTION] \
                     = round(total / factor)
-            self._update(self.state, info_values=self.info_values)
+            self._update(self.state, info_values=self.info_values) """
 
-    def update(self, data):
+    def update_coap(self, payload):
         """Get the power"""
         update = False
         if self._positions:
-            self.state = sum(data.get(pos, 0) for pos in self._positions)
+            self.state = sum(payload.get(pos, 0) for pos in self._positions)
             update = True
-        if self._volt_pos and self._volt_pos in data:
+        """ 
+        if self._volt_pos and self._volt_pos in payload:
             update = True
             if self._voltage_to_block:
                 self.block.info_values[INFO_VALUE_VOLTAGE] = \
-                    round(data[self._volt_pos], 2)
+                    round(payload[self._volt_pos], 2)
             else:
                 self.info_values[INFO_VALUE_VOLTAGE] = \
-                    round(data[self._volt_pos], 2)
-        if self._pf_pos and self._pf_pos in data:
+                    round(payload[self._volt_pos], 2)
+        if self._pf_pos and self._pf_pos in payload:
             update = True
             self.info_values[INFO_VALUE_POWER_FACTOR] = \
-                round(data[self._pf_pos], 2)
-        if self._current_pos and self._current_pos in data:
+                round(payload[self._pf_pos], 2)
+        if self._current_pos and self._current_pos in payload:
             update = True
             self.info_values[INFO_VALUE_CURRENT] = \
-                round(data[self._current_pos], 2)
-        if self._tot_pos and self._tot_pos in data:
+                round(payload[self._current_pos], 2)
+        if self._tot_pos and self._tot_pos in payload:
             update = True
             self.info_values[INFO_VALUE_TOTAL_CONSUMPTION] = \
-                round(data[self._tot_pos]/60)
+                round(payload[self._tot_pos]/60)
         if update:
-            self._update(self.state, info_values=self.info_values)
+            self._update(self.state, info_values=self.info_values) """

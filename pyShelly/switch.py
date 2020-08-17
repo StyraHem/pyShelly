@@ -31,19 +31,19 @@ class Switch(Device):
         self.last_event = None
         self.event_cnt = None
 
-    def update(self, data):
+    def update_coap(self, payload):
         """Get the power"""
-        state = data.get(self._position)
+        state = self.coap_get(payload, self._position)
         if self._event_pos:
-            self.last_event = data.get(self._event_pos)
-            event_cnt = data.get(self._event_cnt_pos)
+            self.last_event = payload.get(self._event_pos)
+            event_cnt = payload.get(self._event_cnt_pos)
             if self.event_cnt and self.event_cnt != event_cnt:
                 self.event_cnt = event_cnt
                 if self._simulate_state:
                     state = 1
                     self.timer = Timer(1,self._turn_off)
                     self.timer.start()
-        self._update(state > 0, {'last_event' : self.last_event,
+        self._update(state != 0, {'last_event' : self.last_event,
                                            'event_cnt' : self.event_cnt})
 
     def update_status_information(self, status):
@@ -61,7 +61,7 @@ class Switch(Device):
                     new_state = True
                     self.timer = Timer(1,self._turn_off)
                     self.timer.start()
-            self._update(new_state > 0, {'last_event' : self.last_event,
+            self._update(new_state != 0, {'last_event' : self.last_event,
                                          'event_cnt' : self.event_cnt})
 
     def _turn_off(self):
