@@ -259,8 +259,8 @@ class Block(Base):
             self._add_device(RGBW2W(self, 1))
         elif self.type == 'SHEM':
             self._add_device(Relay(self, 0, 112))
-            self._add_device(PowerMeter(self, 1, [111], voltage_to_block=True))
-            self._add_device(PowerMeter(self, 2, [121], voltage_to_block=True))
+            self._add_device(PowerMeter(self, 1, [111, 4105], None, [4108], None, None, 4106, voltage_to_block=True))
+            self._add_device(PowerMeter(self, 2, [121, 4205], None, [4208], None, None, 4206, voltage_to_block=True))
         #Shelly 4 Pro
         elif self.type == 'SHSW-44':
             for channel in range(4):
@@ -281,7 +281,7 @@ class Block(Base):
             self._add_device(Dimmer(self, 121, 111))
             self._add_device(Switch(self, 1, 131))
             self._add_device(Switch(self, 2, 141))
-            self._add_device(PowerMeter(self, 0, None), True)
+            self._add_device(PowerMeter(self, 0, [111,4101]))
         elif self.type == 'SHHT-1':
             self.sleep_device = True
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
