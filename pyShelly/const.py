@@ -80,7 +80,7 @@ INFO_VALUE_TILT = 'tilt'
 INFO_VALUE_VIBRATION = 'vibration'
 INFO_VALUE_TEMP = 'temperature'
 INFO_VALUE_ILLUMINANCE = 'illuminance'
-INFO_VALUE_PPM = 'ppm'
+INFO_VALUE_GAS = 'gas'
 INFO_VALUE_SENSOR = 'sensor'
 INFO_VALUE_TOTAL_WORK_TIME = 'total_work_time'
 
@@ -110,7 +110,7 @@ BLOCK_INFO_VALUES = {
     INFO_VALUE_VIBRATION : {ATTR_PATH : 'accel/vibration'},
     #INFO_VALUE_TEMP : {ATTR_PATH : 'tmp/tC'},
     INFO_VALUE_ILLUMINANCE : {ATTR_PATH : 'lux/value'},
-    INFO_VALUE_PPM : {ATTR_PATH : 'concentration/ppm'},
+    INFO_VALUE_GAS : {ATTR_PATH : 'concentration/ppm'},
     INFO_VALUE_SENSOR : {ATTR_PATH : 'gas_sensor/sensor_state'},
     INFO_VALUE_TOTAL_WORK_TIME : {ATTR_PATH : 'total_work_time'},
 }

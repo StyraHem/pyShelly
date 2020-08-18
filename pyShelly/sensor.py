@@ -60,9 +60,9 @@ class BinarySensor(Sensor):
         self.device_type = "BINARY_SENSOR"
 
     def format(self, value):
-        if value == 'open':
+        if value == 'open' or value == 'mild' or value == 'heavy' :
             return True
-        if value == 'close':
+        if value == 'close' or value == 'none':
             return False
         return bool(value)
 
@@ -79,15 +79,9 @@ class DoorWindow(BinarySensor):
             block, position, 'door_window', 'sensor/state')
         self.sleep_device = True
 
-class Gas(Sensor):
-    """Class to represent a door/window sensor"""
+class Gas(BinarySensor):
+    """Class to represent a Gas sensor"""
     def __init__(self, block, position):
         super(Gas, self).__init__(
             block, position, 'gas', 'gas_sensor/alarm_state')
 
-    def format(self, value):
-        if value == 'none':
-            return "no alarm"
-        if value in ('mild', 'heavy'):
-            return value + "alarm"
-        return value
