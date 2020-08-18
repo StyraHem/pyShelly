@@ -31,7 +31,7 @@ from .const import (
     INFO_VALUE_TILT,
     INFO_VALUE_VIBRATION,
     INFO_VALUE_TEMP,
-    INFO_VALUE_PPM,
+    INFO_VALUE_GAS,
     INFO_VALUE_SENSOR,
     INFO_VALUE_TOTAL_WORK_TIME,
     ATTR_PATH,
@@ -342,7 +342,7 @@ class Block(Base):
             self._add_device(Switch(self, 1, [128, 2201], [129, 2202], [130, 2203]))
             self._add_device(Switch(self, 1, [138, 2301], [139, 2302], [140, 2303]))
         elif self.type == 'SHGS-1':
-            self._info_value_cfg = {INFO_VALUE_PPM : {ATTR_POS : 122},
+            self._info_value_cfg = {INFO_VALUE_GAS : {ATTR_POS : 122},
                                     INFO_VALUE_SENSOR : {ATTR_POS : 118}
             }
             self._add_device(Gas(self, 119))
