@@ -32,15 +32,8 @@ class MDns:
 
     def __init__(self, root):
         self._root = root
-        self._zeroconf = None
         self._browser = None
 
-    async def start(self):
-        self._zeroconf = zeroconf = await homeassistant.components.zeroconf.async_get_instance(hass)
+    def start(self, zeroconf):
         self._browser = \
             ServiceBrowser(zeroconf, "_http._tcp.local.", self)
-
-    def close(self):
-        if self._zeroconf:
-            self._zeroconf.close()
-            self._zeroconf = None
