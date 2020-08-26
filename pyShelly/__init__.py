@@ -17,7 +17,7 @@ from .utils import exception_log, timer
 from .coap import CoAP
 from .mqtt import MQTT
 from .mdns import MDns
-from .firmware import firmware_manager
+from .firmware import Firmware_manager
 
 #from .device.relay import Relay
 #from .device.switch import Switch
@@ -90,11 +90,12 @@ class pyShelly():
         self._coap = CoAP(self)
         self._mdns = None
         self._mqtt = MQTT(self)
-        self._firmware_mgr =  firmware_manager(self)
+        self._firmware_mgr =  Firmware_manager(self)
         self.host_ip = ''
         self.bind_ip = ''
         self.mqtt_port = 0
         self.firmware_url = None
+        self.zeroconf = None
 
         self._shelly_by_ip = {}
         #self.loop = asyncio.get_event_loop()
@@ -143,7 +144,7 @@ class pyShelly():
         if self._coap:
             self._coap.close()
         if self._mdns:
-            self._mdns.close()
+            self._mdns.close(self.zeroconf)
         if self._mqtt:
             self._mqtt.close()
         if self._update_thread is not None:
@@ -181,6 +182,10 @@ class pyShelly():
                         done = True
                         self._shelly_by_ip[ip_addr]['done'] = True
                         dev = settings["device"]
+                        if not "hostname" in dev: #invalide device
+                            LOGGER.info("Error adding device (missing hostname), %s %s",
+                                ip_addr, data['src'])
+                            continue
                         device_id = dev["hostname"].rpartition('-')[2]
                         device_type = dev["type"]
                         ip_addr = status["wifi_sta"]["ip"]

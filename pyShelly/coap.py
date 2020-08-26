@@ -168,7 +168,10 @@ class CoAP():
 
                         byte = data[pos]
 
-                    payload = s(data[pos + 1:])
+                    try:
+                        payload = s(data[pos + 1:])
+                    except:
+                        print(data[pos + 1:])
 
                     if payload: #Fix for DW2 payload error
                         payload = payload.replace(",,",",").replace("][", "],[")

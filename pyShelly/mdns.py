@@ -30,17 +30,19 @@ class MDns:
         """ Update a service in the collection. """
         self.add_service(zconf, type, name)
 
-    def __init__(self, root):
+    def __init__(self, root, zeroconf = None):
         self._root = root
+        self._common_zeroconf = zeroconf
         self._zeroconf = None
         self._browser = None
 
-    async def start(self):
-        self._zeroconf = zeroconf = await homeassistant.components.zeroconf.async_get_instance(hass)
+    def start(self):
+        self._zeroconf = zeroconf = self._common_zeroconf or Zeroconf()
         self._browser = \
             ServiceBrowser(zeroconf, "_http._tcp.local.", self)
 
     def close(self):
         if self._zeroconf:
-            self._zeroconf.close()
+            if not self._common_zeroconf:
+                self._zeroconf.close()
             self._zeroconf = None

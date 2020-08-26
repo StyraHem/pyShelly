@@ -73,7 +73,7 @@ def shelly_http_get(host, url, username, password, log_error=True):
           msg = "Timeout connecting to http://" + host + url
           try:
             res = socket.gethostbyaddr(host)[0]
-            msg += " [ hostname: " + res + " ]"
+            msg += " [" + res + "]"
           except Exception as ex:
             pass
           LOGGER.error(msg)
@@ -88,3 +88,6 @@ def shelly_http_get(host, url, username, password, log_error=True):
             conn.close()
 
     return success, res
+
+def notNone(value, default):
+    return default if value is None else value

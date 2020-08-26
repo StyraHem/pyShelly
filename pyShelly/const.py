@@ -5,7 +5,7 @@ import logging
 LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
-VERSION = "0.1.33"
+VERSION = "0.2.0"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
@@ -87,6 +87,7 @@ INFO_VALUE_TOTAL_WORK_TIME = 'total_work_time'
 ATTR_PATH = 'path'
 ATTR_FMT = 'fmt'
 ATTR_POS = 'pos'
+ATTR_CHANNEL = 'channel'
 ATTR_AUTO_SET = 'auto_set'
 
 BLOCK_INFO_VALUES = {

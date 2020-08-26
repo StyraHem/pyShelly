@@ -1,19 +1,27 @@
 import json
 import urllib.request
 import re
+from datetime import timedelta
 
 from .compat import s
 from .utils import exception_log
 from .const import (
     REGEX_VER
 )
+from .loop import Loop
 
-class firmware_manager():
+class Firmware_manager(Loop):
 
     def __init__(self, parent):
+        super(Firmware_manager, self).__init__("FirmwareManage", parent,
+                                    timedelta(minutes=10))
         self.parent = parent
-        self.list = self._http_get('https://repo.shelly.cloud/files/firmware')
+        self.list = {}
         self.last_updated = None
+        self.start_loop()
+
+    def loop_timer(self):
+        self.list = self._http_get('https://repo.shelly.cloud/files/firmware')
 
     def _http_get(self, url):
         f = None

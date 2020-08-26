@@ -75,11 +75,13 @@ class Block(Base):
         self.ip_addr = ip_addr  # If changed ip
         self.last_updated = datetime.now()
         self._update_info_values_coap(payload)
+        self.raise_updated()
         for dev in self.devices:
             dev.ip_addr = ip_addr
             dev._update_info_values_coap(payload)
             if hasattr(dev, 'update_coap'):
                 dev.update_coap(payload)
+            dev.raise_updated()
         if self.reload:
             self._reload_devices()
             for dev in self.devices:
@@ -160,6 +162,8 @@ class Block(Base):
 
         for dev in self.devices:
             try:
+                if dev._state_cfg:
+                    dev._update_state(status, dev._state_cfg)
                 if dev._info_value_cfg:
                     for name, cfg in dev._info_value_cfg.items():
                         dev._update_info_value(name, status, cfg)
@@ -202,17 +206,17 @@ class Block(Base):
             self._add_device(Bulb(self))
         #Shelly 1
         elif self.type == 'SHSW-1' or self.type == 'SHSK-1':
-            self._add_device(Relay(self, 0, [112,1101], None, [118, 2101]))
-            self._add_device(Switch(self, 0, [118, 2101], 2102, 2103))
+            self._add_device(Relay(self, 0))
+            self._add_device(Switch(self, 0))
             self._add_device(ExtTemp(self, 0), True)
             self._add_device(ExtTemp(self, 1), True)
             self._add_device(ExtTemp(self, 2), True)
             self._add_device(ExtHumidity(self, 0), True)
         #Shelly 1 PM
         elif self.type == 'SHSW-PM':
-            self._add_device(Relay(self, 0, [112,1101], [111, 4101], [118, 2101]))
-            self._add_device(PowerMeter(self, 0, [111, 4101]))
-            self._add_device(Switch(self, 0, [118, 2101], 2102, 2103))
+            self._add_device(Relay(self, 0))
+            self._add_device(PowerMeter(self, 0))
+            self._add_device(Switch(self, 0))
             self._add_device(ExtTemp(self, 0), True)
             self._add_device(ExtTemp(self, 1), True)
             self._add_device(ExtTemp(self, 2), True)
@@ -223,65 +227,61 @@ class Block(Base):
                 if self.settings.get('mode') == 'roller':
                     self._add_device(Roller(self))
                 else:
-                    self._add_device(Relay(self, 1, [112,1101], [111, 4101], [118, 2101]))
-                    self._add_device(Relay(self, 2, [122,1201], [111, 4101], [128, 2201]))
-                self._add_device(Switch(self, 1, [118, 2101], 2102, 2103))
-                self._add_device(Switch(self, 2, [118, 2201], 2202, 2203))
-                self._add_device(PowerMeter(self, 0, [111, 4101]))
+                    self._add_device(Relay(self, 1))
+                    self._add_device(Relay(self, 2, consumption_channel = 0))
+                self._add_device(Switch(self, 1))
+                self._add_device(Switch(self, 2))
+                self._add_device(PowerMeter(self, 0))
         #Shelly 2.5
         elif self.type == 'SHSW-25':
             if self.settings:
                 if self.settings.get('mode') == 'roller':
                     self._add_device(Roller(self))
-                    self._add_device(PowerMeter(self, 1, [111, 121, 4101, 4102], [0, 1]))
+                    self._add_device(PowerMeter(self, 1))
                 else:
-                    self._add_device(Relay(self, 1, [112,1101], [111, 4101], [118, 2101]))
-                    self._add_device(Relay(self, 2, [122,1201], [121, 4201], [128, 2201]))
-                    self._add_device(PowerMeter(self, 1, [111, 4101]))
-                    self._add_device(PowerMeter(self, 2, [121, 4201]))
-                    self._add_device(Switch(self, 1, [118, 2101], 2102, 2103))
-                    self._add_device(Switch(self, 2, [128, 2201], 2202, 2203))
+                    self._add_device(Relay(self, 1))
+                    self._add_device(Relay(self, 2))
+                    self._add_device(PowerMeter(self, 1))
+                    self._add_device(PowerMeter(self, 2))
+                    self._add_device(Switch(self, 1))
+                    self._add_device(Switch(self, 2))
                 #self._add_device(InfoSensor(self, 'temperature'))
             #todo delayed reload
         #Shelly PLUG'S
         elif self.type == 'SHPLG-1' or self.type == 'SHPLG2-1' or \
               self.type == 'SHPLG-S':
-            self._add_device(Relay(self, 0, [112,1101], [111, 4101]))
-            self._add_device(PowerMeter(self, 0, [111, 4101]))
+            self._add_device(Relay(self, 0))
+            self._add_device(PowerMeter(self, 0))
+        elif self.type == 'SHEM':
+            self._add_device(Relay(self, 0, include_power=False, em=True))
+            self._add_device(PowerMeter(self, 1, voltage_to_block=True,
+                                        em=True))
+            self._add_device(PowerMeter(self, 2, voltage_to_block=True,
+                                        em=True))
         #Shelly 3EM
         elif self.type == 'SHEM-3':
-            self._add_device(Relay(self, 0, [112,1101]))
-            self._add_device(PowerMeter(self, 1, [111, 4105], None, [116, 4108], [114, 4110], [115, 4109], 4106))
-            self._add_device(PowerMeter(self, 2, [121, 4205], None, [126, 4208], [124, 4210], [125, 4209], 4206))
-            self._add_device(PowerMeter(self, 3, [131, 4305], None, [136, 4308], [134, 4310], [135, 4309], 4306))
+            self._add_device(Relay(self, 0, include_power=False, em=True))
+            self._add_device(PowerMeter(self, 1, em=True))
+            self._add_device(PowerMeter(self, 2, em=True))
+            self._add_device(PowerMeter(self, 3, em=True))
         elif self.type == 'SH2LED-1':
-            self._add_device(RGBW2W(self, 0))
             self._add_device(RGBW2W(self, 1))
-        elif self.type == 'SHEM':
-            self._add_device(Relay(self, 0, 112))
-            self._add_device(PowerMeter(self, 1, [111, 4105], None, [4108], None, None, 4106, voltage_to_block=True))
-            self._add_device(PowerMeter(self, 2, [121, 4205], None, [4208], None, None, 4206, voltage_to_block=True))
+            self._add_device(RGBW2W(self, 2))
         #Shelly 4 Pro
         elif self.type == 'SHSW-44':
             for channel in range(4):
-                c10 = channel * 10
-                c100 = channel * 100
-                relay_pos = [112 + c10, 1101 + c100]
-                power_pos = [111 + c10, 4101 + c100]
-                switch_pos = [118 + c10, 2101 + c100]
-                self._add_device(
-                    Relay(self, channel + 1, relay_pos, power_pos, switch_pos))
-                self._add_device(PowerMeter(self, channel + 1, power_pos))
-                self._add_device(Switch(self, channel + 1, switch_pos))
+                self._add_device(Relay(self, channel + 1))
+                self._add_device(PowerMeter(self, channel + 1))
+                self._add_device(Switch(self, channel + 1))
         elif self.type == 'SHRGBWW-01':
             self._add_device(RGBWW(self))
         #Shelly Dimmer
         elif self.type in ('SHDM-1', 'SHDM-2'):
             self._info_value_cfg = {INFO_VALUE_DEVICE_TEMP : {ATTR_POS : 311}}
             self._add_device(Dimmer(self, 121, 111))
-            self._add_device(Switch(self, 1, 131))
-            self._add_device(Switch(self, 2, 141))
-            self._add_device(PowerMeter(self, 0, [111,4101]))
+            self._add_device(Switch(self, 1, position=131))
+            self._add_device(Switch(self, 2, position=131))
+            self._add_device(PowerMeter(self, 0))
         elif self.type == 'SHHT-1':
             self.sleep_device = True
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
@@ -292,12 +292,11 @@ class Block(Base):
             if self.settings:
                 if self.settings.get('mode', 'color') == 'color':
                     self._add_device(RGBW2C(self))
-                    self._add_device(PowerMeter(self, 0, [211]))
+                    self._add_device(PowerMeter(self, 0, position=[211, 4101]))
                 else:
                     for channel in range(4):
                         self._add_device(RGBW2W(self, channel + 1))
-                        self._add_device(PowerMeter(self, channel+1, \
-                                                            [211+channel*10]))
+                        self._add_device(PowerMeter(self, channel+1, [211, 4101]))
             self._add_device(Switch(self, 0, 118))
             #todo else delayed reload
         #Shelly Flood
@@ -309,13 +308,13 @@ class Block(Base):
         elif self.type == 'SHDW-1':
             self.sleep_device = True
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
-            self._info_value_cfg = {INFO_VALUE_BATTERY : {ATTR_POS : 77},
-                                    INFO_VALUE_TILT : {ATTR_POS : 88},
-                                    INFO_VALUE_VIBRATION : {ATTR_POS : 99,
-                                                            ATTR_AUTO_SET: [0, 60]},
-                                    INFO_VALUE_ILLUMINANCE: {ATTR_POS : 66}
+            self._info_value_cfg = {INFO_VALUE_BATTERY : {ATTR_POS : [77, 3111]},
+                                    INFO_VALUE_TILT : {ATTR_POS : [88, 3109]},
+                                    INFO_VALUE_VIBRATION : {ATTR_POS : [99, 6110],
+                                                    ATTR_AUTO_SET: [0, 60]},
+                                    INFO_VALUE_ILLUMINANCE: {ATTR_POS : [66, 3106]}
             }
-            self._add_device(DoorWindow(self, 55))
+            self._add_device(DoorWindow(self, [55, 3108]))
         elif self.type == 'SHDW-2':
             self.sleep_device = True
             self.exclude_info_values.append(INFO_VALUE_DEVICE_TEMP)
@@ -331,16 +330,19 @@ class Block(Base):
             self._add_device(DoorWindow(self, 3108))
         elif self.type == 'SHBDUO-1':
             self._add_device(Duo(self))
-            self._add_device(PowerMeter(self, 0, [213], tot_pos=214))
+            self._add_device(PowerMeter(self, 0, position=[141, 4101],
+                                        tot_pos=[214, 4103]))
         elif self.type == 'SHVIN-1':
             self._add_device(Vintage(self))
-            self._add_device(PowerMeter(self, 0, [213], tot_pos=214))
+            self._add_device(PowerMeter(self, 0, position=[141, 4101],
+                                        tot_pos=[214, 4103]))
         elif self.type == 'SHBTN-1':
-            self._add_device(Switch(self, 0, 118, 119, 120, True))
+            self._add_device(Switch(self, 0, simulate_state=True,
+                                    master_unit=True))
         elif self.type == 'SHIX3-1':
-            self._add_device(Switch(self, 1, [118, 2101], [119, 2102], [120, 2103]))
-            self._add_device(Switch(self, 1, [128, 2201], [129, 2202], [130, 2203]))
-            self._add_device(Switch(self, 1, [138, 2301], [139, 2302], [140, 2303]))
+            self._add_device(Switch(self, 1, master_unit=True))
+            self._add_device(Switch(self, 2))
+            self._add_device(Switch(self, 3))
         elif self.type == 'SHGS-1':
             self._info_value_cfg = {INFO_VALUE_GAS : {ATTR_POS : 122},
                                     INFO_VALUE_SENSOR : {ATTR_POS : 118}
@@ -353,9 +355,9 @@ class Block(Base):
                 INFO_VALUE_TOTAL_WORK_TIME: {ATTR_POS : 121,
                                              ATTR_PATH : 'total_work_time'}
             }
-            self._add_device(Relay(self, 0, [112,1101], [111, 4101], [118, 2101]))
-            self._add_device(PowerMeter(self, 0, [111, 4101]))
-            self._add_device(Switch(self, 0, [118, 2101], 2102, 2103))
+            self._add_device(Relay(self, 0))
+            self._add_device(PowerMeter(self, 0))
+            self._add_device(Switch(self, 0))
 
     def _add_device(self, dev, lazy_load=False):
         dev.lazy_load = lazy_load

@@ -29,11 +29,11 @@ class Dimmer(Device):
         self.info_values = {}
 
     def update_coap(self, payload):
-        new_state = payload.get(self.state_pos) == 1
-        self.brightness = payload.get(self.dim_pos)
+        new_state = self.coap_get(payload, self.state_pos) == 1
+        self.brightness = self.coap_get(payload, self.dim_pos)
         values = {'brightness': self.brightness}
         for idx in range(0, 2):
-            value = payload.get(131 + idx*10)
+            value = self.coap_get(payload, 131)
             if value is not None:
                 self.info_values[INFO_VALUE_SWITCH + "_" + str(idx+1)] = value > 0
         #todo, read consumption when firmware fixed

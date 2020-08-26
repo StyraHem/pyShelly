@@ -32,15 +32,16 @@ class Roller(Device):
     def update_coap(self, payload):
         """Update current state"""
         self.motion_state = ""
-        if payload.get(112):
+        if self.coap_get(payload, [112, 1101]):
             self.motion_state = "open"
-        if payload.get(122):
+        if self.coap_get(payload, [122, 1201]):
             self.motion_state = "close"
         if self.motion_state:
             self.last_direction = self.motion_state
-        self.position = payload.get(113)
+        self.position = self.coap_get(payload, [113])
         self.info_values[INFO_VALUE_CURRENT_CONSUMPTION] = \
-            payload.get(111, 0) + payload.get(121, 0)
+            self.coap_get(payload, 111, 0) + self.coap_get(payload, 121, 0) + \
+                self.coap_get(payload, 4104, 0)
         state = self.position != 0
         self._update(state, None, None, self.info_values)
 

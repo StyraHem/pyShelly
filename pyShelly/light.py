@@ -14,21 +14,31 @@ from .const import (
     STATUS_RESPONSE_LIGHTS_BLUE,
     STATUS_RESPONSE_LIGHTS_MODE,
     STATUS_RESPONSE_LIGHTS_POWER,
-    #STATUS_RESPONSE_INPUTS,
-    #STATUS_RESPONSE_INPUTS_INPUT,
-    #INFO_VALUE_SWITCH
-    INFO_VALUE_CURRENT_CONSUMPTION
+    INFO_VALUE_CURRENT_CONSUMPTION,
+    INFO_VALUE_TOTAL_CONSUMPTION,
+    INFO_VALUE_SWITCH,
+    ATTR_POS,
+    ATTR_PATH,
+    ATTR_FMT
 )
 
-class LightWhite(Device):
-    def __init__(self, block, state_pos, bright_pos, temp_pos=None):
+class Light(Device):
+    def __init__(self, block):
+        super(Light, self).__init__(block)
+
+class LightWhite(Light):
+    def __init__(self, block, channel, state_pos, bright_pos, 
+                 temp_pos=None, power_pos=None):
         super(LightWhite, self).__init__(block)
         self.id = block.id
         self.state = None
         self.device_type = "LIGHT"
         self.url = "/light/0"
+        if channel>0:
+            self._channel = channel-1
+        else:
+            self._channel = 0
 
-        self._channel = 0
         self.brightness = None
         self.color_temp = None
 
@@ -41,13 +51,32 @@ class LightWhite(Device):
         self._color_temp_min = None
         self._color_temp_max = None
 
+        self._info_value_cfg = {
+            INFO_VALUE_SWITCH : {
+                ATTR_POS: [118, 2101],
+                ATTR_PATH: 'inputs/$/input',
+                ATTR_FMT: 'bool'
+            },
+            INFO_VALUE_CURRENT_CONSUMPTION : {
+                    ATTR_POS: power_pos or [141, 4101],
+                    ATTR_PATH: 'meters/$/power',
+                    ATTR_FMT: ['float']
+            },
+            INFO_VALUE_TOTAL_CONSUMPTION : {
+                ATTR_POS: [214, 4103],
+                ATTR_PATH: 'meters/$/total',
+                ATTR_FMT: ['float','/60','round:2']
+            }
+        }
 
     def update_coap(self, payload):
-        self.state = payload.get(self.state_pos) == 1
-        if self.bright_pos and self.bright_pos in payload:
-            self.brightness = int(payload.get(self.bright_pos))
-        if self.temp_pos and self.temp_pos in payload:
-            self.color_temp = int(payload.get(self.temp_pos))
+        self.state = self.coap_get(payload, self.state_pos) == 1
+        bright = self.coap_get(payload, self.bright_pos)
+        if bright is not None:
+            self.brightness = int(bright)
+        color_temp = self.coap_get(payload, self.temp_pos)
+        if color_temp is not None:
+            self.color_temp = int(color_temp)
 
         values = {'brightness': self.brightness, "color_temp": self.color_temp}
 
@@ -106,7 +135,7 @@ class LightWhite(Device):
     def set_color_temp_value(self, value):
         self._send_data(True, color_temp=value)
 
-class LightRGB(Device):
+class LightRGB(Light):
     def __init__(self, block, state_pos, channel=0, power_pos=None):
         super(LightRGB, self).__init__(block)
         self.id = block.id
@@ -130,39 +159,69 @@ class LightRGB(Device):
         self.power_pos = power_pos
         self._channel = channel
         self.info_values = {}
+        self._info_value_cfg = {
+            INFO_VALUE_SWITCH : {
+                ATTR_POS: [118, 2101],
+                ATTR_PATH: 'inputs/$/input',
+                ATTR_FMT: 'bool'
+            },
+            INFO_VALUE_CURRENT_CONSUMPTION : {
+                    ATTR_POS: power_pos or [141, 4101],
+                    ATTR_PATH: 'meters/$/power',
+                    ATTR_FMT: ['float']
+            },
+            INFO_VALUE_TOTAL_CONSUMPTION : {
+                ATTR_POS: [4103],
+                ATTR_PATH: 'meters/$/total',
+                ATTR_FMT: ['float','/60','round:2']
+            }
+        }
 
     def update_coap(self, payload):
-        success, settings = self.block.http_get(self.url) #todo
-        if not success:
-            return
+        if not 9101 in payload:
+            success, settings = self.block.http_get(self.url) #todo
+            if not success:
+                return
+            self.mode = settings.get('mode', 'color')
 
-        self.mode = settings.get('mode', 'color')
+            if self.mode == 'color':
+                self.brightness = int(settings.get('gain', 0))
+                self.white_value = int(settings.get('white', 0))
+            else:
+                self.brightness = int(settings.get('brightness', 0))
+
+            self.color_temp = int(settings.get('temp', 0))
+            self.effect = int(settings.get('effect', 0))
+
+        else: #1.8.0
+            self.mode = self.coap_get(payload, 9101)
+            if self.mode == 'color':
+                self.brightness = int(self.coap_get(payload, 5102))
+            else:
+                self.brightness = int(self.coap_get(payload, 5101))
+            self.white_value = int(self.coap_get(payload, 5108))
+            #Todo:self.color_temp = int(settings.get('temp', 0))
+
+        #Todo
         # if mode != self.mode:
         #     if not self.allow_switch_mode and self.mode is not None:
         #         self._reload_block()
         #         return
-        #     self.mode = mode
 
-        new_state = payload.get(self.state_pos) == 1
+        new_state = self.coap_get(payload, self.state_pos) == 1
 
-        if self.mode == 'color':
-            self.brightness = int(settings.get('gain', 0))
-            self.white_value = int(settings.get('white', 0))
-        else:
-            self.brightness = int(settings.get('brightness', 0))
+        self.rgb = [self.coap_get(payload, [111, 5105]),
+                    self.coap_get(payload, [121, 5106]),
+                    self.coap_get(payload, [131, 5107])]
 
-        self.rgb = [payload.get(111), payload.get(121), payload.get(131)]
+        # switch = self.coap_get(payload, [118, 2101])
+        # if switch is not None:
+        #     self.info_values['switch'] = switch > 0
 
-        self.color_temp = int(settings.get('temp', 0))
-
-        self.effect = int(settings.get('effect', 0))
-
-        if 118 in payload:
-            self.info_values['switch'] = payload.get(118) > 0
-
-        if self.power_pos and self.power_pos in payload:
-            self.info_values[INFO_VALUE_CURRENT_CONSUMPTION] \
-                = payload.get(self.power_pos)
+        # power = self.coap_get(payload, [111, 5105])
+        # if self.power_pos and self.power_pos in payload:
+        #     self.info_values[INFO_VALUE_CURRENT_CONSUMPTION] \
+        #         = self.coap_get(payload, self.power_pos)
 
         values = {'mode': self.mode, 'brightness': self.brightness,
                   'rgb': self.rgb, 'color_temp': self.color_temp,
@@ -197,9 +256,9 @@ class LightRGB(Device):
 
             self.effect = int(light.get('effect', 0))
 
-            if STATUS_RESPONSE_LIGHTS_POWER in light:
-                self.info_values[INFO_VALUE_CURRENT_CONSUMPTION] \
-                    = light[STATUS_RESPONSE_LIGHTS_POWER]
+            # if STATUS_RESPONSE_LIGHTS_POWER in light:
+            #     self.info_values[INFO_VALUE_CURRENT_CONSUMPTION] \
+            #         = light[STATUS_RESPONSE_LIGHTS_POWER]
 
             new_state = light.get(STATUS_RESPONSE_LIGHTS_STATE, None)
             values = {'mode': self.mode, 'brightness': self.brightness,
@@ -282,34 +341,34 @@ class RGBWW(LightRGB):
         super(RGBWW, self).__init__(block, 151)
         self.support_color_temp = True
 
-class RGBW2W(LightRGB):
+class RGBW2W(LightWhite):
     def __init__(self, block, channel):
-        super(RGBW2W, self).__init__(block, 161, channel, 201 + channel * 10)
+        super(RGBW2W, self).__init__(block, channel, [161, 1101], [111, 5101],
+                                     power_pos=[201, 4101])
         self.id = self.id + '-' + str(channel)
-        self._channel = channel - 1
         self.mode = "white"
         self.url = "/white/" + str(channel - 1)
         self.effects_list = None
         self.allow_switch_mode = False
 
-    def update_coap(self, payload):
-        if 181 in payload:
-            new_state = payload.get(151 + self._channel * 10) == 1
-            self.brightness = payload.get(111 + self._channel * 10)
-            if 118 in payload:
-                self.info_values['switch'] = payload.get(118) > 0
-            if self.power_pos and self.power_pos in payload:
-                self.info_values[INFO_VALUE_CURRENT_CONSUMPTION] \
-                    = payload.get(self.power_pos)
-            values = {'mode': self.mode, 'brightness': self.brightness}
-                      #'rgb': self.rgb, 'temp': self.temp}
-            self._update(new_state, values, None, self.info_values)
-        else:
-            self._reload_block()
+    # def update_coap(self, payload):
+    #     if 181 in payload:
+    #         new_state = self.coap_get(payload, [151]) == 1
+    #         self.brightness = self.coap_get(payload, [111])
+    #         # if 118 in payload:
+    #         #     self.info_values['switch'] = self.coap_get(payload, 118) > 0
+    #         # if self.power_pos and self.power_pos in payload:
+    #         #     self.info_values[INFO_VALUE_CURRENT_CONSUMPTION] \
+    #         #         = self.coap_get(payload, self.power_pos)
+    #         values = {'mode': self.mode, 'brightness': self.brightness}
+    #                   #'rgb': self.rgb, 'temp': self.temp}
+    #         self._update(new_state, values, None, self.info_values)
+    #     else:
+    #         self._reload_block()
 
 class RGBW2C(LightRGB):
     def __init__(self, block):
-        super(RGBW2C, self).__init__(block, 161, 0, 211)
+        super(RGBW2C, self).__init__(block, [161, 1101], 0, [211, 4101])
         self.mode = "color"
         self.url = "/color/0"
         self.effects_list = EFFECTS_RGBW2
@@ -318,11 +377,11 @@ class RGBW2C(LightRGB):
 
 class Duo(LightWhite):
     def __init__(self, block):
-        super(Duo, self).__init__(block, 121, 111, 131)
+        super(Duo, self).__init__(block, 0, [121, 1101], [111, 5101], [131, 5103])
         self.support_color_temp = True
         self._color_temp_min = 2700
         self._color_temp_max = 6500
 
 class Vintage(LightWhite):
     def __init__(self, block):
-        super(Vintage, self).__init__(block, 121, 111)
+        super(Vintage, self).__init__(block, 0, [121, 1101], [111, 5101])

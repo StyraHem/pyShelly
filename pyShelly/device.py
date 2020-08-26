@@ -18,13 +18,13 @@ class Device(Base):
         self.sub_name = None
         self.state_values = None
         self.sensor_values = None
-        self.info_values = None
+        #self.info_values = None
         self.state = None
         self.device_type = None
         self.device_sub_type = None #Used to make sensors unique
         self.lazy_load = False
         self.device_nr = None
-        self.master = False
+        self.master_unit = False
         self.ext_sensor = None
 
     def friendly_name(self):
