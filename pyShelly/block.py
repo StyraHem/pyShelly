@@ -278,10 +278,10 @@ class Block(Base):
         #Shelly Dimmer
         elif self.type in ('SHDM-1', 'SHDM-2'):
             self._info_value_cfg = {INFO_VALUE_DEVICE_TEMP : {ATTR_POS : 311}}
-            self._add_device(Dimmer(self, 121, 111))
-            self._add_device(Switch(self, 1, position=131))
-            self._add_device(Switch(self, 2, position=131))
-            self._add_device(PowerMeter(self, 0))
+            self._add_device(Dimmer(self, [121, 1101], [111, 5101]))
+            self._add_device(Switch(self, 1, position=[131, 2101]))
+            self._add_device(Switch(self, 2, position=[131, 2101]))
+            self._add_device(PowerMeter(self, 0, 4101, 4103))
         elif self.type == 'SHHT-1':
             self.sleep_device = True
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
