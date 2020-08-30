@@ -10,10 +10,10 @@ from .const import (
     STATUS_RESPONSE_INPUTS,
     STATUS_RESPONSE_INPUTS_INPUT,
     INFO_VALUE_SWITCH,
-    INFO_VALUE_DEVICE_TEMP,
     STATUS_RESPONSE_METERS,
     STATUS_RESPONSE_METERS_POWER,
-    INFO_VALUE_CURRENT_CONSUMPTION
+    INFO_VALUE_CURRENT_CONSUMPTION,
+    SRC_COAP, SRC_STATUS
 )
 
 class Dimmer(Device):
@@ -33,11 +33,14 @@ class Dimmer(Device):
         self.brightness = self.coap_get(payload, self.dim_pos)
         values = {'brightness': self.brightness}
         for idx in range(0, 2):
-            value = self.coap_get(payload, 131)
+            value = self.coap_get(payload, [131, 2101], channel=idx)
             if value is not None:
-                self.info_values[INFO_VALUE_SWITCH + "_" + str(idx+1)] = value > 0
+                self.set_info_value(INFO_VALUE_SWITCH + "_" + str(idx+1),
+                                    value > 0, SRC_COAP)
+            #if value is not None:
+            #    self.info_values[INFO_VALUE_SWITCH + "_" + str(idx+1)] = value > 0
         #todo, read consumption when firmware fixed
-        self._update(new_state, values, None, self.info_values)
+        self._update(new_state, values)
 
     def update_status_information(self, status):
         """Update the status information."""
@@ -53,17 +56,20 @@ class Dimmer(Device):
         inputs = status.get(STATUS_RESPONSE_INPUTS)
         if inputs:
             for idx in range(0, 2):
-                value = inputs[idx]
-                if value.get(STATUS_RESPONSE_INPUTS_INPUT) is not None:
-                    self.info_values[INFO_VALUE_SWITCH + "_" + str(idx+1)] = \
-                        value.get(STATUS_RESPONSE_INPUTS_INPUT) > 0
+                input = inputs[idx]
+                value = input.get(STATUS_RESPONSE_INPUTS_INPUT)
+                if value is not None:
+                    self.set_info_value(INFO_VALUE_SWITCH + "_" + str(idx+1),
+                                         value > 0, SRC_STATUS)
         meters = status.get(STATUS_RESPONSE_METERS)
         if meters and len(meters) > 0:
             meter = meters[0]
-            if meter.get(STATUS_RESPONSE_METERS_POWER) is not None:
-                self.info_values[INFO_VALUE_CURRENT_CONSUMPTION] = \
-                    round(float(meter.get(STATUS_RESPONSE_METERS_POWER)))
-        self._update(new_state, values, None, self.info_values)
+            value = meter.get(STATUS_RESPONSE_METERS_POWER)
+            if value is not None:
+                self.set_info_value(INFO_VALUE_CURRENT_CONSUMPTION,
+                                     float(value), SRC_STATUS)
+
+        self._update(new_state, values)
 
     def _send_data(self, state, brightness=None):
         url = self.url + "?"

@@ -39,7 +39,8 @@ from .const import (
     ATTR_POS,
     ATTR_AUTO_SET,
     BLOCK_INFO_VALUES,
-    SHELLY_TYPES
+    SHELLY_TYPES,
+    SRC_STATUS
 )
 
 class Block(Base):
@@ -53,7 +54,6 @@ class Block(Base):
         self.devices = []
         self.discovery_src = discovery_src
         self.protocols = []
-        self.cb_updated = []
         self.unavailable_after_sec = None
         #self.info_values = {}
         #self.info_values_updated = {}
@@ -74,7 +74,7 @@ class Block(Base):
     def update_coap(self, payload, ip_addr):
         self.ip_addr = ip_addr  # If changed ip
         self.last_updated = datetime.now()
-        self._update_info_values_coap(payload)
+        self._update_info_values_coap(payload, BLOCK_INFO_VALUES)
         self.raise_updated()
         for dev in self.devices:
             dev.ip_addr = ip_addr
@@ -91,10 +91,6 @@ class Block(Base):
                 self.parent.add_device(dev, self.discovery_src)
             self.reload = False
 
-    def raise_updated(self):
-        for callback in self.cb_updated:
-            callback(self)
-
     def loop(self):
         if self._info_value_cfg:
             for iv, cfg in self._info_value_cfg.items():
@@ -108,15 +104,15 @@ class Block(Base):
                         if time:
                             diff = datetime.now() - time
                             if diff.total_seconds() > delay:
-                                self.info_values[iv] = new_val
+                                self.set_info_value(iv, new_value, None)
                                 self.raise_updated()
 
     def check_available(self):
         if self.available() != self._available:
             self._available = self.available()
-            self.raise_updated()
+            self.raise_updated(True)
             for dev in self.devices:
-                dev.raise_updated()
+                dev.raise_updated(True)
 
     def update_status_information(self):
         """Update the status information."""
@@ -144,19 +140,19 @@ class Block(Base):
                 self._update_info_value(name, status, cfg)
 
         if self.payload:
-            self.info_values[INFO_VALUE_PAYLOAD] = self.payload
+            self.set_info_value(INFO_VALUE_PAYLOAD, self.payload, None)
 
+        cloud_status = 'disabled'
         if self.info_values.get(INFO_VALUE_CLOUD_ENABLED):
             if self.info_values.get(INFO_VALUE_CLOUD_CONNECTED):
-                self.info_values[INFO_VALUE_CLOUD_STATUS] = 'connected'
+                cloud_status = 'connected'
             else:
-                self.info_values[INFO_VALUE_CLOUD_STATUS] = 'disconnected'
-        else:
-            self.info_values[INFO_VALUE_CLOUD_STATUS] = 'disabled'
+                cloud_status = 'disconnected'
+        self.set_info_value(INFO_VALUE_CLOUD_STATUS, cloud_status, SRC_STATUS)
 
         #self.info_values[INFO_VALUE_HAS_FIRMWARE_UPDATE] = self.has_fw_update()
-        self.info_values[INFO_VALUE_LATEST_BETA_FW_VERSION] = \
-            self.latest_fw_version(True)
+        self.set_info_value(INFO_VALUE_LATEST_BETA_FW_VERSION,
+                            self.latest_fw_version(True), SRC_STATUS)
 
         self.raise_updated()
 
@@ -277,7 +273,7 @@ class Block(Base):
             self._add_device(RGBWW(self))
         #Shelly Dimmer
         elif self.type in ('SHDM-1', 'SHDM-2'):
-            self._info_value_cfg = {INFO_VALUE_DEVICE_TEMP : {ATTR_POS : 311}}
+            #self._info_value_cfg = {INFO_VALUE_DEVICE_TEMP : {ATTR_POS : 311}}
             self._add_device(Dimmer(self, [121, 1101], [111, 5101]))
             self._add_device(Switch(self, 1, position=[131, 2101]))
             self._add_device(Switch(self, 2, position=[131, 2101]))
@@ -285,8 +281,9 @@ class Block(Base):
         elif self.type == 'SHHT-1':
             self.sleep_device = True
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
-            self._add_device(Sensor(self, 33, 'temperature', 'tmp/tC'))
-            self._add_device(Sensor(self, 44, 'humidity', 'hum/value'))
+            self.exclude_info_values.append(INFO_VALUE_DEVICE_TEMP)
+            self._add_device(Sensor(self, [33, 3101], 'temperature', 'tmp/tC'))
+            self._add_device(Sensor(self, [44, 3103], 'humidity', 'hum/value'))
         #Shellyy RGBW2
         elif self.type == 'SHRGBW2':
             if self.settings:
@@ -319,13 +316,14 @@ class Block(Base):
             self.sleep_device = True
             self.exclude_info_values.append(INFO_VALUE_DEVICE_TEMP)
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
-            self._info_value_cfg = {INFO_VALUE_BATTERY : {ATTR_POS : 3111},
-                                    INFO_VALUE_TILT : {ATTR_POS : 3109},
+            self._info_value_cfg = {#INFO_VALUE_BATTERY : {ATTR_POS : 3111},
+                                    INFO_VALUE_TILT : {ATTR_POS : 3109, ATTR_PATH : 'accel/tilt'},
                                     INFO_VALUE_VIBRATION :
                                         {ATTR_POS : 6110,
+                                         ATTR_PATH : 'accel/vibration',
                                          ATTR_AUTO_SET: [0, 60]},
-                                    INFO_VALUE_TEMP: {ATTR_POS : 3101},
-                                    INFO_VALUE_ILLUMINANCE: {ATTR_POS : 3106}
+                                    INFO_VALUE_TEMP: {ATTR_POS : 3101}, #Todo
+                                    INFO_VALUE_ILLUMINANCE: {ATTR_POS : 3106, ATTR_PATH : 'lux/value'}
             }
             self._add_device(DoorWindow(self, 3108))
         elif self.type == 'SHBDUO-1':

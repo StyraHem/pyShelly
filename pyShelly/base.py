@@ -1,26 +1,44 @@
+import traceback
+import traceback
 from datetime import datetime
 
 from .const import (
+    BLOCK_INFO_VALUES,
     LOGGER,
     ATTR_PATH,
     ATTR_FMT,
     ATTR_POS,
     ATTR_CHANNEL,
-    REGEX_VER
+    REGEX_VER,
+    SRC_COAP,
+    SRC_STATUS
 )
-
 class Base(object):
 
     def __init__(self):
         self.info_values = {}
         self.info_values_updated = {}
         self._info_value_cfg = None
-        self.info_values_status_value = {}
+        self.info_values_status = {}
         self.info_values_coap = {}
         self._state_cfg = None
         self.state_status = None
         self.state_coap = None
         self._channel = 0
+        self.cb_updated = []
+        self.need_update = False
+
+    def raise_updated(self, force=False):
+        if not force and not self.need_update:
+            return
+        self.need_update = False
+        #print("UPDATE----------------------")
+        #traceback.print_stack(limit=3)
+        #if hasattr(self, 'state'):
+        #    print(self.state)
+        #print(self.info_values)
+        for callback in self.cb_updated:
+            callback(self)
 
     def _fmt_info_value(self, value, cfg, prefix):
         fmt_list = cfg.get(ATTR_FMT, None)
@@ -69,8 +87,10 @@ class Base(object):
     def _update_state(self, status, cfg):
         value = self._get_status_value(status, cfg)
         if value is not None:
-            value = self._fmt_info_value(value, cfg, "STATUS")
-            self.state = value
+            value = self._fmt_info_value(value, cfg, SRC_STATUS)
+            if self.state != value:
+                self.need_update = True
+                self.state = value
             self.state_status = value
             if self.lazy_load:
                 self.block.parent.callback_add_device(self)
@@ -78,10 +98,13 @@ class Base(object):
     def _update_info_value(self, name, status, cfg):
         value = self._get_status_value(status, cfg)
         if value is not None:
-            value = self._fmt_info_value(value, cfg, "STATUS")
-            self.info_values[name] = value
-            self.info_values_updated[name] = datetime.now()
-            self.info_values_status_value[name] = value
+            value = self._fmt_info_value(value, cfg, SRC_STATUS)
+            self.set_info_value(name, value, SRC_STATUS)
+            # if self.info_values.get(name) != value:
+            #     self.info_values[name] = value
+            #     self.need_update = True
+            # self.info_values_updated[name] = datetime.now()
+            # self.info_values_status[name] = value
 
     def _get_coap_value(self, cfg, payload):
         if ATTR_POS in cfg:
@@ -96,36 +119,42 @@ class Base(object):
                     pos = _pos + 100 * ch
                 if pos in payload:
                     value = payload.get(pos)
-                    value = self._fmt_info_value(value, cfg, "COAP")
+                    value = self._fmt_info_value(value, cfg, SRC_COAP)
                     return value
         return None
 
-    def _update_info_values_coap(self, payload):
+    def __update_info_values_coap(self, payload, cfg):
+        for name, cfg in cfg.items():
+            value = self._get_coap_value(cfg, payload)
+            self.set_info_value(name, value, SRC_COAP)
+            # if value is not None:
+            #     self.info_values_updated[name] = datetime.now()
+            #     self.info_values_coap[name] = value
+            #     if self.info_values.get(name) != value:
+            #         self.info_values[name] = value
+            #         self.need_update = True
+
+    def _update_info_values_coap(self, payload, extra_info_value_cfg=None):
         if self._state_cfg:
-            self.state = self._get_coap_value(self._state_cfg, payload)
-            self.state_coap = self.state
-            need_update = True
+            new_state = self._get_coap_value(self._state_cfg, payload)
+            if not new_state is None:
+                self.state_coap = new_state
+                if self.state != new_state:
+                    self.state = new_state
+                    self.need_update = True
+        if extra_info_value_cfg:
+            self.__update_info_values_coap(payload, extra_info_value_cfg)
         if self._info_value_cfg:
-            need_update = False
-            for name, cfg in self._info_value_cfg.items():
-                value = self._get_coap_value(cfg, payload)
-                if value is not None:
-                    self.info_values_updated[name] = datetime.now()
-                    self.info_values_coap[name] = value
-                    if self.info_values.get(name)!=value:
-                        self.info_values[name] = value
-                        need_update = True
-            if need_update:
-                self.raise_updated()
+            self.__update_info_values_coap(payload, self._info_value_cfg)
 
     #Todo: remove
-    def coap_get(self, payload, pos_list, default=None):
+    def coap_get(self, payload, pos_list, default=None, channel=None):
         if pos_list is None:
             return default
         if not type(pos_list) is list:
             pos_list = [pos_list]
         for _pos in pos_list:
-            ch = self._channel or 0
+            ch = channel or self._channel or 0
             if _pos < 1000:
                 pos = _pos + 10 * ch
             else:
@@ -133,4 +162,16 @@ class Base(object):
             if pos in payload:
                 return payload[pos]
         return default
+
+    def set_info_value(self, name, value, src):
+        if value is None:
+            return
+        if self.info_values.get(name) != value:
+            self.need_update = True
+            self.info_values[name] = value
+        self.info_values_updated[name] = datetime.now()
+        if src == SRC_STATUS:
+            self.info_values_status[name] = value
+        elif src == SRC_COAP:
+            self.info_values_coap[name] = value
 

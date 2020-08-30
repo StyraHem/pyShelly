@@ -100,9 +100,9 @@ class pyShelly():
         self._shelly_by_ip = {}
         #self.loop = asyncio.get_event_loop()
         if loop:
-            self.loop = loop
+            self.event_loop = loop
         else:
-            self.loop = asyncio.get_event_loop()
+            self.event_loop = asyncio.get_event_loop()
 
         self._send_discovery_timer = timer(timedelta(seconds=60))
         self._check_by_ip_timer = timer(timedelta(seconds=60))
@@ -118,7 +118,7 @@ class pyShelly():
 
     def start(self):
         if self.mdns_enabled:
-            self._mdns = MDns(self)
+            self._mdns = MDns(self, self.zeroconf)
         if self.cloud_auth_key and self.cloud_server:
             self.cloud = Cloud(self, self.cloud_server, self.cloud_auth_key)
             self.cloud.start()
@@ -138,13 +138,11 @@ class pyShelly():
         return VERSION
 
     def close(self):
-        if self.cloud:
-            self.cloud.stop()
         self.stopped.set()
         if self._coap:
             self._coap.close()
         if self._mdns:
-            self._mdns.close(self.zeroconf)
+            self._mdns.close()
         if self._mqtt:
             self._mqtt.close()
         if self._update_thread is not None:
@@ -274,7 +272,7 @@ class pyShelly():
                     block.check_available()
                     block.loop()
 
-                time.sleep(10)
+                self.stopped.wait(5)
             except Exception as ex:
                 exception_log(ex, "Error update loop")
 

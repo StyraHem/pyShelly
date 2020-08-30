@@ -40,7 +40,7 @@ class PowerMeter(Device):
         #     self.meters = [self._channel]
         # else:
         #     self.meters = meters
-        self.sensor_values = {}
+        #self.sensor_values = {}
         self.device_type = "POWERMETER"
         self.info_values = {}
         self.state = None

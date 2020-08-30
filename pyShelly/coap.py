@@ -58,7 +58,8 @@ class CoAP():
 
     def _loop(self):
 
-        time.sleep(10)  #Just wait some sec to get names from cloud etc
+        self._root.stopped.wait(10)
+        #Just wait some sec to get names from cloud etc
 
         next_igmp_fix = datetime.now() + timedelta(minutes=1)
 

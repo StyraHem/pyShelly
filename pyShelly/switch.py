@@ -30,7 +30,7 @@ class Switch(Device):
             self._event_pos = [self._event_pos]
         #self._event_cnt_pos = event_cnt_pos
         self._simulate_state = simulate_state
-        self.sensor_values = {}
+        #self.sensor_values = {}
         self.device_type = "SWITCH"
         self.last_event = None
         self.event_cnt = None

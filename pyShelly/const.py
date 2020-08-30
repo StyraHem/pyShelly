@@ -5,7 +5,7 @@ import logging
 LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
-VERSION = "0.2.1"
+VERSION = "0.2.2"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
@@ -50,6 +50,7 @@ STATUS_RESPONSE_ROLLERS_STATE = 'state'
 STATUS_RESPONSE_ROLLERS_LAST_DIR = 'last_direction'
 STATUS_RESPONSE_ROLLERS_POSITION = 'current_pos'
 STATUS_RESPONSE_ROLLERS_POWER = 'power'
+STATUS_RESPONSE_ROLLERS_TOTAL = 'total'
 
 SENSOR_UNAVAILABLE_SEC = 3600 * 13 #13 hours
 
@@ -90,11 +91,14 @@ ATTR_POS = 'pos'
 ATTR_CHANNEL = 'channel'
 ATTR_AUTO_SET = 'auto_set'
 
+SRC_COAP = 1
+SRC_STATUS = 2
+
 BLOCK_INFO_VALUES = {
     INFO_VALUE_SSID : {ATTR_PATH :'wifi_sta/ssid'},
     INFO_VALUE_RSSI : {ATTR_PATH : 'wifi_sta/rssi'},
     INFO_VALUE_UPTIME : {ATTR_PATH : 'uptime'},
-    INFO_VALUE_DEVICE_TEMP : {ATTR_PATH : 'tmp/tC', ATTR_POS: 3104}, #, ATTR_FMT : 'round'},
+    INFO_VALUE_DEVICE_TEMP : {ATTR_PATH : 'tmp/tC', ATTR_POS: [311, 3104]}, #, ATTR_FMT : 'round'},
     INFO_VALUE_OVER_TEMPERATURE : {ATTR_PATH : 'overtemperature', ATTR_POS: 6101},
     INFO_VALUE_HAS_FIRMWARE_UPDATE : {ATTR_PATH : 'update/has_update'},
     INFO_VALUE_LATEST_FIRMWARE_VERSION : {ATTR_PATH : 'update/new_version',
@@ -106,11 +110,11 @@ BLOCK_INFO_VALUES = {
     INFO_VALUE_MQTT_CONNECTED : {ATTR_PATH : 'mqtt/connected'},
     #INFO_VALUE_CURRENT_CONSUMPTION : {ATTR_PATH : 'consumption'},
     #INFO_VALUE_VOLTAGE : {ATTR_PATH : 'voltage', ATTR_FMT : 'round'},
-    INFO_VALUE_BATTERY : {ATTR_PATH : 'bat/value'},
-    INFO_VALUE_TILT : {ATTR_PATH : 'accel/tilt'},
-    INFO_VALUE_VIBRATION : {ATTR_PATH : 'accel/vibration'},
+    INFO_VALUE_BATTERY : {ATTR_PATH : 'bat/value', ATTR_POS : 3111},
+    #INFO_VALUE_TILT : {ATTR_PATH : 'accel/tilt'}, #Todo
+    #INFO_VALUE_VIBRATION : {ATTR_PATH : 'accel/vibration'}, #Todo
     #INFO_VALUE_TEMP : {ATTR_PATH : 'tmp/tC'},
-    INFO_VALUE_ILLUMINANCE : {ATTR_PATH : 'lux/value'},
+    #INFO_VALUE_ILLUMINANCE : {ATTR_PATH : 'lux/value'}, #Todo
     INFO_VALUE_GAS : {ATTR_PATH : 'concentration/ppm'},
     INFO_VALUE_SENSOR : {ATTR_PATH : 'gas_sensor/sensor_state'},
     INFO_VALUE_TOTAL_WORK_TIME : {ATTR_PATH : 'total_work_time'},

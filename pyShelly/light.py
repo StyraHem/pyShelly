@@ -80,7 +80,7 @@ class LightWhite(Light):
 
         values = {'brightness': self.brightness, "color_temp": self.color_temp}
 
-        self._update(self.state, values, None, self.info_values)
+        self._update(self.state, values)
 
     def update_status_information(self, status):
         """Update the status information."""
@@ -94,7 +94,7 @@ class LightWhite(Light):
             self.color_temp = int(light.get('temp', 0))
             new_state = light.get(STATUS_RESPONSE_LIGHTS_STATE, None)
             values = {'color_temp': self.color_temp, 'brightness': self.brightness}
-            self._update(new_state, values, None, self.info_values)
+            self._update(new_state, values)
 
     def _send_data(self, state, brightness=None, color_temp=None):
         url = self.url + "?"
@@ -228,7 +228,7 @@ class LightRGB(Light):
                   'white_value': self.white_value,
                   'effect': self.effect}
 
-        self._update(new_state, values, None, self.info_values)
+        self._update(new_state, values)
 
     def update_status_information(self, status):
         """Update the status information."""
@@ -265,7 +265,7 @@ class LightRGB(Light):
                       'rgb': self.rgb, 'color_temp': self.color_temp,
                       'white_value': self.white_value,
                       'effect': self.effect}
-            self._update(new_state, values, None, self.info_values)
+            self._update(new_state, values)
 
     def _send_data(self, state, brightness=None, rgb=None, color_temp=None,
                    mode=None, effect=None, white_value=None):

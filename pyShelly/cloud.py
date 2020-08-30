@@ -21,7 +21,6 @@ class Cloud():
         self.auth_key = key
         self.server = server.replace("https://", "")
         self._last_update = None
-        self._stopped = threading.Event()
         self.update_interval = timedelta(minutes=1)
         self._device_list = None
         self._room_list = None
@@ -36,12 +35,9 @@ class Cloud():
         self._cloud_thread.daemon = True
         self._cloud_thread.start()
 
-    def stop(self):
-        self._stopped.set()
-
     def _update_loop(self):
-        if self._root.loop:
-            asyncio.set_event_loop(self._root.loop)
+        if self._root.event_loop:
+            asyncio.set_event_loop(self._root.event_loop)
         try:
             cloud = self._root.load_cache('cloud')
             if cloud:
@@ -49,7 +45,7 @@ class Cloud():
                 self._room_list = cloud['room_list']
         except:
             LOGGER.error("Error load cloud cache, %s", ex)
-        while not self._stopped.isSet():
+        while not self._root.stopped.isSet():
             try:
                 if self._last_update is None or \
                     datetime.now() - self._last_update \
@@ -70,7 +66,7 @@ class Cloud():
                     )
 
                 else:
-                    time.sleep(5)
+                    self._root.stopped.wait(5)
             except Exception as ex:
                 LOGGER.error("Error update cloud, %s", ex)
 
