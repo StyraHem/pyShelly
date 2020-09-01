@@ -13,7 +13,7 @@ class Loop():
 
     def start_loop(self):
         self._loop_thread = threading.Thread(target=self._loop_start)
-        self._loop_thread.name = "Cloud"
+        self._loop_thread.name = self._loop_name
         self._loop_thread.daemon = True
         self._loop_thread.start()
 

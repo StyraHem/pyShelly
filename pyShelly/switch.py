@@ -26,8 +26,8 @@ class Switch(Device):
             self._channel = 0
         self._position = notNone(position, [118, 2101])
         self._event_pos = [119, 2102]
-        if self._event_pos and type(self._event_pos) is not list:
-            self._event_pos = [self._event_pos]
+        #if self._event_pos and type(self._event_pos) is not list:
+        #    self._event_pos = [self._event_pos]
         #self._event_cnt_pos = event_cnt_pos
         self._simulate_state = simulate_state
         #self.sensor_values = {}
@@ -42,7 +42,7 @@ class Switch(Device):
             for event_pos in self._event_pos:
                 self.last_event = payload.get(event_pos)
                 event_cnt = payload.get(event_pos + 1)
-                if self.event_cnt and self.event_cnt != event_cnt:
+                if event_cnt and self.event_cnt != event_cnt:
                     self.event_cnt = event_cnt
                     if self._simulate_state:
                         state = 1

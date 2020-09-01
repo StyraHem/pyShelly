@@ -1,5 +1,5 @@
 import traceback
-import traceback
+
 from datetime import datetime
 
 from .const import (
@@ -32,11 +32,6 @@ class Base(object):
         if not force and not self.need_update:
             return
         self.need_update = False
-        #print("UPDATE----------------------")
-        #traceback.print_stack(limit=3)
-        #if hasattr(self, 'state'):
-        #    print(self.state)
-        #print(self.info_values)
         for callback in self.cb_updated:
             callback(self)
 

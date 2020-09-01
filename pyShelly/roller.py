@@ -52,7 +52,6 @@ class Roller(Device):
 
     def update_coap(self, payload):
         """Update current state"""
-        print("COAP")
         self.motion_state = self.coap_get(payload, [1102]) or "stop"
         if self.coap_get(payload, [112]):
             self.motion_state = "open"
@@ -65,15 +64,10 @@ class Roller(Device):
             self.coap_get(payload, 111, 0) + self.coap_get(payload, 121, 0) + \
                 self.coap_get(payload, 4102, 0), SRC_COAP)
         state = self.position != 0
-        # print("____________________")
-        # print(self.position)
-        # print(self.motion_state)
-        # print(self.last_direction)
         self._update(state)
 
     def update_status_information(self, status):
         """Update the status information."""
-        print("STATUS")
         rollers = status.get(STATUS_RESPONSE_ROLLERS)
         if rollers:
             roller = rollers[0]
@@ -86,10 +80,6 @@ class Roller(Device):
                                 SRC_STATUS)
             state = self.position != 0
             self._update(state)
-            # print("____________________status")
-            # print(self.position)
-            # print(self.motion_state)
-            # print(self.last_direction)
 
     def up(self):
         self._send_command("/roller/0?go=open")
@@ -101,7 +91,6 @@ class Roller(Device):
         self._send_command("/roller/0?go=stop")
 
     def set_position(self, pos):
-        print("SETPOS")
         if self.support_position:
             self.position=pos
             self.raise_updated(True)

@@ -74,8 +74,11 @@ class Block(Base):
     def update_coap(self, payload, ip_addr):
         self.ip_addr = ip_addr  # If changed ip
         self.last_updated = datetime.now()
-        self._update_info_values_coap(payload, BLOCK_INFO_VALUES)
-        self.raise_updated()
+        self._update_info_values_coap(payload, BLOCK_INFO_VALUES)   
+
+        if self.payload:
+            self.set_info_value(INFO_VALUE_PAYLOAD, self.payload, None)
+     
         for dev in self.devices:
             dev.ip_addr = ip_addr
             dev._update_info_values_coap(payload)
@@ -90,6 +93,7 @@ class Block(Base):
                     dev.update_coap(payload)
                 self.parent.add_device(dev, self.discovery_src)
             self.reload = False
+        self.raise_updated()
 
     def loop(self):
         if self._info_value_cfg:
@@ -138,9 +142,6 @@ class Block(Base):
         if self._info_value_cfg:
             for name, cfg in self._info_value_cfg.items():
                 self._update_info_value(name, status, cfg)
-
-        if self.payload:
-            self.set_info_value(INFO_VALUE_PAYLOAD, self.payload, None)
 
         cloud_status = 'disabled'
         if self.info_values.get(INFO_VALUE_CLOUD_ENABLED):
@@ -335,6 +336,8 @@ class Block(Base):
             self._add_device(PowerMeter(self, 0, position=[141, 4101],
                                         tot_pos=[214, 4103]))
         elif self.type == 'SHBTN-1':
+            self.sleep_device = True
+            self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
             self._add_device(Switch(self, 0, simulate_state=True,
                                     master_unit=True))
         elif self.type == 'SHIX3-1':

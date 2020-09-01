@@ -130,7 +130,7 @@ class pyShelly():
             self._mqtt.start()
         #asyncio.ensure_future(self._update_loop())
         self._update_thread = threading.Thread(target=self._update_loop)
-        self._update_thread.name = "Poll"
+        self._update_thread.name = "Update loop"
         self._update_thread.daemon = True
         self._update_thread.start()
 
@@ -169,8 +169,18 @@ class pyShelly():
     def check_by_ip(self):
         for ip_addr in list(self._shelly_by_ip.keys()):
             data = self._shelly_by_ip[ip_addr]
+            delay = data.get('delay')
+            if delay:
+                data['delay'] = delay - 1
+                continue
             if not data['done']:
                 done = False
+                for id, block in self.blocks.items():
+                    if block.ip_addr == ip_addr:
+                        self._shelly_by_ip[ip_addr]['done'] = True
+                        done = True
+                if done:
+                    continue
                 success, settings = shelly_http_get(
                     ip_addr, "/settings", self.username, self.password, False)
                 if success:
@@ -190,14 +200,20 @@ class pyShelly():
                         LOGGER.debug("Add device from IP, %s, %s, %s",
                                      device_id, device_type, ip_addr)
                         self.update_block(device_id, device_type, ip_addr,
-                                          self._shelly_by_ip[ip_addr]['src'],
+                                          data['src'],
                                           None)
                         if device_id in self.blocks:
                             block = self.blocks[device_id]
                             if block and block.sleep_device:
                                 self._shelly_by_ip[ip_addr]['poll_block'] \
                                     = block
+                        self._shelly_by_ip[ip_addr]['errors'] = 0
                 if not done:
+                    errors = data.get('errors', 0)
+                    self._shelly_by_ip[ip_addr]['errors'] = errors + 1
+                    self._shelly_by_ip[ip_addr]['delay'] = 60
+                    if errors > 5:
+                        self._shelly_by_ip[ip_addr]['delay'] = 600
                     LOGGER.info("Error adding device, %s %s",
                                 ip_addr, data['src'])
 
@@ -241,8 +257,8 @@ class pyShelly():
 
         if payload:
             data = {d[1]:d[2] for d in json.loads(payload)['G']}
-            block.update_coap(data, ipaddr)
             block.payload = payload
+            block.update_coap(data, ipaddr)
 
         if block_added:
             for callback in self.cb_block_added:
@@ -288,5 +304,6 @@ class pyShelly():
             block.last_update_status_info = now
             t = threading.Thread(
                 target=block.update_status_information)
+            t.name = "Poll status"
             t.daemon = True
             t.start()
