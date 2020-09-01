@@ -158,6 +158,10 @@ class LightRGB(Light):
         self.state_pos = state_pos
         self.power_pos = power_pos
         self._channel = channel
+        if channel>0:
+            self._channel = channel-1
+        else:
+            self._channel = 0
         self.info_values = {}
         self._info_value_cfg = {
             INFO_VALUE_SWITCH : {

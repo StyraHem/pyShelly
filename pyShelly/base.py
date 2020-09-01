@@ -73,7 +73,6 @@ class Base(object):
             if value is not None:
                 if key == '$':
                     ch = cfg.get(ATTR_CHANNEL, self._channel)
-                    #idx = min(self._channel, len(value)-1) #Meters Shelly 2,5
                     value = value[ch]
                 else:
                     value = value.get(key, None)
