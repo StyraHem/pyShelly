@@ -16,7 +16,7 @@ from .const import (
     STATUS_RESPONSE_LIGHTS_POWER,
     INFO_VALUE_CURRENT_CONSUMPTION,
     INFO_VALUE_TOTAL_CONSUMPTION,
-    INFO_VALUE_SWITCH,
+    #INFO_VALUE_SWITCH,
     ATTR_POS,
     ATTR_PATH,
     ATTR_FMT
@@ -35,6 +35,7 @@ class LightWhite(Light):
         self.device_type = "LIGHT"
         self.url = "/light/0"
         if channel>0:
+            self.id += "-" + str(channel)
             self._channel = channel-1
         else:
             self._channel = 0
@@ -52,11 +53,11 @@ class LightWhite(Light):
         self._color_temp_max = None
 
         self._info_value_cfg = {
-            INFO_VALUE_SWITCH : {
-                ATTR_POS: [118, 2101],
-                ATTR_PATH: 'inputs/$/input',
-                ATTR_FMT: 'bool'
-            },
+            # INFO_VALUE_SWITCH : { #Only one...
+            #     ATTR_POS: [118, 2101],
+            #     ATTR_PATH: 'inputs/$/input',
+            #     ATTR_FMT: 'bool'
+            # },
             INFO_VALUE_CURRENT_CONSUMPTION : {
                     ATTR_POS: power_pos or [141, 4101],
                     ATTR_PATH: 'meters/$/power',
@@ -157,18 +158,18 @@ class LightRGB(Light):
 
         self.state_pos = state_pos
         self.power_pos = power_pos
-        self._channel = channel
         if channel>0:
+            self.id += "-" + str(channel)
             self._channel = channel-1
         else:
             self._channel = 0
         self.info_values = {}
         self._info_value_cfg = {
-            INFO_VALUE_SWITCH : {
-                ATTR_POS: [118, 2101],
-                ATTR_PATH: 'inputs/$/input',
-                ATTR_FMT: 'bool'
-            },
+            # INFO_VALUE_SWITCH : {
+            #     ATTR_POS: [118, 2101],
+            #     ATTR_PATH: 'inputs/$/input',
+            #     ATTR_FMT: 'bool'
+            # },
             INFO_VALUE_CURRENT_CONSUMPTION : {
                     ATTR_POS: power_pos or [141, 4101],
                     ATTR_PATH: 'meters/$/power',
@@ -336,7 +337,7 @@ class LightRGB(Light):
 
 class Bulb(LightRGB):
     def __init__(self, block):
-        super(Bulb, self).__init__(block, 181)
+        super(Bulb, self).__init__(block, [1101, 181])
         self.effects_list = EFFECTS_BULB
         self.support_color_temp = True
 
@@ -349,7 +350,7 @@ class RGBW2W(LightWhite):
     def __init__(self, block, channel):
         super(RGBW2W, self).__init__(block, channel, [161, 1101], [111, 5101],
                                      power_pos=[201, 4101])
-        self.id = self.id + '-' + str(channel)
+        #self.id = self.id + '-' + str(channel)
         self.mode = "white"
         self.url = "/white/" + str(channel - 1)
         self.effects_list = None

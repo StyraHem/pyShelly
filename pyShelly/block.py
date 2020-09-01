@@ -295,7 +295,7 @@ class Block(Base):
                     for channel in range(4):
                         self._add_device(RGBW2W(self, channel + 1))
                         self._add_device(PowerMeter(self, channel+1, [211, 4101]))
-            self._add_device(Switch(self, 0, 118))
+            self._add_device(Switch(self, 0))
             #todo else delayed reload
         #Shelly Flood
         elif self.type == 'SHWT-1':
@@ -346,7 +346,7 @@ class Block(Base):
             self._add_device(Switch(self, 3))
         elif self.type == 'SHGS-1':
             self._info_value_cfg = {INFO_VALUE_GAS : {ATTR_POS : 122},
-                                    INFO_VALUE_SENSOR : {ATTR_POS : 118}
+                                    INFO_VALUE_SENSOR : {ATTR_POS : [118, 2101]}
             }
             self._add_device(Gas(self, 119))
         elif self.type == 'SHAIR-1':
