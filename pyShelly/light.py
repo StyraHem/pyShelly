@@ -19,7 +19,8 @@ from .const import (
     #INFO_VALUE_SWITCH,
     ATTR_POS,
     ATTR_PATH,
-    ATTR_FMT
+    ATTR_FMT,
+    SRC_COAP, SRC_STATUS
 )
 
 class Light(Device):
@@ -71,7 +72,7 @@ class LightWhite(Light):
         }
 
     def update_coap(self, payload):
-        self.state = self.coap_get(payload, self.state_pos) == 1
+        new_state = self.coap_get(payload, self.state_pos) == 1
         bright = self.coap_get(payload, self.bright_pos)
         if bright is not None:
             self.brightness = int(bright)
@@ -81,7 +82,7 @@ class LightWhite(Light):
 
         values = {'brightness': self.brightness, "color_temp": self.color_temp}
 
-        self._update(self.state, values)
+        self._update(SRC_COAP, new_state, values)
 
     def update_status_information(self, status):
         """Update the status information."""
@@ -95,7 +96,7 @@ class LightWhite(Light):
             self.color_temp = int(light.get('temp', 0))
             new_state = light.get(STATUS_RESPONSE_LIGHTS_STATE, None)
             values = {'color_temp': self.color_temp, 'brightness': self.brightness}
-            self._update(new_state, values)
+            self._update(SRC_STATUS, new_state, values)
 
     def _send_data(self, state, brightness=None, color_temp=None):
         url = self.url + "?"
@@ -233,7 +234,7 @@ class LightRGB(Light):
                   'white_value': self.white_value,
                   'effect': self.effect}
 
-        self._update(new_state, values)
+        self._update(SRC_COAP, new_state, values)
 
     def update_status_information(self, status):
         """Update the status information."""
@@ -270,7 +271,7 @@ class LightRGB(Light):
                       'rgb': self.rgb, 'color_temp': self.color_temp,
                       'white_value': self.white_value,
                       'effect': self.effect}
-            self._update(new_state, values)
+            self._update(SRC_STATUS, new_state, values)
 
     def _send_data(self, state, brightness=None, rgb=None, color_temp=None,
                    mode=None, effect=None, white_value=None):

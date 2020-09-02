@@ -82,10 +82,7 @@ class Base(object):
         value = self._get_status_value(status, cfg)
         if value is not None:
             value = self._fmt_info_value(value, cfg, SRC_STATUS)
-            if self.state != value:
-                self.need_update = True
-                self.state = value
-            self.state_status = value
+            self._set_state(value, SRC_STATUS)
             if self.lazy_load:
                 self.block.parent.callback_add_device(self)
 
@@ -128,14 +125,20 @@ class Base(object):
             #         self.info_values[name] = value
             #         self.need_update = True
 
+    def _set_state(self, new_state, src):
+        if not new_state is None:
+            if src == SRC_COAP:
+                self.state_coap = new_state
+            if src == SRC_STATUS:
+                self.state_status = new_state
+            if self.state != new_state:
+                self.state = new_state
+                self.need_update = True
+
     def _update_info_values_coap(self, payload, extra_info_value_cfg=None):
         if self._state_cfg:
             new_state = self._get_coap_value(self._state_cfg, payload)
-            if not new_state is None:
-                self.state_coap = new_state
-                if self.state != new_state:
-                    self.state = new_state
-                    self.need_update = True
+            self._set_state(new_state, SRC_COAP)
         if extra_info_value_cfg:
             self.__update_info_values_coap(payload, extra_info_value_cfg)
         if self._info_value_cfg:

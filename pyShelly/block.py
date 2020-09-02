@@ -70,6 +70,8 @@ class Block(Base):
         #self._info_value_cfg = None
         self._setup()
         self._available = None
+        self.status_update_error_cnt = 0
+        self.last_try_update_status = None
 
     def update_coap(self, payload, ip_addr):
         self.ip_addr = ip_addr  # If changed ip
@@ -122,15 +124,24 @@ class Block(Base):
         """Update the status information."""
         self.last_update_status_info = datetime.now()
 
+        if self.status_update_error_cnt >= 3:
+            diff = (datetime.now()-self.last_try_update_status).total_seconds
+            if diff < 600 or (diff < 3600 and self.status_update_error_cnt >= 5):
+                return
+
+        self.last_try_update_status = datetime.now()
+
         LOGGER.debug("Get status from %s %s", self.id, self.friendly_name())
         success, status = self.http_get('/status', False)
 
         if not success or status == {}:
+            self.status_update_error_cnt += 1
             return
 
         if 'poll' not in self.protocols:
             self.protocols.append("poll")
 
+        self.status_update_error_cnt = 0
         self.last_updated = datetime.now()
 
         #Put status in info_values

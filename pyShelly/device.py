@@ -89,14 +89,11 @@ class Device(Base):
     def protocols(self):
         return self.block.protocols
 
-    def _update(self, new_state=None, new_state_values=None):
+    def _update(self, src, new_state=None, new_state_values=None):
         LOGGER.debug(
             "Update id:%s state:%s stateValue:%s",
             self.id, new_state, new_state_values)
-        if new_state is not None:
-            if self.state != new_state:
-                self.state = new_state
-                self.need_update = True
+        self._set_state(new_state, src)
         if new_state_values is not None:
             if self.state_values != new_state_values:
                 self.state_values = new_state_values

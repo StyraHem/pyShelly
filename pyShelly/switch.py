@@ -9,7 +9,8 @@ from .const import (
     STATUS_RESPONSE_INPUTS,
     STATUS_RESPONSE_INPUTS_INPUT,
     STATUS_RESPONSE_INPUTS_EVENT,
-    STATUS_RESPONSE_INPUTS_EVENT_CNT
+    STATUS_RESPONSE_INPUTS_EVENT_CNT,
+    SRC_COAP, SRC_STATUS
 )
 
 class Switch(Device):
@@ -43,7 +44,7 @@ class Switch(Device):
         """Get the power"""
         state = self.coap_get(payload, self._position)
         event_cnt = self.coap_get(payload, self._event_cnt_pos)
-        self.battery_bug_fix = self.coap_get(payload, [3112]) == 0 and event_cnt == 1
+        self.battery_bug_fix = (self.coap_get(payload, [3112]) == 0 and event_cnt == 1)
         if self.battery_bug_fix:
             if self.hold_delay:
                 diff = datetime.now() - self.hold_delay
@@ -53,13 +54,15 @@ class Switch(Device):
             event_cnt = (self.event_cnt or 0) + 1
             self.hold = True
         if not event_cnt is None and self.event_cnt != event_cnt:
-            self.last_event = self.coap_get(payload, self._event_pos)
-            self.event_cnt = event_cnt
-            if self._simulate_state:
+            if self._simulate_state and self.event_cnt is not None:
                 state = 1
                 self.timer = Timer(1,self._turn_off)
                 self.timer.start()
-        self._update(state != 0, {'last_event' : self.last_event,
+            self.last_event = self.coap_get(payload, self._event_pos)
+            self.event_cnt = event_cnt
+        if not state is None:
+            state = bool(state)
+        self._update(SRC_COAP, state, {'last_event' : self.last_event,
                                   'event_cnt' : self.event_cnt})
 
     def update_status_information(self, status):
@@ -69,18 +72,18 @@ class Switch(Device):
             inputs = status.get(STATUS_RESPONSE_INPUTS)
             if inputs:
                 value = inputs[self._channel]
-                new_state = value.get(STATUS_RESPONSE_INPUTS_INPUT, None)
+                new_state = value.get(STATUS_RESPONSE_INPUTS_INPUT, None) != 0
                 event_cnt = value.get(STATUS_RESPONSE_INPUTS_EVENT_CNT, None)
                 if not event_cnt is None and self.event_cnt != event_cnt:
-                    self.last_event = value.get(STATUS_RESPONSE_INPUTS_EVENT, None)
-                    self.event_cnt = event_cnt
-                    if self._simulate_state:
+                    if self._simulate_state and self.event_cnt is not None:
                         new_state = True
                         self.timer = Timer(1,self._turn_off)
                         self.timer.start()
-        self._update(new_state != 0, {'last_event' : self.last_event,
+                    self.last_event = value.get(STATUS_RESPONSE_INPUTS_EVENT, None)
+                    self.event_cnt = event_cnt
+        self._update(SRC_STATUS, new_state, {'last_event' : self.last_event,
                                          'event_cnt' : self.event_cnt})
 
     def _turn_off(self):
-        self._update(False)
+        self._update(None, False)
         self.raise_updated()
