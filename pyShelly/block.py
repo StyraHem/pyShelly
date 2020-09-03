@@ -125,7 +125,7 @@ class Block(Base):
         self.last_update_status_info = datetime.now()
 
         if self.status_update_error_cnt >= 3:
-            diff = (datetime.now()-self.last_try_update_status).total_seconds
+            diff = (datetime.now()-self.last_try_update_status).total_seconds()
             if diff < 600 or (diff < 3600 and self.status_update_error_cnt >= 5):
                 return
 
