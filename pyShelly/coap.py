@@ -172,7 +172,7 @@ class CoAP():
                     try:
                         payload = s(data[pos + 1:])
                     except:
-                        print(data[pos + 1:])
+                        LOGGER.info(data)
 
                     if payload: #Fix for DW2 payload error
                         payload = payload.replace(",,",",").replace("][", "],[")

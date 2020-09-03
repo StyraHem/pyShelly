@@ -58,6 +58,7 @@ class Relay(Device):
         }
         if include_power:
             meters = "emeters" if em else "meters"
+            divider = None if em else '/60'
             self._info_value_cfg.update({
                 INFO_VALUE_CURRENT_CONSUMPTION : {
                     ATTR_POS: [111, 4101, 4102, 4105],
@@ -69,7 +70,7 @@ class Relay(Device):
                     ATTR_POS: [4103, 4104, 4106],
                     ATTR_CHANNEL: notNone(consumption_channel, self._channel),
                     ATTR_PATH: meters + '/$/total',
-                    ATTR_FMT: ['float','/60','round:2']
+                    ATTR_FMT: ['float', divider,'round:2']
                 }
             })
         # else:

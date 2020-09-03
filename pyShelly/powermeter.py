@@ -50,15 +50,16 @@ class PowerMeter(Device):
             ATTR_FMT: ['float']
         }
         meters = "emeters" if em else "meters"
+        divider = None if em else '/60'
         self._info_value_cfg = {
             INFO_VALUE_VOLTAGE : {
                 ATTR_POS: [116, 4108],
-                ATTR_PATH: 'meters/$/voltage',
+                ATTR_PATH: meters + '/$/voltage',
                 ATTR_FMT: ['float']
             },
             INFO_VALUE_POWER_FACTOR : {
                 ATTR_POS: [114, 4110],
-                ATTR_PATH: 'meters/$/pf',
+                ATTR_PATH: meters + 'eters/$/pf',
                 ATTR_FMT: ['float']
             },
             INFO_VALUE_CURRENT : {
@@ -69,13 +70,13 @@ class PowerMeter(Device):
             INFO_VALUE_TOTAL_CONSUMPTION : {
                 ATTR_POS: tot_pos or [4103, 4104, 4106],
                 ATTR_PATH: meters + '/$/total',
-                ATTR_FMT: ['float','/60','round:2']
+                ATTR_FMT: ['float', divider, 'round:2']
             },
             INFO_VALUE_TOTAL_RETURNED :
             {
                 ATTR_POS: [4107],
                 ATTR_PATH: meters + '/$/total_returned',
-                ATTR_FMT: ['float','/60','round:2']
+                ATTR_FMT: ['float', divider, 'round:2']
             }
         }
 

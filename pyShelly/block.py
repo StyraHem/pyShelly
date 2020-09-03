@@ -103,7 +103,7 @@ class Block(Base):
                 if ATTR_AUTO_SET in cfg:
                     value = self.info_values.get(iv)
                     param = cfg.get(ATTR_AUTO_SET)
-                    new_val = param[0]
+                    new_value = param[0]
                     if value != new_val:
                         time = self.info_values_updated.get(iv)
                         delay = param[1]
@@ -125,7 +125,7 @@ class Block(Base):
         self.last_update_status_info = datetime.now()
 
         if self.status_update_error_cnt >= 3:
-            diff = (datetime.now()-self.last_try_update_status).total_seconds
+            diff = (datetime.now()-self.last_try_update_status).total_seconds()
             if diff < 600 or (diff < 3600 and self.status_update_error_cnt >= 5):
                 return
 

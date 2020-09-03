@@ -43,6 +43,8 @@ class Base(object):
             if not type(fmt_list) is list:
                 fmt_list = [fmt_list]
             for fmt in fmt_list:
+                if fmt is None:
+                    continue
                 if callable(fmt):
                     value = fmt(value)
                     continue
