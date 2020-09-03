@@ -23,6 +23,7 @@ def find_version(*file_paths):
 setuptools.setup(
     name="pyShelly",
     version=find_version("pyShelly", "const.py"),
+    license="MIT",
     author="StyraHem / Tarra AB",
     author_email="info@styrahem.se",
     description="Library for Shelly smart home devices",
