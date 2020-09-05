@@ -104,7 +104,7 @@ class Block(Base):
                     value = self.info_values.get(iv)
                     param = cfg.get(ATTR_AUTO_SET)
                     new_value = param[0]
-                    if value != new_val:
+                    if value != new_value:
                         time = self.info_values_updated.get(iv)
                         delay = param[1]
                         if time:
