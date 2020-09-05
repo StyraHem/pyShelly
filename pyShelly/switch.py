@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from threading import Timer
+
 from .device import Device
 from .utils import notNone
 from threading import Timer
@@ -40,8 +42,116 @@ class Switch(Device):
         self.battery_bug_fix = False
         self.hold_delay = None #bug fix
 
+        self.kg_last_event = ""
+        self.kg_last_event_cnt = None
+        self.kg_last_state = None
+        self.kg_click_count = 0
+        self.kg_click_error = False
+        self.kg_click_timer = None
+        self.kg_send_event_events = None
+        self.kg_send_event_click_count = None
+        self.kg_start_state = None
+
+    def kg_send_event(self):
+        if self.kg_click_error:
+            self.kg_click_error = False
+            self.kg_last_event = ""
+            self.kg_click_count = 0
+        else:
+#            LOGGER.warning(self.kg_last_event)
+#            LOGGER.warning(self.kg_click_count)
+
+            self.kg_send_event_events = self.kg_last_event
+            self.kg_send_event_click_count = self.kg_click_count
+
+            self.kg_last_event = ""
+            self.kg_click_count = 0
+
+            self.raise_updated(True)
+
+
     def update_coap(self, payload):
         """Get the power"""
+#   Start pos    Action           CoAP
+#   -----------------------------------------------------------------------------------------------------------
+#       0                                          [0,2101,0],[0,2102,"L"],[0,2103,42]
+#                                 1 Short click    [0,2101,0],[0,2102,"S"],[0,2103,43] * 
+#
+#       0                                          [0,2101,0],[0,2102,"S"],[0,2103,43] 
+#                                 1 Normal click   [0,2101,1],[0,2102,"S"],[0,2103,43]
+#                                                  [0,2101,0],[0,2102,"S"],[0,2103,44] *
+#
+#       0                                          [0,2101,0],[0,2102,"S"],[0,2103,45]
+#                                 2 Short click    [0,2101,0],[0,2102,"S"],[0,2103,47] **
+#
+#       0                                          [0,2101,0],[0,2102,"L"],[0,2103,461]
+#                                 1 Long click     [0,2101,1],[0,2102,"L"],[0,2103,461]
+#                                                  [0,2101,1],[0,2102,"L"],[0,2103,462] *
+#                                                  [0,2101,0],[0,2102,"L"],[0,2103,462]
+#
+#       0                                          [0,2101,0],[0,2102,"S"],[0,2103,67]
+#                                 1 Long click     [0,2101,1],[0,2102,"S"],[0,2103,67]
+#                                                  [0,2101,0],[0,2102,"L"],[0,2103,68] *
+#
+#       1                                          [0,2101,1],[0,2102,"L"],[0,2103,74]     // Ez 0 clicket ad
+#                                 1 Short click    [0,2101,1],[0,2102,"L"],[0,2103,74] 
+#                                                  [0,2101,1],[0,2102,"L"],[0,2103,75] *
+#
+#       1                                          [0,2101,1],[0,2102,"L"],[0,2103,466]
+#                                 1 Normal click   [0,2101,0],[0,2102,"L"],[0,2103,466] 
+#                                                  [0,2101,1],[0,2102,"L"],[0,2103,466]
+#                                                  [0,2101,1],[0,2102,"L"],[0,2103,467] *
+
+        if not self.kg_click_timer is None:
+            self.kg_click_timer.cancel()
+
+        kg_curr_state = self.coap_get(payload, self._position)
+        kg_curr_event = self.coap_get(payload, self._event_pos)
+        kg_curr_event_cnt = self.coap_get(payload, self._event_cnt_pos)
+        if not kg_curr_event_cnt is None:
+            if not self.kg_last_event_cnt is None and not self.kg_last_state is None:
+                if kg_curr_event_cnt != self.kg_last_event_cnt:
+#                    if kg_curr_event_cnt - self.kg_last_event_cnt != 1:
+#                        self.kg_click_error = True
+
+                    if kg_curr_event == "S":
+                        if self.kg_last_state == 1:
+                            self.kg_click_count += 1
+                        else:    
+                            self.kg_click_count += 2
+                        if kg_curr_state == 1:
+                            self.kg_click_count += 1
+
+                        if kg_curr_event_cnt - self.kg_last_event_cnt > 1:
+                            self.kg_click_count += kg_curr_event_cnt - self.kg_last_event_cnt - 1
+                            kg_curr_event = "S"*(kg_curr_event_cnt - self.kg_last_event_cnt)
+
+                    if kg_curr_event == "L":
+                            if kg_curr_state != self.kg_last_state:
+                                self.kg_click_count += 1
+                            if self.kg_click_count == 0:    
+                                self.kg_click_count += 2
+#                            if kg_curr_state == 1 and self.kg_last_state == 1:
+#                                self.kg_click_count += 2
+
+                    self.kg_last_event += kg_curr_event
+                    self.kg_click_timer = Timer(0.7, self.kg_send_event)
+                    self.kg_click_timer.start()
+
+                if kg_curr_event_cnt == self.kg_last_event_cnt and kg_curr_state != self.kg_last_state:
+                    self.kg_click_count += 1
+                    self.kg_click_timer = Timer(0.7, self.kg_send_event)
+                    self.kg_click_timer.start()
+
+            self.kg_last_state = kg_curr_state            
+            self.kg_last_event_cnt = kg_curr_event_cnt
+            
+
+
+
+
+
+
         state = self.coap_get(payload, self._position)
         event_cnt = self.coap_get(payload, self._event_cnt_pos)
         self.battery_bug_fix = (self.coap_get(payload, [3112]) == 0 and event_cnt == 1)
@@ -64,6 +174,7 @@ class Switch(Device):
             state = bool(state)
         self._update(SRC_COAP, state, {'last_event' : self.last_event,
                                   'event_cnt' : self.event_cnt})
+
 
     def update_status_information(self, status):
         """Update the status information."""
