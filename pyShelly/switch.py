@@ -51,6 +51,7 @@ class Switch(Device):
         self.kg_send_event_events = None
         self.kg_send_event_click_count = None
         self.kg_start_state = None
+        self.kg_momentary_button = False
 
     def kg_send_event(self):
         if self.kg_click_error:
@@ -61,8 +62,12 @@ class Switch(Device):
 #            LOGGER.warning(self.kg_last_event)
 #            LOGGER.warning(self.kg_click_count)
 
-            self.kg_send_event_events = self.kg_last_event
-            self.kg_send_event_click_count = self.kg_click_count
+            if self.kg_momentary_button:
+                self.kg_send_event_events = self.kg_last_event
+                self.kg_send_event_click_count = 0
+            else:    
+                self.kg_send_event_events = ""
+                self.kg_send_event_click_count = self.kg_click_count
 
             self.kg_last_event = ""
             self.kg_click_count = 0
@@ -72,17 +77,17 @@ class Switch(Device):
 
     def update_coap(self, payload):
         """Get the power"""
-#   Start pos    Action           CoAP
+#   Start state                   Action           CoAP
 #   -----------------------------------------------------------------------------------------------------------
 #       0                                          [0,2101,0],[0,2102,"L"],[0,2103,42]
-#                                 1 Short click    [0,2101,0],[0,2102,"S"],[0,2103,43] * 
+#                                 1 Fast click     [0,2101,0],[0,2102,"S"],[0,2103,43] * 
 #
 #       0                                          [0,2101,0],[0,2102,"S"],[0,2103,43] 
 #                                 1 Normal click   [0,2101,1],[0,2102,"S"],[0,2103,43]
 #                                                  [0,2101,0],[0,2102,"S"],[0,2103,44] *
 #
 #       0                                          [0,2101,0],[0,2102,"S"],[0,2103,45]
-#                                 2 Short click    [0,2101,0],[0,2102,"S"],[0,2103,47] **
+#                                 2 Fast click     [0,2101,0],[0,2102,"S"],[0,2103,47] **
 #
 #       0                                          [0,2101,0],[0,2102,"L"],[0,2103,461]
 #                                 1 Long click     [0,2101,1],[0,2102,"L"],[0,2103,461]
@@ -94,7 +99,7 @@ class Switch(Device):
 #                                                  [0,2101,0],[0,2102,"L"],[0,2103,68] *
 #
 #       1                                          [0,2101,1],[0,2102,"L"],[0,2103,74]     // Ez 0 clicket ad
-#                                 1 Short click    [0,2101,1],[0,2102,"L"],[0,2103,74] 
+#                                 1 Fast click     [0,2101,1],[0,2102,"L"],[0,2103,74] 
 #                                                  [0,2101,1],[0,2102,"L"],[0,2103,75] *
 #
 #       1                                          [0,2101,1],[0,2102,"L"],[0,2103,466]
@@ -123,25 +128,40 @@ class Switch(Device):
                             self.kg_click_count += 1
 
                         if kg_curr_event_cnt - self.kg_last_event_cnt > 1:
-                            self.kg_click_count += kg_curr_event_cnt - self.kg_last_event_cnt - 1
+                            self.kg_click_count += (kg_curr_event_cnt - self.kg_last_event_cnt - 1) * 2
                             kg_curr_event = "S"*(kg_curr_event_cnt - self.kg_last_event_cnt)
 
                     if kg_curr_event == "L":
-                            if kg_curr_state != self.kg_last_state:
-                                self.kg_click_count += 1
-                            if self.kg_click_count == 0:    
-                                self.kg_click_count += 2
+                            if self.kg_momentary_button:
+                                if kg_curr_state != self.kg_last_state:
+                                    self.kg_click_count += 1
+                            else:        
+                                if kg_curr_state != self.kg_last_state:
+                                    self.kg_click_count += 1
+
+#                                if kg_curr_state == self.kg_last_state:
+#                                    self.kg_click_count += 2
+
+                                if kg_curr_event_cnt - self.kg_last_event_cnt > 1:
+                                    self.kg_click_count += kg_curr_event_cnt - self.kg_last_event_cnt - 1
+
+#                            if self.kg_click_count == 0:    
+#                                self.kg_click_count += 2
 #                            if kg_curr_state == 1 and self.kg_last_state == 1:
 #                                self.kg_click_count += 2
 
                     self.kg_last_event += kg_curr_event
-                    self.kg_click_timer = Timer(0.7, self.kg_send_event)
-                    self.kg_click_timer.start()
+
+                    if not self.kg_momentary_button or kg_curr_state == 0:
+                        self.kg_click_timer = Timer(0.7, self.kg_send_event)
+                        self.kg_click_timer.start()
 
                 if kg_curr_event_cnt == self.kg_last_event_cnt and kg_curr_state != self.kg_last_state:
                     self.kg_click_count += 1
-                    self.kg_click_timer = Timer(0.7, self.kg_send_event)
-                    self.kg_click_timer.start()
+
+                    if not self.kg_momentary_button or kg_curr_state == 0:
+                        self.kg_click_timer = Timer(0.7, self.kg_send_event)
+                        self.kg_click_timer.start()
 
             self.kg_last_state = kg_curr_state            
             self.kg_last_event_cnt = kg_curr_event_cnt
