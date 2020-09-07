@@ -46,7 +46,6 @@ class Switch(Device):
         self.kg_last_event_cnt = None
         self.kg_last_state = None
         self.kg_click_count = 0
-        self.kg_click_error = False
         self.kg_click_timer = None
         self.kg_send_event_events = None
         self.kg_send_event_click_count = None
@@ -54,25 +53,17 @@ class Switch(Device):
         self.kg_momentary_button = False
 
     def kg_send_event(self):
-        if self.kg_click_error:
-            self.kg_click_error = False
-            self.kg_last_event = ""
-            self.kg_click_count = 0
-        else:
-#            LOGGER.warning(self.kg_last_event)
-#            LOGGER.warning(self.kg_click_count)
+        if self.kg_momentary_button:
+            self.kg_send_event_events = self.kg_last_event
+            self.kg_send_event_click_count = 0
+        else:    
+            self.kg_send_event_events = ""
+            self.kg_send_event_click_count = self.kg_click_count
 
-            if self.kg_momentary_button:
-                self.kg_send_event_events = self.kg_last_event
-                self.kg_send_event_click_count = 0
-            else:    
-                self.kg_send_event_events = ""
-                self.kg_send_event_click_count = self.kg_click_count
+        self.kg_last_event = ""
+        self.kg_click_count = 0
 
-            self.kg_last_event = ""
-            self.kg_click_count = 0
-
-            self.raise_updated(True)
+        self.raise_updated(True)
 
 
     def update_coap(self, payload):
@@ -116,9 +107,6 @@ class Switch(Device):
         if not kg_curr_event_cnt is None:
             if not self.kg_last_event_cnt is None and not self.kg_last_state is None:
                 if kg_curr_event_cnt != self.kg_last_event_cnt:
-#                    if kg_curr_event_cnt - self.kg_last_event_cnt != 1:
-#                        self.kg_click_error = True
-
                     if kg_curr_event == "S":
                         if self.kg_last_state == 1:
                             self.kg_click_count += 1
@@ -135,20 +123,15 @@ class Switch(Device):
                             if self.kg_momentary_button:
                                 if kg_curr_state != self.kg_last_state:
                                     self.kg_click_count += 1
+                                self.kg_send_event_events = self.kg_last_event + "LSTART"
+                                self.kg_send_event_click_count = 0
+                                self.raise_updated(True)
                             else:        
                                 if kg_curr_state != self.kg_last_state:
                                     self.kg_click_count += 1
 
-#                                if kg_curr_state == self.kg_last_state:
-#                                    self.kg_click_count += 2
-
                                 if kg_curr_event_cnt - self.kg_last_event_cnt > 1:
                                     self.kg_click_count += kg_curr_event_cnt - self.kg_last_event_cnt - 1
-
-#                            if self.kg_click_count == 0:    
-#                                self.kg_click_count += 2
-#                            if kg_curr_state == 1 and self.kg_last_state == 1:
-#                                self.kg_click_count += 2
 
                     self.kg_last_event += kg_curr_event
 
@@ -165,12 +148,6 @@ class Switch(Device):
 
             self.kg_last_state = kg_curr_state            
             self.kg_last_event_cnt = kg_curr_event_cnt
-            
-
-
-
-
-
 
         state = self.coap_get(payload, self._position)
         event_cnt = self.coap_get(payload, self._event_cnt_pos)
