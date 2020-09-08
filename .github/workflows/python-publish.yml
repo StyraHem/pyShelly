@@ -34,7 +34,9 @@ jobs:
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         tag: ${{ env.version }}
-#    - name: Build and publish
+    - name: Debug2
+      run: echo After error??  
+#- name: Build and publish
 #      env:
 #        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
 #        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
