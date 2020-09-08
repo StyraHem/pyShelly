@@ -27,7 +27,7 @@ jobs:
         pip install setuptools wheel twine
     - name: Get version
       env:
-        VERSION: $(python setup.py --version)
+        VERSION: ${{ $(python setup.py --version) }}
       :  
 #    - name: Build and publish
 #      env:
