@@ -33,7 +33,7 @@ jobs:
       uses: tvdias/github-tagger@v0.0.1
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
-        tag: ${{ $version }}
+        tag: ${{ env.version }}
 #    - name: Build and publish
 #      env:
 #        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
