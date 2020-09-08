@@ -28,7 +28,6 @@ jobs:
     - name: Get version
       env:
         VERSION: ${{ $(python setup.py --version) }}
-      :  
 #    - name: Build and publish
 #      env:
 #        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
