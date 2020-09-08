@@ -29,6 +29,11 @@ jobs:
       run: echo ::set-env name=version::$(python setup.py --version)
     - name: Debug
       run: echo $version
+    - name: Tag
+      uses: tvdias/github-tagger@v0.0.1
+      with:
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+        tag: $version
 #    - name: Build and publish
 #      env:
 #        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
