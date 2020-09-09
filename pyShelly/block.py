@@ -257,7 +257,7 @@ class Block(Base):
             #todo delayed reload
         #Shelly PLUG'S
         elif self.type == 'SHPLG-1' or self.type == 'SHPLG2-1' or \
-              self.type == 'SHPLG-S':
+              self.type == 'SHPLG-S' or self.type == 'SHPLG-US':
             self._add_device(Relay(self, 0))
             self._add_device(PowerMeter(self, 0))
         elif self.type == 'SHEM':

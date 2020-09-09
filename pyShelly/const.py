@@ -152,7 +152,8 @@ SHELLY_TYPES = {
                 'battery' : True},
     'SHIX3-1': {'name': "Shelly i3", 'mqtt':'shellyix3'},
     'SHGS-1': {'name': "Shelly Gas", 'mqtt':'shellygas'},
-    'SHAIR-1': {'name': "Shelly Air", 'mqtt':'ShellyAir'}
+    'SHAIR-1': {'name': "Shelly Air", 'mqtt':'ShellyAir'},
+    'SHPLUG-U1': {'name': "Shelly Plug US", 'mqtt':'shellyplugu1'}
 }
 
 EFFECTS_RGBW2 = [
