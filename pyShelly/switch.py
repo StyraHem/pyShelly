@@ -47,8 +47,8 @@ class Switch(Device):
         self.kg_last_state = None
         self.kg_click_count = 0
         self.kg_click_timer = None
-        self.kg_send_event_events = None
-        self.kg_send_event_click_count = None
+        self.kg_send_event_events = ""
+        self.kg_send_event_click_count = 0
         self.kg_start_state = None
         self.kg_momentary_button = False
 
@@ -120,18 +120,18 @@ class Switch(Device):
                             kg_curr_event = "S"*(kg_curr_event_cnt - self.kg_last_event_cnt)
 
                     if kg_curr_event == "L":
-                            if self.kg_momentary_button:
-                                if kg_curr_state != self.kg_last_state:
-                                    self.kg_click_count += 1
-                                self.kg_send_event_events = self.kg_last_event + "LSTART"
-                                self.kg_send_event_click_count = 0
-                                self.raise_updated(True)
-                            else:        
-                                if kg_curr_state != self.kg_last_state:
-                                    self.kg_click_count += 1
+                        if self.kg_momentary_button:
+                            if kg_curr_state != self.kg_last_state:
+                                self.kg_click_count += 1
+                            self.kg_send_event_events = self.kg_last_event + "LSTART"
+                            self.kg_send_event_click_count = 0
+                            self.raise_updated(True)
+                        else:        
+                            if kg_curr_state != self.kg_last_state:
+                                self.kg_click_count += 1
 
-                                if kg_curr_event_cnt - self.kg_last_event_cnt > 1:
-                                    self.kg_click_count += kg_curr_event_cnt - self.kg_last_event_cnt - 1
+                            if kg_curr_event_cnt - self.kg_last_event_cnt > 1:
+                                self.kg_click_count += kg_curr_event_cnt - self.kg_last_event_cnt - 1
 
                     self.kg_last_event += kg_curr_event
 
