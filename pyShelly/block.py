@@ -251,8 +251,8 @@ class Block(Base):
                     self._add_device(Relay(self, 2))
                     self._add_device(PowerMeter(self, 1))
                     self._add_device(PowerMeter(self, 2))
-                    self._add_device(Switch(self, 1))
-                    self._add_device(Switch(self, 2))
+                self._add_device(Switch(self, 1))
+                self._add_device(Switch(self, 2))
                 #self._add_device(InfoSensor(self, 'temperature'))
             #todo delayed reload
         #Shelly PLUG'S

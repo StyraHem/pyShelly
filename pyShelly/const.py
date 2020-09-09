@@ -109,7 +109,7 @@ BLOCK_INFO_VALUES = {
     INFO_VALUE_CLOUD_CONNECTED : {ATTR_PATH : 'cloud/connected'},
     INFO_VALUE_MQTT_CONNECTED : {ATTR_PATH : 'mqtt/connected'},
     #INFO_VALUE_CURRENT_CONSUMPTION : {ATTR_PATH : 'consumption'},
-    #INFO_VALUE_VOLTAGE : {ATTR_PATH : 'voltage', ATTR_FMT : 'round'},
+    INFO_VALUE_VOLTAGE : {ATTR_PATH : 'voltage', ATTR_FMT : 'round'},
     INFO_VALUE_BATTERY : {ATTR_PATH : 'bat/value', ATTR_POS : 3111},
     #INFO_VALUE_TILT : {ATTR_PATH : 'accel/tilt'}, #Todo
     #INFO_VALUE_VIBRATION : {ATTR_PATH : 'accel/vibration'}, #Todo
