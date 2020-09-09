@@ -5,7 +5,7 @@ import logging
 LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
-VERSION = "0.2.9"
+VERSION = "0.2.10"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
@@ -109,7 +109,7 @@ BLOCK_INFO_VALUES = {
     INFO_VALUE_CLOUD_CONNECTED : {ATTR_PATH : 'cloud/connected'},
     INFO_VALUE_MQTT_CONNECTED : {ATTR_PATH : 'mqtt/connected'},
     #INFO_VALUE_CURRENT_CONSUMPTION : {ATTR_PATH : 'consumption'},
-    #INFO_VALUE_VOLTAGE : {ATTR_PATH : 'voltage', ATTR_FMT : 'round'},
+    INFO_VALUE_VOLTAGE : {ATTR_PATH : 'voltage', ATTR_FMT : 'round'},
     INFO_VALUE_BATTERY : {ATTR_PATH : 'bat/value', ATTR_POS : 3111},
     #INFO_VALUE_TILT : {ATTR_PATH : 'accel/tilt'}, #Todo
     #INFO_VALUE_VIBRATION : {ATTR_PATH : 'accel/vibration'}, #Todo
@@ -152,7 +152,8 @@ SHELLY_TYPES = {
                 'battery' : True},
     'SHIX3-1': {'name': "Shelly i3", 'mqtt':'shellyix3'},
     'SHGS-1': {'name': "Shelly Gas", 'mqtt':'shellygas'},
-    'SHAIR-1': {'name': "Shelly Air", 'mqtt':'ShellyAir'}
+    'SHAIR-1': {'name': "Shelly Air", 'mqtt':'ShellyAir'},
+    'SHPLUG-U1': {'name': "Shelly Plug US", 'mqtt':'shellyplugu1'}
 }
 
 EFFECTS_RGBW2 = [
