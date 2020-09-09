@@ -44,12 +44,12 @@ class PowerMeter(Device):
         self.device_type = "POWERMETER"
         self.info_values = {}
         self.state = None
+        meters = "emeters" if em else "meters"
         self._state_cfg = {
             ATTR_POS: notNone(position, [111, 4101, 4102, 4105]),
-            ATTR_PATH: 'meters/$/power',
+            ATTR_PATH: meters + '/$/power',
             ATTR_FMT: ['float']
         }
-        meters = "emeters" if em else "meters"
         divider = None if em else '/60'
         self._info_value_cfg = {
             INFO_VALUE_VOLTAGE : {
