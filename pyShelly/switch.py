@@ -182,7 +182,6 @@ class Switch(Device):
         self._update(SRC_COAP, state, {'last_event' : self.last_event,
                                   'event_cnt' : self.event_cnt})
 
-
     def update_status_information(self, status):
         """Update the status information."""
         new_state = None
