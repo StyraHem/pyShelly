@@ -70,36 +70,33 @@ class Switch(Device):
         """Get the power"""
 #   Start state                   Action           CoAP
 #   -----------------------------------------------------------------------------------------------------------
-#       0                                          [0,2101,0],[0,2102,"L"],[0,2103,42]
-#                                 1 Fast click     [0,2101,0],[0,2102,"S"],[0,2103,43] * 
+#       0                                          [0,2101,0],[0,2102," "],[0,2103,42]
+#                                 1 Fast click     [0,2101,0],[0,2102,"S"],[0,2103,43]
 #
-#       0                                          [0,2101,0],[0,2102,"S"],[0,2103,43] 
-#                                 1 Normal click   [0,2101,1],[0,2102,"S"],[0,2103,43]
-#                                                  [0,2101,0],[0,2102,"S"],[0,2103,44] *
+#       0                                          [0,2101,0],[0,2102," "],[0,2103,43] 
+#                                 1 Normal click   [0,2101,1],[0,2102," "],[0,2103,43]
+#                                                  [0,2101,0],[0,2102,"S"],[0,2103,44]
 #
-#       0                                          [0,2101,0],[0,2102,"S"],[0,2103,45]
-#                                 2 Fast click     [0,2101,0],[0,2102,"S"],[0,2103,47] **
+#       0                                          [0,2101,0],[0,2102," "],[0,2103,45]
+#                                 2 Fast click     [0,2101,0],[0,2102,"S"],[0,2103,47]
 #
-#       0                                          [0,2101,0],[0,2102,"L"],[0,2103,461]
-#                                 1 Long click     [0,2101,1],[0,2102,"L"],[0,2103,461]
-#                                                  [0,2101,1],[0,2102,"L"],[0,2103,462] *
-#                                                  [0,2101,0],[0,2102,"L"],[0,2103,462]
+#       0                                          [0,2101,0],[0,2102," "],[0,2103,461]
+#                                 1 Long click     [0,2101,1],[0,2102," "],[0,2103,461]
+#                                 slow             [0,2101,1],[0,2102,"L"],[0,2103,462]
+#                                                  [0,2101,0],[0,2102," "],[0,2103,462]
 #
-#       0                                          [0,2101,0],[0,2102,"S"],[0,2103,67]
-#                                 1 Long click     [0,2101,1],[0,2102,"S"],[0,2103,67]
-#                                                  [0,2101,0],[0,2102,"L"],[0,2103,68] *
+#       0                                          [0,2101,0],[0,2102," "],[0,2103,67]
+#                                 1 Long click     [0,2101,1],[0,2102," "],[0,2103,67]
+#                                 fast             [0,2101,0],[0,2102,"L"],[0,2103,68]
 #
-#       1                                          [0,2101,1],[0,2102,"L"],[0,2103,74]     // Ez 0 clicket ad
-#                                 1 Fast click     [0,2101,1],[0,2102,"L"],[0,2103,74] 
-#                                                  [0,2101,1],[0,2102,"L"],[0,2103,75] *
+#       1                                          [0,2101,1],[0,2102," "],[0,2103,74]     
+#                                 1 Fast click     [0,2101,1],[0,2102," "],[0,2103,74] 
+#                                                  [0,2101,1],[0,2102,"L"],[0,2103,75]
 #
-#       1                                          [0,2101,1],[0,2102,"L"],[0,2103,466]
-#                                 1 Normal click   [0,2101,0],[0,2102,"L"],[0,2103,466] 
-#                                                  [0,2101,1],[0,2102,"L"],[0,2103,466]
-#                                                  [0,2101,1],[0,2102,"L"],[0,2103,467] *
-
-        if not self.kg_click_timer is None:
-            self.kg_click_timer.cancel()
+#       1                                          [0,2101,1],[0,2102," "],[0,2103,466]
+#                                 1 Normal click   [0,2101,0],[0,2102," "],[0,2103,466] 
+#                                                  [0,2101,1],[0,2102," "],[0,2103,466]
+#                                                  [0,2101,1],[0,2102,"L"],[0,2103,467]
 
         kg_curr_state = self.coap_get(payload, self._position)
         kg_curr_event = self.coap_get(payload, self._event_pos)
@@ -107,6 +104,10 @@ class Switch(Device):
         if not kg_curr_event_cnt is None:
             if not self.kg_last_event_cnt is None and not self.kg_last_state is None:
                 if kg_curr_event_cnt != self.kg_last_event_cnt:
+                    if not self.kg_click_timer is None:
+                        self.kg_click_timer.cancel()
+                        self.kg_click_timer = None
+                        
                     if kg_curr_event == "S":
                         if self.kg_last_state == 1:
                             self.kg_click_count += 1
@@ -127,11 +128,16 @@ class Switch(Device):
                             self.kg_send_event_click_count = 0
                             self.raise_updated(True)
                         else:        
-                            if kg_curr_state != self.kg_last_state:
+                            if self.kg_last_state == 0:
+                                self.kg_click_count += 1
+                            else:    
+                                self.kg_click_count += 2
+
+                            if kg_curr_state == 0:
                                 self.kg_click_count += 1
 
                             if kg_curr_event_cnt - self.kg_last_event_cnt > 1:
-                                self.kg_click_count += kg_curr_event_cnt - self.kg_last_event_cnt - 1
+                                self.kg_click_count += (kg_curr_event_cnt - self.kg_last_event_cnt - 1) * 2
 
                     self.kg_last_event += kg_curr_event
 
@@ -140,6 +146,10 @@ class Switch(Device):
                         self.kg_click_timer.start()
 
                 if kg_curr_event_cnt == self.kg_last_event_cnt and kg_curr_state != self.kg_last_state:
+                    if not self.kg_click_timer is None:
+                        self.kg_click_timer.cancel()
+                        self.kg_click_timer = None
+
                     self.kg_click_count += 1
 
                     if not self.kg_momentary_button or kg_curr_state == 0:
