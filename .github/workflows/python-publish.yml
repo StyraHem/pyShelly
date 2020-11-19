@@ -26,7 +26,7 @@ jobs:
         python -m pip install --upgrade pip
         pip install setuptools wheel twine
     - name: Get version
-      run: echo "name=$(python setup.py --version)" >> $GITHUB_ENV
+      run: echo "version=$(python setup.py --version)" >> $GITHUB_ENV
       #echo ::set-env name=version::$(python setup.py --version)
     - name: Debug
       run: echo $version
