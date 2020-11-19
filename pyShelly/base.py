@@ -18,7 +18,7 @@ class Base(object):
     def __init__(self):
         self.info_values = {}
         self.info_values_updated = {}
-        self._info_value_cfg = None
+        self._info_value_cfg = {}
         self.info_values_status = {}
         self.info_values_coap = {}
         self._state_cfg = None
@@ -64,6 +64,7 @@ class Base(object):
                     value = value / div
                 elif cmd == "ver":
                     value = self.parent._firmware_mgr.format(value)
+                                                
         return value
 
     def _get_status_value(self, status, cfg):
