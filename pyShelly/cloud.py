@@ -125,7 +125,7 @@ class Cloud():
                         add_idx = False
             room = ""
             try:
-                room_id = dev['room_id']
+                room_id = str(dev['room_id'])
                 if room_id == '-10':
                     room = '[Hidden]'
                 elif room_id in self._room_list:
@@ -155,7 +155,7 @@ class Cloud():
         if self._device_list and _id in self._device_list:
             dev = self._device_list[_id]
             try:
-                room_id = dev['room_id']
+                room_id = str(dev['room_id'])
                 if room_id == '-10':
                     room = '[Hidden]'
                 elif room_id in self._room_list:

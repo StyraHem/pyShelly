@@ -5,7 +5,7 @@ import logging
 LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
-VERSION = "0.2.9"
+VERSION = "0.2.11"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
@@ -55,6 +55,7 @@ STATUS_RESPONSE_ROLLERS_TOTAL = 'total'
 SENSOR_UNAVAILABLE_SEC = 3600 * 13 #13 hours
 
 INFO_VALUE_RSSI = 'rssi'
+INFO_VALUE_RSSI_LEVEL = 'rssi_level'
 INFO_VALUE_UPTIME = 'uptime'
 INFO_VALUE_OVER_POWER = 'over_power'
 INFO_VALUE_DEVICE_TEMP = 'device_temp'
@@ -109,7 +110,7 @@ BLOCK_INFO_VALUES = {
     INFO_VALUE_CLOUD_CONNECTED : {ATTR_PATH : 'cloud/connected'},
     INFO_VALUE_MQTT_CONNECTED : {ATTR_PATH : 'mqtt/connected'},
     #INFO_VALUE_CURRENT_CONSUMPTION : {ATTR_PATH : 'consumption'},
-    #INFO_VALUE_VOLTAGE : {ATTR_PATH : 'voltage', ATTR_FMT : 'round'},
+    INFO_VALUE_VOLTAGE : {ATTR_PATH : 'voltage', ATTR_FMT : 'round'},
     INFO_VALUE_BATTERY : {ATTR_PATH : 'bat/value', ATTR_POS : 3111},
     #INFO_VALUE_TILT : {ATTR_PATH : 'accel/tilt'}, #Todo
     #INFO_VALUE_VIBRATION : {ATTR_PATH : 'accel/vibration'}, #Todo
@@ -152,7 +153,9 @@ SHELLY_TYPES = {
                 'battery' : True},
     'SHIX3-1': {'name': "Shelly i3", 'mqtt':'shellyix3'},
     'SHGS-1': {'name': "Shelly Gas", 'mqtt':'shellygas'},
-    'SHAIR-1': {'name': "Shelly Air", 'mqtt':'ShellyAir'}
+    'SHAIR-1': {'name': "Shelly Air", 'mqtt':'ShellyAir'},
+    'SHPLUG-U1': {'name': "Shelly Plug US", 'mqtt':'shellyplugu1'},
+    'SHUNI-1': {'name': "Shelly UNI", 'mqtt':'shellyuni'}
 }
 
 EFFECTS_RGBW2 = [
@@ -171,3 +174,10 @@ EFFECTS_BULB = [
     {'name': "On/off gradual", 'effect': 5},
     {'name':"Red/green change", 'effect': 6},
 ]
+
+RSSI_LEVELS = {
+    -50 : "excelent",
+    -60 : "very good",
+    -70 : "good",
+    -1000: "weak"
+}

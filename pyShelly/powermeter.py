@@ -44,19 +44,14 @@ class PowerMeter(Device):
         self.device_type = "POWERMETER"
         self.info_values = {}
         self.state = None
+        meters = "emeters" if em else "meters"
         self._state_cfg = {
             ATTR_POS: notNone(position, [111, 4101, 4102, 4105]),
-            ATTR_PATH: 'meters/$/power',
+            ATTR_PATH: meters + '/$/power',
             ATTR_FMT: ['float']
         }
-        meters = "emeters" if em else "meters"
         divider = None if em else '/60'
         self._info_value_cfg = {
-            INFO_VALUE_VOLTAGE : {
-                ATTR_POS: [116, 4108],
-                ATTR_PATH: meters + '/$/voltage',
-                ATTR_FMT: ['float']
-            },
             INFO_VALUE_POWER_FACTOR : {
                 ATTR_POS: [114, 4110],
                 ATTR_PATH: meters + 'eters/$/pf',
@@ -79,6 +74,13 @@ class PowerMeter(Device):
                 ATTR_FMT: ['float', divider, 'round:2']
             }
         }
+        (self.block if voltage_to_block else self) \
+            ._info_value_cfg[INFO_VALUE_VOLTAGE] = \
+            {
+                ATTR_POS: [116, 4108],
+                ATTR_PATH: meters + '/$/voltage',
+                ATTR_FMT: ['float']
+            }
 
     # """
     # def update_status_information(self, status):

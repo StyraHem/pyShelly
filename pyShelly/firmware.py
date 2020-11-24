@@ -31,7 +31,7 @@ class Firmware_manager(Loop):
             res = json.loads(s(body))
             return res['data']
         except Exception as ex:
-            exception_log(ex, "Error http GET: http://{}", url)
+            exception_log(ex, "Error http GET: {}", url)
         finally:
             if f:
                 f.close()
