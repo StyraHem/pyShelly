@@ -4,7 +4,10 @@
 import base64
 from datetime import datetime, timedelta
 import json
-import asyncio
+try:
+    import asyncio
+except:
+    pass
 import socket
 import struct
 import threading
@@ -16,7 +19,7 @@ from .device import Device
 from .utils import exception_log, timer
 from .coap import CoAP
 from .mqtt import MQTT
-from .mdns import MDns
+#from .mdns import MDns
 from .firmware import Firmware_manager
 
 #from .device.relay import Relay
@@ -100,10 +103,14 @@ class pyShelly():
 
         self._shelly_by_ip = {}
         #self.loop = asyncio.get_event_loop()
-        if loop:
-            self.event_loop = loop
-        else:
-            self.event_loop = asyncio.get_event_loop()
+        self.event_loop = None
+        try:
+            if loop:
+                self.event_loop = loop
+            else:
+                self.event_loop = asyncio.get_event_loop()
+        except:
+            pass
 
         self._send_discovery_timer = timer(timedelta(seconds=60))
         self._check_by_ip_timer = timer(timedelta(seconds=60))
@@ -118,8 +125,8 @@ class pyShelly():
             self.cb_save_cache(name, data)
 
     def start(self):
-        if self.mdns_enabled:
-            self._mdns = MDns(self, self.zeroconf)
+        #if self.mdns_enabled:
+        #    self._mdns = MDns(self, self.zeroconf)
         if self.cloud_auth_key and self.cloud_server:
             self.cloud = Cloud(self, self.cloud_server, self.cloud_auth_key)
             self.cloud.start()

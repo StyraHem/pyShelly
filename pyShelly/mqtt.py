@@ -33,8 +33,8 @@ class MQTT_connection:
                         length += (ldata & 0x7F) << (s * 7)
                         if not ldata & 128:
                             break
-                    LOGGER.debug(f"type=%d, flags=%d, length=%d" %
-                                        (pkg_type, flags, length))
+                    LOGGER.debug("type=%d, flags=%d, length=%d", 
+                                       pkg_type, flags, length)
 
                     data = self._connection.recv(length) if length else None
                     if pkg_type==1:

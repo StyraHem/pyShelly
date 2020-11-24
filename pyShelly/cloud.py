@@ -3,8 +3,12 @@
 
 import json
 import time
-import asyncio
+try:
+    import asyncio
+except:
+    pass
 import urllib
+from urllib import urlencode
 import threading
 from datetime import datetime, timedelta
 
@@ -83,7 +87,7 @@ class Cloud():
             conn = httplib.HTTPSConnection(self.server, timeout=15)
             headers = {'Content-Type' : 'application/x-www-form-urlencoded'}
             params["auth_key"] = self.auth_key
-            conn.request("POST", "/" + path, urllib.parse.urlencode(params),
+            conn.request("POST", "/" + path, urlencode(params),
                          headers)
             resp = conn.getresponse()
 

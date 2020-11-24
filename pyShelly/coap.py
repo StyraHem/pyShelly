@@ -106,7 +106,7 @@ class CoAP():
                 #LOGGER.debug("Got UDP message")
 
                 data = bytearray(data_tmp)
-                LOGGER.debug("CoAP msg: %s %s", ipaddr, data_tmp)
+                LOGGER.debug("CoAP msg: %s", ipaddr) #, data_tmp)
 
                 if len(data) < 10:
                     continue
@@ -126,7 +126,7 @@ class CoAP():
 
                 code = data[pos+1]
                 #msgid = 256 * data[2] + data[3]
-                LOGGER.debug("CoAP msg: %s %s %s", code, ipaddr, data)
+                LOGGER.debug("CoAP msg: %s %s", code, ipaddr) #, data)
 
                 pos = pos + 4
 
