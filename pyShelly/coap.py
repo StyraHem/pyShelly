@@ -66,7 +66,6 @@ class CoAP():
         while not self._root.stopped.isSet():
 
             try:
-
                 # This fix is needed if not sending IGMP reports correct
                 if self._root.igmp_fix_enabled and \
                         datetime.now() > next_igmp_fix:

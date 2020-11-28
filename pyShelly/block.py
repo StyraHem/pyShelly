@@ -21,6 +21,8 @@ from .const import (
     INFO_VALUE_CLOUD_STATUS,
     INFO_VALUE_CLOUD_ENABLED,
     INFO_VALUE_CLOUD_CONNECTED,
+    INFO_VALUE_RSSI,
+    INFO_VALUE_RSSI_LEVEL,
     INFO_VALUE_HAS_FIRMWARE_UPDATE,
     INFO_VALUE_FW_VERSION,
     INFO_VALUE_LATEST_FIRMWARE_VERSION,
@@ -40,7 +42,8 @@ from .const import (
     ATTR_AUTO_SET,
     BLOCK_INFO_VALUES,
     SHELLY_TYPES,
-    SRC_STATUS
+    SRC_STATUS,
+    RSSI_LEVELS
 )
 
 class Block(Base):
@@ -162,10 +165,19 @@ class Block(Base):
                 cloud_status = 'disconnected'
         self.set_info_value(INFO_VALUE_CLOUD_STATUS, cloud_status, SRC_STATUS)
 
+        rssi = self.info_values.get(INFO_VALUE_RSSI)
+        rssi_level = self.info_values.get(INFO_VALUE_RSSI_LEVEL)
+        for val, name in RSSI_LEVELS.items():
+            if rssi >= val or ( rssi_level == name and rssi >= val - 2):
+                rssi_level = name
+                break
+        self.set_info_value(INFO_VALUE_RSSI_LEVEL, rssi_level, SRC_STATUS)
+
         #self.info_values[INFO_VALUE_HAS_FIRMWARE_UPDATE] = self.has_fw_update()
         self.set_info_value(INFO_VALUE_LATEST_BETA_FW_VERSION,
                             self.latest_fw_version(True), SRC_STATUS)
 
+        force_update_devices = self.need_update #Block updated
         self.raise_updated()
 
         for dev in self.devices:
@@ -176,7 +188,7 @@ class Block(Base):
                     for name, cfg in dev._info_value_cfg.items():
                         dev._update_info_value(name, status, cfg)
                 dev.update_status_information(status)
-                dev.raise_updated()
+                dev.raise_updated(force_update_devices)
             except Exception as ex:
                 exception_log(ex, "Error update device status: {} {}", \
                     dev.id, dev.type)
@@ -257,7 +269,7 @@ class Block(Base):
             #todo delayed reload
         #Shelly PLUG'S
         elif self.type == 'SHPLG-1' or self.type == 'SHPLG2-1' or \
-              self.type == 'SHPLG-S' or self.type == 'SHPLG-US':
+              self.type == 'SHPLG-S' or self.type == 'SHPLG-U1':
             self._add_device(Relay(self, 0))
             self._add_device(PowerMeter(self, 0))
         elif self.type == 'SHEM':
@@ -360,6 +372,16 @@ class Block(Base):
                                     INFO_VALUE_SENSOR : {ATTR_POS : [118, 2101]}
             }
             self._add_device(Gas(self, 119))
+        elif self.type == "SHUNI-1":
+            self._add_device(Relay(self, 1))
+            self._add_device(Relay(self, 2))
+            self._add_device(Switch(self, 1))
+            self._add_device(Switch(self, 2))            
+            self._add_device(ExtTemp(self, 0), True)
+            self._add_device(ExtTemp(self, 1), True)
+            self._add_device(ExtTemp(self, 2), True)
+            self._add_device(ExtHumidity(self, 0), True)
+            self._add_device(Sensor(self, [3118], 'voltage', 'adcs/$/voltage'))
         elif self.type == 'SHAIR-1':
             self._info_value_cfg = {
                 INFO_VALUE_TEMP: {ATTR_POS : 119,

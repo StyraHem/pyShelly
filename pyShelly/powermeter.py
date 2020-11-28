@@ -52,11 +52,6 @@ class PowerMeter(Device):
         }
         divider = None if em else '/60'
         self._info_value_cfg = {
-            INFO_VALUE_VOLTAGE : {
-                ATTR_POS: [116, 4108],
-                ATTR_PATH: meters + '/$/voltage',
-                ATTR_FMT: ['float']
-            },
             INFO_VALUE_POWER_FACTOR : {
                 ATTR_POS: [114, 4110],
                 ATTR_PATH: meters + 'eters/$/pf',
@@ -79,6 +74,13 @@ class PowerMeter(Device):
                 ATTR_FMT: ['float', divider, 'round:2']
             }
         }
+        (self.block if voltage_to_block else self) \
+            ._info_value_cfg[INFO_VALUE_VOLTAGE] = \
+            {
+                ATTR_POS: [116, 4108],
+                ATTR_PATH: meters + '/$/voltage',
+                ATTR_FMT: ['float']
+            }
 
     # """
     # def update_status_information(self, status):
