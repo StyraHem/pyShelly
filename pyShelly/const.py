@@ -5,7 +5,7 @@ import logging
 LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
-VERSION = "0.2.11"
+VERSION = "0.2.12"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
@@ -154,7 +154,7 @@ SHELLY_TYPES = {
     'SHIX3-1': {'name': "Shelly i3", 'mqtt':'shellyix3'},
     'SHGS-1': {'name': "Shelly Gas", 'mqtt':'shellygas'},
     'SHAIR-1': {'name': "Shelly Air", 'mqtt':'ShellyAir'},
-    'SHPLUG-U1': {'name': "Shelly Plug US", 'mqtt':'shellyplugu1'},
+    'SHPLG-U1': {'name': "Shelly Plug US", 'mqtt':'shellyplugu1'},
     'SHUNI-1': {'name': "Shelly UNI", 'mqtt':'shellyuni'},
     'SHSW-1L': {'name': "Shelly 1L", 'mqtt':'shelly1l'}
 }
@@ -162,7 +162,7 @@ SHELLY_TYPES = {
 EFFECTS_RGBW2 = [
     {'name': "Off", 'effect': 0},
     {'name': "Meteor shower", 'effect': 1},
-    {'name':"Gradual change", 'effect': 2},
+    {'name': "Gradual change", 'effect': 2},
     {'name': "Flash", 'effect': 3}
 ]
 
@@ -170,10 +170,10 @@ EFFECTS_BULB = [
     {'name': "Off", 'effect': 0},
     {'name': "Meteor shower", 'effect': 1},
     {'name': "Gradual change", 'effect': 2},
-    {'name':"Breath", 'effect': 3},
-    {'name':"Flash", 'effect': 4},
+    {'name': "Breath", 'effect': 3},
+    {'name': "Flash", 'effect': 4},
     {'name': "On/off gradual", 'effect': 5},
-    {'name':"Red/green change", 'effect': 6},
+    {'name': "Red/green change", 'effect': 6},
 ]
 
 RSSI_LEVELS = {
