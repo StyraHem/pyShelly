@@ -156,7 +156,7 @@ SHELLY_TYPES = {
     'SHAIR-1': {'name': "Shelly Air", 'mqtt':'ShellyAir'},
     'SHPLG-U1': {'name': "Shelly Plug US", 'mqtt':'shellyplugu1'},
     'SHUNI-1': {'name': "Shelly UNI", 'mqtt':'shellyuni'},
-    'SHSW-1L': {'name': "Shelly 1L", 'mqtt':'shelly1l'}
+    'SHSW-L': {'name': "Shelly 1L", 'mqtt':'shelly1l'}
 }
 
 EFFECTS_RGBW2 = [
