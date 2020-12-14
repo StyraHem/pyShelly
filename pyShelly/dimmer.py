@@ -90,6 +90,21 @@ class Dimmer(Device):
     def turn_off(self):
         self._send_data(False)
 
+    def dimming(self, dim_type, state):
+        url = self.url + "?"
+        if not state:
+            url = url + "turn=on&"
+        if dim_type == "dim_up":
+            url = url + "dim=up"
+        elif dim_type == "dim_down":
+            url = url + "dim=down"
+        elif dim_type == "dim_stop":
+            url = url + "dim=stop"
+        else:
+            return    
+
+        self._send_command(url)
+
     def get_dim_value(self):
         return self.brightness
 

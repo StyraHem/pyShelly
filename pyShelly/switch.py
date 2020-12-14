@@ -152,6 +152,12 @@ class Switch(Device):
 
                     self.kg_click_count += 1
 
+                    if self.kg_momentary_button and kg_curr_state == 0 and len(self.kg_last_event) > 0:
+                        if self.kg_last_event[-1] == "L":
+                            self.kg_send_event_events = self.kg_last_event + "STOP"
+                            self.kg_send_event_click_count = 0
+                            self.raise_updated(True)
+
                     if not self.kg_momentary_button or kg_curr_state == 0:
                         self.kg_click_timer = Timer(0.7, self.kg_send_event)
                         self.kg_click_timer.start()
