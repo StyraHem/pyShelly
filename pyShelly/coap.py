@@ -94,7 +94,7 @@ class CoAP():
 
                 #todo add auto discover??
 
-                ####LOGGER.debug("Wait for UDP message")
+                LOGGER.debug("Wait for UDP message")
 
                 try:
                     data_tmp, addr = self._socket.recvfrom(1024)
@@ -103,7 +103,7 @@ class CoAP():
 
                 ipaddr = addr[0]
 
-                ####LOGGER.debug("Got UDP message")
+                LOGGER.debug("Got UDP message")
 
                 data = bytearray(data_tmp)
                 ###LOGGER.debug("CoAP msg: %s", ipaddr) #, data_tmp)
@@ -130,7 +130,7 @@ class CoAP():
 
                 pos = pos + 4
 
-                ####LOGGER.debug(' Code: %s', code)
+                LOGGER.debug(' Code: %s', code)
 
                 if code == 30 or code == 69:
 
@@ -187,6 +187,6 @@ class CoAP():
                                            ipaddr, 'CoAP-discovery', None)
 
             except Exception as ex:
-                ####LOGGER.debug("Error receive CoAP %s", str(ex))
+                LOGGER.debug("Error receive CoAP %s", str(ex))
                 LOGGER.exception("Error receive CoAP")
                 #exception_log(ex, "Error receiving CoAP UDP")
