@@ -2,7 +2,7 @@ import threading
 from datetime import timedelta, datetime
 import time
 
-class Loop():
+class Loop(object):
     def __init__(self, name, root, interval, delay=5 ):
         self._loop_root = root
         self._loop_delay = delay

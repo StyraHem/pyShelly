@@ -4,7 +4,6 @@
 import base64
 import traceback
 import json
-import urllib
 import socket
 from datetime import datetime
 from .compat import s
@@ -47,7 +46,7 @@ def shelly_http_get(host, url, username, password, log_error=True):
     try:
         LOGGER.debug("http://%s%s", host, url)
         conn = httplib.HTTPConnection(host, timeout=5)
-        headers = {}
+        headers = {"Connection": "close"}
         if username is not None \
             and password is not None:
             combo = '%s:%s' % (username, password)

@@ -38,6 +38,7 @@ class Relay(Device):
             self._channel = ch = 0
         self.state = None
         self.device_type = "RELAY"
+        self.is_sensor = include_power
         self._state_cfg = {
             ATTR_POS: [112, 1101],
             ATTR_PATH: 'relays/$/ison',

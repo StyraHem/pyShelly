@@ -4,7 +4,10 @@
 import base64
 from datetime import datetime, timedelta
 import json
-import asyncio
+try:
+    import asyncio
+except:
+    pass
 import socket
 import struct
 import threading
@@ -16,7 +19,10 @@ from .device import Device
 from .utils import exception_log, timer
 from .coap import CoAP
 from .mqtt import MQTT
-from .mdns import MDns
+try:
+    from .mdns import MDns
+except:
+    pass
 from .firmware import Firmware_manager
 
 #from .device.relay import Relay
@@ -100,10 +106,14 @@ class pyShelly():
 
         self._shelly_by_ip = {}
         #self.loop = asyncio.get_event_loop()
-        if loop:
-            self.event_loop = loop
-        else:
-            self.event_loop = asyncio.get_event_loop()
+        self.event_loop = None
+        try:
+            if loop:
+                self.event_loop = loop
+            else:
+                self.event_loop = asyncio.get_event_loop()
+        except:
+            pass
 
         self._send_discovery_timer = timer(timedelta(seconds=60))
         self._check_by_ip_timer = timer(timedelta(seconds=60))
@@ -117,12 +127,22 @@ class pyShelly():
         if self.cb_save_cache:
             self.cb_save_cache(name, data)
 
+    def set_cloud_settings(self, server, key, _firstTime=False):
+        if self.cloud_auth_key==key and self.cloud_server==server and not _firstTime:
+            return
+        if self.cloud:
+            self.cloud.stop()
+            self.cloud=None
+        if server and key:
+            self.cloud = Cloud(self, server, key)
+            self.cloud.start(not _firstTime)
+        self.cloud_server = server
+        self.cloud_auth_key = key
+
     def start(self):
         if self.mdns_enabled:
             self._mdns = MDns(self, self.zeroconf)
-        if self.cloud_auth_key and self.cloud_server:
-            self.cloud = Cloud(self, self.cloud_server, self.cloud_auth_key)
-            self.cloud.start()
+        self.set_cloud_settings(self.cloud_server, self.cloud_auth_key, True)
         if self._coap:
             self._coap.start()
         if self._mdns:
@@ -198,8 +218,7 @@ class pyShelly():
                         device_id = dev["hostname"].rpartition('-')[2]
                         device_type = dev["type"]
                         ip_addr = status["wifi_sta"]["ip"]
-                        LOGGER.debug("Add device from IP, %s, %s, %s",
-                                     device_id, device_type, ip_addr)
+                        LOGGER.debug("Add device from IP, %s, %s, %s", device_id, device_type, ip_addr)
                         self.update_block(device_id, device_type, ip_addr,
                                           data['src'],
                                           None)
@@ -300,7 +319,6 @@ class pyShelly():
             (block.last_update_status_info is None or \
             now - block.last_update_status_info \
                 > self.update_status_interval)):
-
             LOGGER.debug("Polling block, %s %s", block.id, block.type)
             block.last_update_status_info = now
             t = threading.Thread(

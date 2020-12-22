@@ -13,7 +13,7 @@ COAP_PORT = 5683
 MDNS_IP = "224.0.0.251"
 MDNS_PORT = 5353
 
-REGEX_VER = r"^20(\d{6}).+v(\d+\.\d+\.\d+(-rc\d)?)@"
+REGEX_VER = r"^20(\d{6}).+v(\d+\.\d+\.\d+(-rc\d)?)(_.*)?@"
 
 """Define constants for result from /status response from device"""
 STATUS_RESPONSE_RELAYS = 'relays'
@@ -81,6 +81,7 @@ INFO_VALUE_CURRENT = 'current'
 INFO_VALUE_TILT = 'tilt'
 INFO_VALUE_VIBRATION = 'vibration'
 INFO_VALUE_TEMP = 'temperature'
+INFO_VALUE_HUMIDITY = 'humidity'
 INFO_VALUE_ILLUMINANCE = 'illuminance'
 INFO_VALUE_GAS = 'gas'
 INFO_VALUE_SENSOR = 'sensor'

@@ -7,7 +7,7 @@ from .switch import Switch
 from .relay import Relay
 from .powermeter import PowerMeter
 from .sensor import (Sensor, BinarySensor, Flood, DoorWindow, ExtTemp,
-                     ExtHumidity, Gas)
+                     ExtHumidity, Gas, TempSensor)
 from .light import RGBW2W, RGBW2C, RGBWW, Bulb, Duo, Vintage
 from .dimmer import Dimmer
 from .roller import Roller
@@ -75,6 +75,7 @@ class Block(Base):
         self._available = None
         self.status_update_error_cnt = 0
         self.last_try_update_status = None
+        self._last_friendly_name = None
 
     def update_coap(self, payload, ip_addr):
         self.ip_addr = ip_addr  # If changed ip
@@ -177,6 +178,11 @@ class Block(Base):
         self.set_info_value(INFO_VALUE_LATEST_BETA_FW_VERSION,
                             self.latest_fw_version(True), SRC_STATUS)
 
+        friendly_name = self.friendly_name()
+        if self._last_friendly_name!=friendly_name:
+            self._last_friendly_name!=friendly_name
+            self.need_update
+
         force_update_devices = self.need_update #Block updated
         self.raise_updated()
 
@@ -275,15 +281,15 @@ class Block(Base):
         elif self.type == 'SHEM':
             self._add_device(Relay(self, 0, include_power=False, em=True))
             self._add_device(PowerMeter(self, 1, voltage_to_block=True,
-                                        em=True))
+                                        em=True), major=True)
             self._add_device(PowerMeter(self, 2, voltage_to_block=True,
-                                        em=True))
+                                        em=True), major=True)
         #Shelly 3EM
         elif self.type == 'SHEM-3':
             self._add_device(Relay(self, 0, include_power=False, em=True))
-            self._add_device(PowerMeter(self, 1, em=True))
-            self._add_device(PowerMeter(self, 2, em=True))
-            self._add_device(PowerMeter(self, 3, em=True))
+            self._add_device(PowerMeter(self, 1, em=True), major=True)
+            self._add_device(PowerMeter(self, 2, em=True), major=True)
+            self._add_device(PowerMeter(self, 3, em=True), major=True)
         elif self.type == 'SH2LED-1':
             self._add_device(RGBW2W(self, 1))
             self._add_device(RGBW2W(self, 2))
@@ -306,7 +312,7 @@ class Block(Base):
             self.sleep_device = True
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
             self.exclude_info_values.append(INFO_VALUE_DEVICE_TEMP)
-            self._add_device(Sensor(self, [33, 3101], 'temperature', 'tmp/tC'))
+            self._add_device(TempSensor(self))
             self._add_device(Sensor(self, [44, 3103], 'humidity', 'hum/value'))
         #Shellyy RGBW2
         elif self.type == 'SHRGBW2':
@@ -373,8 +379,8 @@ class Block(Base):
             }
             self._add_device(Gas(self, 119))
         elif self.type == "SHUNI-1":
-            self._add_device(Relay(self, 1))
-            self._add_device(Relay(self, 2))
+            self._add_device(Relay(self, 1, include_power=False))
+            self._add_device(Relay(self, 2, include_power=False))
             self._add_device(Switch(self, 1))
             self._add_device(Switch(self, 2))            
             self._add_device(ExtTemp(self, 0), True)
@@ -393,8 +399,9 @@ class Block(Base):
             self._add_device(PowerMeter(self, 0))
             self._add_device(Switch(self, 0))
 
-    def _add_device(self, dev, lazy_load=False):
+    def _add_device(self, dev, lazy_load=False, major=False):
         dev.lazy_load = lazy_load
+        dev.major_unit = major
         self.devices.append(dev)
         #self.parent.add_device(dev, self.discovery_src)
         return dev
