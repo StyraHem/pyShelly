@@ -41,4 +41,4 @@ else:
         return urllib.parse.urlencode(x)
 
     def urlopen(x):
-        return urllib.request.urlopen
+        return urllib.request.urlopen(x)
