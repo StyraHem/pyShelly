@@ -156,13 +156,14 @@ SHELLY_TYPES = {
     'SHGS-1': {'name': "Shelly Gas", 'mqtt':'shellygas'},
     'SHAIR-1': {'name': "Shelly Air", 'mqtt':'ShellyAir'},
     'SHPLG-U1': {'name': "Shelly Plug US", 'mqtt':'shellyplugu1'},
-    'SHUNI-1': {'name': "Shelly UNI", 'mqtt':'shellyuni'}
+    'SHUNI-1': {'name': "Shelly UNI", 'mqtt':'shellyuni'},
+    'SHSW-L': {'name': "Shelly 1L", 'mqtt':'shelly1l'}
 }
 
 EFFECTS_RGBW2 = [
     {'name': "Off", 'effect': 0},
     {'name': "Meteor shower", 'effect': 1},
-    {'name':"Gradual change", 'effect': 2},
+    {'name': "Gradual change", 'effect': 2},
     {'name': "Flash", 'effect': 3}
 ]
 
@@ -170,10 +171,10 @@ EFFECTS_BULB = [
     {'name': "Off", 'effect': 0},
     {'name': "Meteor shower", 'effect': 1},
     {'name': "Gradual change", 'effect': 2},
-    {'name':"Breath", 'effect': 3},
-    {'name':"Flash", 'effect': 4},
+    {'name': "Breath", 'effect': 3},
+    {'name': "Flash", 'effect': 4},
     {'name': "On/off gradual", 'effect': 5},
-    {'name':"Red/green change", 'effect': 6},
+    {'name': "Red/green change", 'effect': 6},
 ]
 
 RSSI_LEVELS = {
