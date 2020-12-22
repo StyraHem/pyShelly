@@ -293,7 +293,7 @@ class pyShelly():
         LOGGER.debug("Start update loop, %s sec", self.update_status_interval)
         while not self.stopped.isSet():
             try:
-                LOGGER.debug("Checking blocks")
+                #LOGGER.debug("Checking blocks")
                 if self._check_by_ip_timer.check():
                     self.check_by_ip()
                 if self._send_discovery_timer.check():

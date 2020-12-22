@@ -4,7 +4,6 @@
 import base64
 import traceback
 import json
-import urllib
 import socket
 from datetime import datetime
 from .compat import s

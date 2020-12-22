@@ -1,11 +1,10 @@
 import json
 import re
-#import urllib.request
-from urllib2 import urlopen
 from datetime import timedelta
 
 from .compat import s
 from .utils import exception_log
+from .compat import urlopen
 from .const import (
     REGEX_VER
 )
@@ -27,7 +26,6 @@ class Firmware_manager(Loop):
     def _http_get(self, url):
         f = None
         try:
-            #f = urllib.request.urlopen(url)
             f = urlopen(url)
             body = f.read()
             res = json.loads(s(body))

@@ -7,12 +7,10 @@ try:
     import asyncio
 except:
     pass
-import urllib
-from urllib import urlencode
 import threading
 from datetime import datetime, timedelta
 
-from .compat import s, uc
+from .compat import s, uc, urlencode
 from .const import LOGGER
 
 try:
