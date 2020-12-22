@@ -233,7 +233,7 @@ class Block(Base):
             self._add_device(ExtTemp(self, 2), True)
             self._add_device(ExtHumidity(self, 0), True)
         #Shelly 1L
-        elif self.type == 'SHSW-1L':
+        elif self.type == 'SHSW-L':
             self._add_device(Relay(self, 0))
             self._add_device(Switch(self, 0))
             self._add_device(ExtTemp(self, 0), True)
