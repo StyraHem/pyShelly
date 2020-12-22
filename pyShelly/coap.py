@@ -187,6 +187,6 @@ class CoAP():
                                            ipaddr, 'CoAP-discovery', None)
 
             except Exception as ex:
-                LOGGER.debug("Error receive CoAP %s", str(ex))
+                #LOGGER.debug("Error receive CoAP %s", str(ex))
                 LOGGER.exception("Error receive CoAP")
                 #exception_log(ex, "Error receiving CoAP UDP")
