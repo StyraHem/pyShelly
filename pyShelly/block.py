@@ -135,7 +135,7 @@ class Block(Base):
 
         self.last_try_update_status = datetime.now()
 
-        ###LOGGER.debug("Get status from %s %s", self.id, self.friendly_name())
+        LOGGER.debug("Get status from %s %s", self.id, self.friendly_name())
         success, status = self.http_get('/status', False)
 
         if not success or status == {}:

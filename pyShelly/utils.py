@@ -45,7 +45,7 @@ def shelly_http_get(host, url, username, password, log_error=True):
     success = False
     conn = None
     try:
-        ###LOGGER.debug("http://%s%s", host, url)
+        LOGGER.debug("http://%s%s", host, url)
         conn = httplib.HTTPConnection(host, timeout=5)
         headers = {"Connection": "close"}
         if username is not None \
@@ -59,10 +59,10 @@ def shelly_http_get(host, url, username, password, log_error=True):
 
         if resp.status == 200:
             body = resp.read()
-            LOGGER.debug("Body: %s", body)
+            #LOGGER.debug("Body: %s", body)
             res = json.loads(s(body))
             success = True
-            ###LOGGER.debug("http://%s%s - Ok", host, url)
+            LOGGER.debug("http://%s%s - Ok", host, url)
         else:
             res = "Error, {} {} http://{}{}".format(
                 resp.status, resp.reason, host, url)

@@ -61,7 +61,7 @@ class Cloud():
                     datetime.now() - self._last_update \
                                     > self.update_interval:
                     self._last_update = datetime.now()
-                    ###LOGGER.debug("Update from cloud")
+                    LOGGER.debug("Update from cloud")
                     devices = self.get_device_list()
                     if devices:
                         self._device_list = devices
@@ -88,7 +88,7 @@ class Cloud():
         json_body = None
         params = params or {}
         try:
-            ###LOGGER.debug("POST to Shelly Cloud")
+            LOGGER.debug("POST to Shelly Cloud")
             conn = httplib.HTTPSConnection(self.server, timeout=15)
             headers = {'Content-Type' : 'application/x-www-form-urlencoded',
                         "Connection": "close"}
