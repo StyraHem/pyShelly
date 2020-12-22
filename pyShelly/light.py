@@ -387,7 +387,9 @@ class Duo(LightWhite):
         self.support_color_temp = True
         self._color_temp_min = 2700
         self._color_temp_max = 6500
+        self.is_sensor = True
 
 class Vintage(LightWhite):
     def __init__(self, block):
         super(Vintage, self).__init__(block, 0, [121, 1101], [111, 5101])
+        self.is_sensor = True

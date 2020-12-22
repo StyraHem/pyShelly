@@ -124,12 +124,22 @@ class pyShelly():
         if self.cb_save_cache:
             self.cb_save_cache(name, data)
 
+    def set_cloud_settings(self, server, key, _firstTime=False):
+        if self.cloud_auth_key==key and self.cloud_server==server and not _firstTime:
+            return
+        if self.cloud:
+            self.cloud.stop()
+            self.cloud=None
+        if server and key:
+            self.cloud = Cloud(self, server, key)
+            self.cloud.start(not _firstTime)
+        self.cloud_server = server
+        self.cloud_auth_key = key
+
     def start(self):
-        #if self.mdns_enabled:
-        #    self._mdns = MDns(self, self.zeroconf)
-        if self.cloud_auth_key and self.cloud_server:
-            self.cloud = Cloud(self, self.cloud_server, self.cloud_auth_key)
-            self.cloud.start()
+        if self.mdns_enabled:
+            self._mdns = MDns(self, self.zeroconf)
+        self.set_cloud_settings(self.cloud_server, self.cloud_auth_key, True)
         if self._coap:
             self._coap.start()
         if self._mdns:
@@ -164,7 +174,7 @@ class pyShelly():
 
     def add_device_by_ip(self, ip_addr, src):
         if ip_addr not in self._shelly_by_ip:
-            LOGGER.debug("Add device by host %s %s", ip_addr, src)
+            ###LOGGER.debug("Add device by host %s %s", ip_addr, src)
             self._shelly_by_ip[ip_addr] = {'done':False, 'src':src,
                                            'poll_block':None}
         else:
@@ -205,8 +215,7 @@ class pyShelly():
                         device_id = dev["hostname"].rpartition('-')[2]
                         device_type = dev["type"]
                         ip_addr = status["wifi_sta"]["ip"]
-                        LOGGER.debug("Add device from IP, %s, %s, %s",
-                                     device_id, device_type, ip_addr)
+                        ###LOGGER.debug("Add device from IP, %s, %s, %s", device_id, device_type, ip_addr)
                         self.update_block(device_id, device_type, ip_addr,
                                           data['src'],
                                           None)
@@ -226,7 +235,7 @@ class pyShelly():
                                 ip_addr, data['src'])
 
     def add_device(self, dev, discovery_src):
-        LOGGER.debug('Add device')
+        ###LOGGER.debug('Add device')
         dev.discovery_src = discovery_src
         self.devices.append(dev)
         if not dev.lazy_load:
@@ -239,7 +248,7 @@ class pyShelly():
                 callback(dev, dev.discovery_src)
 
     def remove_device(self, dev, discovery_src):
-        LOGGER.debug('Remove device')
+        ###LOGGER.debug('Remove device')
         self.devices.remove(dev)
         for callback in self.cb_device_removed:
             callback(dev, discovery_src)
@@ -278,10 +287,10 @@ class pyShelly():
             self._poll_block(block, force_poll)
 
     def _update_loop(self):
-        LOGGER.debug("Start update loop, %s sec", self.update_status_interval)
+        ###LOGGER.debug("Start update loop, %s sec", self.update_status_interval)
         while not self.stopped.isSet():
             try:
-                #LOGGER.debug("Checking blocks")
+                ####LOGGER.debug("Checking blocks")
                 if self._check_by_ip_timer.check():
                     self.check_by_ip()
                 if self._send_discovery_timer.check():
@@ -307,8 +316,7 @@ class pyShelly():
             (block.last_update_status_info is None or \
             now - block.last_update_status_info \
                 > self.update_status_interval)):
-
-            LOGGER.debug("Polling block, %s %s", block.id, block.type)
+            ###LOGGER.debug("Polling block, %s %s", block.id, block.type)
             block.last_update_status_info = now
             t = threading.Thread(
                 target=block.update_status_information)

@@ -28,7 +28,7 @@ class CoAP():
         self._thread.start()
 
     def discover(self):
-        LOGGER.debug("Sending CoAP discover UDP")
+        ###LOGGER.debug("Sending CoAP discover UDP")
         msg = bytes(b'\x50\x01\x00\x0A\xb3cit\x01d\xFF')
         self._socket.sendto(msg, (COAP_IP, COAP_PORT))
 
@@ -69,7 +69,7 @@ class CoAP():
                 # This fix is needed if not sending IGMP reports correct
                 if self._root.igmp_fix_enabled and \
                         datetime.now() > next_igmp_fix:
-                    LOGGER.debug("IGMP fix")
+                    ###LOGGER.debug("IGMP fix")
                     next_igmp_fix = datetime.now() + timedelta(minutes=1)
                     if self._root.host_ip:
                         mreq = struct.pack("=4s4s",
@@ -94,7 +94,7 @@ class CoAP():
 
                 #todo add auto discover??
 
-                #LOGGER.debug("Wait for UDP message")
+                ####LOGGER.debug("Wait for UDP message")
 
                 try:
                     data_tmp, addr = self._socket.recvfrom(1024)
@@ -103,10 +103,10 @@ class CoAP():
 
                 ipaddr = addr[0]
 
-                #LOGGER.debug("Got UDP message")
+                ####LOGGER.debug("Got UDP message")
 
                 data = bytearray(data_tmp)
-                LOGGER.debug("CoAP msg: %s", ipaddr) #, data_tmp)
+                ###LOGGER.debug("CoAP msg: %s", ipaddr) #, data_tmp)
 
                 if len(data) < 10:
                     continue
@@ -126,11 +126,11 @@ class CoAP():
 
                 code = data[pos+1]
                 #msgid = 256 * data[2] + data[3]
-                LOGGER.debug("CoAP msg: %s %s", code, ipaddr) #, data)
+                ###LOGGER.debug("CoAP msg: %s %s", code, ipaddr) #, data)
 
                 pos = pos + 4
 
-                #LOGGER.debug(' Code: %s', code)
+                ####LOGGER.debug(' Code: %s', code)
 
                 if code == 30 or code == 69:
 
@@ -176,9 +176,7 @@ class CoAP():
                     if payload: #Fix for DW2 payload error
                         payload = payload.replace(",,",",").replace("][", "],[")
 
-                    LOGGER.debug('CoAP Code: %s, Type %s, Id %s, Payload *%s*',
-                                 code, device_type, device_id,
-                                 payload.replace(' ', ''))
+                    ###LOGGER.debug('CoAP Code: %s, Type %s, Id %s, Payload *%s*', code, device_type, device_id, payload.replace(' ', ''))
 
                     if code == 30:
                         self._root.update_block(device_id, device_type,
@@ -189,6 +187,6 @@ class CoAP():
                                            ipaddr, 'CoAP-discovery', None)
 
             except Exception as ex:
-                #LOGGER.debug("Error receive CoAP %s", str(ex))
+                ####LOGGER.debug("Error receive CoAP %s", str(ex))
                 LOGGER.exception("Error receive CoAP")
                 #exception_log(ex, "Error receiving CoAP UDP")

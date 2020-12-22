@@ -3,6 +3,7 @@
 from .device import Device
 from .const import (
     INFO_VALUE_VIBRATION,
+    INFO_VALUE_HUMIDITY,
     ATTR_PATH,
     ATTR_FMT,
     ATTR_POS
@@ -48,11 +49,31 @@ class Sensor(Device):
     #         #self._update(None, None, {self.sensor_type:self.format(data)})
     #         self._update(self.format(data))
 
+class TempSensor(Sensor):
+    """Class to represent a external temp sensor"""
+    def __init__(self, block):
+        super(TempSensor, self).__init__(block, [33, 3101], \
+            'temperature', 'tmp/tC')
+        self._info_value_cfg = { 
+            INFO_VALUE_HUMIDITY : { #Used in tellstick
+                ATTR_POS: [44, 3103],
+                ATTR_PATH: 'hum/value',
+                ATTR_FMT: "float"
+            }
+        }
+
 class ExtTemp(Sensor):
     """Class to represent a external temp sensor"""
     def __init__(self, block, idx):
         super(ExtTemp, self).__init__(block, [119, 3101], \
             'temperature', 'ext_temperature/' + str(idx) + "/tC", idx)
+        self._info_value_cfg = { 
+            INFO_VALUE_HUMIDITY : { #Used in tellstick
+                ATTR_POS: [120, 3103],
+                ATTR_PATH: 'ext_humidity/' + str(idx) + "/hum",
+                ATTR_FMT: "float"
+            }
+        }
         self.sleep_device = False
         self.ext_sensor = idx
 

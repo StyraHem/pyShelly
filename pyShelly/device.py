@@ -23,6 +23,7 @@ class Device(Base):
         self.lazy_load = False
         self.device_nr = None
         self.master_unit = False
+        self.head_unit = False
         self.ext_sensor = None
 
     def friendly_name(self):
@@ -90,9 +91,7 @@ class Device(Base):
         return self.block.protocols
 
     def _update(self, src, new_state=None, new_state_values=None):
-        LOGGER.debug(
-            "Update id:%s state:%s stateValue:%s",
-            self.id, new_state, new_state_values)
+        ###LOGGER.debug("Update id:%s state:%s stateValue:%s", self.id, new_state, new_state_values)
         self._set_state(new_state, src)
         if new_state_values is not None:
             if self.state_values != new_state_values:

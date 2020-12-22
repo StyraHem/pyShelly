@@ -23,7 +23,7 @@ except:
 class Cloud():
     def __init__(self, root, server, key):
         self.auth_key = key
-        self.server = server.replace("https://", "")
+        self.server = server.replace("https://", "").replace("Server: ","")
         self._last_update = None
         self.update_interval = timedelta(minutes=1)
         self._device_list = None
@@ -32,12 +32,18 @@ class Cloud():
         self._last_post = datetime.now()
         self._root = root
         self.http_lock = threading.Lock()
+        self.stopped = False
 
-    def start(self):
+    def start(self, cleanCache):
+        if cleanCache:
+            self._root.save_cache('cloud', {})
         self._cloud_thread = threading.Thread(target=self._update_loop)
         self._cloud_thread.name = "Cloud"
         self._cloud_thread.daemon = True
         self._cloud_thread.start()
+
+    def stop(self):
+       self.stopped = True
 
     def _update_loop(self):
         if self._root.event_loop:
@@ -47,15 +53,15 @@ class Cloud():
             if cloud:
                 self._device_list = cloud['device_list']
                 self._room_list = cloud['room_list']
-        except:
+        except Exception as ex:
             LOGGER.error("Error load cloud cache, %s", ex)
-        while not self._root.stopped.isSet():
+        while not self._root.stopped.isSet() and not self.stopped:
             try:
                 if self._last_update is None or \
                     datetime.now() - self._last_update \
                                     > self.update_interval:
                     self._last_update = datetime.now()
-                    LOGGER.debug("Update from cloud")
+                    ###LOGGER.debug("Update from cloud")
                     devices = self.get_device_list()
                     if devices:
                         self._device_list = devices
@@ -68,7 +74,6 @@ class Cloud():
                         {'device_list' : self._device_list,
                          'room_list' : self._room_list}
                     )
-
                 else:
                     self._root.stopped.wait(5)
             except Exception as ex:
@@ -83,9 +88,10 @@ class Cloud():
         json_body = None
         params = params or {}
         try:
-            LOGGER.debug("POST to Shelly Cloud")
+            ###LOGGER.debug("POST to Shelly Cloud")
             conn = httplib.HTTPSConnection(self.server, timeout=15)
-            headers = {'Content-Type' : 'application/x-www-form-urlencoded'}
+            headers = {'Content-Type' : 'application/x-www-form-urlencoded',
+                        "Connection": "close"}
             params["auth_key"] = self.auth_key
             conn.request("POST", "/" + path, urlencode(params),
                          headers)
@@ -138,7 +144,7 @@ class Cloud():
                     room = str(room_id)
             except:
                 pass
-            tmpl = self._root.tmpl_name
+            tmpl = unicode(self._root.tmpl_name)
             value = tmpl.format(id=id, name=name, room=room)
             if add_idx:
                 value = value + " - " + str(idx)

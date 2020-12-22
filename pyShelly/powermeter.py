@@ -36,6 +36,9 @@ class PowerMeter(Device):
             self.device_nr = channel
         else:
             self._channel = 0
+        self.is_device = False
+        self.is_sensor = True
+
         # if meters is None:
         #     self.meters = [self._channel]
         # else:
