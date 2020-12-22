@@ -19,7 +19,10 @@ from .device import Device
 from .utils import exception_log, timer
 from .coap import CoAP
 from .mqtt import MQTT
-#from .mdns import MDns
+try:
+    from .mdns import MDns
+except:
+    pass
 from .firmware import Firmware_manager
 
 #from .device.relay import Relay
