@@ -12,7 +12,7 @@ from urllib import urlencode
 import threading
 from datetime import datetime, timedelta
 
-from .compat import s
+from .compat import s, uc
 from .const import LOGGER
 
 try:
@@ -144,7 +144,7 @@ class Cloud():
                     room = str(room_id)
             except:
                 pass
-            tmpl = unicode(self._root.tmpl_name)
+            tmpl = uc(self._root.tmpl_name)
             value = tmpl.format(id=id, name=name, room=room)
             if add_idx:
                 value = value + " - " + str(idx)

@@ -12,6 +12,9 @@ if sys.version_info < (3,):
 
     def s(x):
         return str(x)
+
+    def uc(x):
+        return unicode(x)
 else:
     def ba2c(x):  # Convert bytearra to compatible bytearray
         return x
@@ -21,3 +24,6 @@ else:
 
     def s(x):
         return str(x, 'cp1252')
+
+    def uc(x):
+        return x
