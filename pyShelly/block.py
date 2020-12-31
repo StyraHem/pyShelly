@@ -228,7 +228,7 @@ class Block(Base):
         #Get settings
         self.poll_settings()
         #Shelly BULB
-        if self.type == 'SHBLB-1' or self.type == 'SHCL-255':
+        if self.type == 'SHBLB-1' or self.type == 'SHCL-255' or self.type == 'SHCB-1':
             self._add_device(Bulb(self))
         #Shelly 1
         elif self.type == 'SHSW-1' or self.type == 'SHSK-1':
