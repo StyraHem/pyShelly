@@ -133,7 +133,7 @@ SHELLY_TYPES = {
     'SHPLG-S': {'name': "Shelly Plug S", 'mqtt':'shellyplug-s'},
     'SHRGBWW-01': {'name': "Shelly RGBWW"},
     'SHBLB-1': {'name': "Shelly Bulb", 'mqtt':'shellybulb'},
-    'SHCB-1': {'name': "Shelly Bulb"},
+    'SHCB-1': {'name': "Shelly Bulb", 'mqtt':'shellycolorbulb'},
     'SHHT-1': {'name': "Shelly H&T", 'battery' : True, 'mqtt':'shellyht'},
     'SHRGBW2': {'name': "Shelly RGBW2", 'mqtt':'shellyrgbw2'},
     'SHEM': {'name': "Shelly EM", 'mqtt':'shellyem'},
