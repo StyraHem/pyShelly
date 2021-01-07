@@ -2,16 +2,11 @@ import setuptools
 import re
 import os
 import codecs
-import sys
 
 here = os.path.abspath(os.path.dirname(__file__))
 
-if sys.version_info.major > 2:
-    with open("README.md", "r", encoding="utf-8") as fh:
-        LONG_DESCRIPTION = fh.read()
-else:
-    with open("README.md", "r") as fh:
-        LONG_DESCRIPTION = fh.read()
+with codecs.open("README.md", "r", encoding="utf-8") as fh:
+    LONG_DESCRIPTION = fh.read()
 
 def read(*parts):
     with codecs.open(os.path.join(here, *parts), 'r') as fp:
