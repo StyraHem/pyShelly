@@ -8,12 +8,14 @@ here = os.path.abspath(os.path.dirname(__file__))
 with codecs.open("README.md", "r", encoding="utf-8") as fh:
     LONG_DESCRIPTION = fh.read()
 
-def read_file(*parts):
-    with codecs.open(os.path.join(here, *parts), 'r') as fp:
-        return fp.read()
+#def read_file(*parts):
+#    with codecs.open(os.path.join(here, *parts), 'r') as fp:
+#        return fp.read()
 
 def find_version(*file_paths):
-    version_file = read_file(*file_paths)
+    version_file = ""
+    with codecs.open(os.path.join(here, *file_paths), 'r') as fp:
+        version_file = fp.read()
     version_match = re.search(r"^VERSION = ['\"]([^'\"]*)['\"]",
                               version_file, re.M)
     if version_match:
