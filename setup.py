@@ -2,6 +2,7 @@ import setuptools
 import re
 import os
 import codecs
+import sys
 
 here = os.path.abspath(os.path.dirname(__file__))
 
@@ -21,7 +22,12 @@ def find_version(*file_paths):
             return version_match.group(1)
         raise RuntimeError("Unable to find version string.")
     except:
-        return ""
+        return "0.0.0"
+
+if sys.version_info < (3,):
+    REQUIRES = [],
+else:
+    REQUIRES = ['zeroconf'],
 
 setuptools.setup(
     name="pyShelly",
@@ -32,7 +38,7 @@ setuptools.setup(
     description="Library for Shelly smart home devices",
     long_description=LONG_DESCRIPTION,
     long_description_content_type="text/markdown",
-    install_requires=['zeroconf'],
+    install_requires=REQUIRES,
     url="https://github.com/StyraHem/pyShelly",
     packages=setuptools.find_packages(),
     classifiers=[
