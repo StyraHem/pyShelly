@@ -227,7 +227,7 @@ class Block(Base):
     def _setup(self):
         #Get settings
         self.poll_settings()
-        #Shelly BULB
+        #Shelly BULB, ,Shelly Bulb RGBW GU10
         if self.type == 'SHBLB-1' or self.type == 'SHCL-255' or self.type == 'SHCB-1':
             self._add_device(Bulb(self))
         #Shelly 1
