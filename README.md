@@ -6,7 +6,7 @@
 
 # pyShelly
 
-Library for Shelly smart home devices. Using CoAP for auto discovery and status updates.
+Python2 Library for Shelly smart home devices. Using CoAP for auto discovery and status updates.
 
 This library was created for Shelly Plugins for Home Assistant and Telldus Tellstick Net/zNet v2.
 
