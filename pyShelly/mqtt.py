@@ -88,7 +88,7 @@ class MQTT():
         self._socket = None
         self._connections = []
         self._mqtt_types = {}
-        for key, item in SHELLY_TYPES.items():
+        for key, item in list(SHELLY_TYPES.items()):
             if 'mqtt' in item:
                 self._mqtt_types[item['mqtt']]=key
 

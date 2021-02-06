@@ -103,7 +103,7 @@ class Block(Base):
 
     def loop(self):
         if self._info_value_cfg:
-            for iv, cfg in self._info_value_cfg.items():
+            for iv, cfg in list(self._info_value_cfg.items()):
                 if ATTR_AUTO_SET in cfg:
                     value = self.info_values.get(iv)
                     param = cfg.get(ATTR_AUTO_SET)
@@ -149,13 +149,13 @@ class Block(Base):
         self.last_updated = datetime.now()
 
         #Put status in info_values
-        for name, cfg in BLOCK_INFO_VALUES.items():
+        for name, cfg in list(BLOCK_INFO_VALUES.items()):
             if name in self.exclude_info_values:
                 continue
             self._update_info_value(name, status, cfg)
 
         if self._info_value_cfg:
-            for name, cfg in self._info_value_cfg.items():
+            for name, cfg in list(self._info_value_cfg.items()):
                 self._update_info_value(name, status, cfg)
 
         cloud_status = 'disabled'
@@ -168,7 +168,7 @@ class Block(Base):
 
         rssi = self.info_values.get(INFO_VALUE_RSSI)
         rssi_level = self.info_values.get(INFO_VALUE_RSSI_LEVEL)
-        for val, name in RSSI_LEVELS.items():
+        for val, name in list(RSSI_LEVELS.items()):
             if rssi >= val or ( rssi_level == name and rssi >= val - 2):
                 rssi_level = name
                 break
@@ -191,7 +191,7 @@ class Block(Base):
                 if dev._state_cfg:
                     dev._update_state(status, dev._state_cfg)
                 if dev._info_value_cfg:
-                    for name, cfg in dev._info_value_cfg.items():
+                    for name, cfg in list(dev._info_value_cfg.items()):
                         dev._update_info_value(name, status, cfg)
                 dev.update_status_information(status)
                 dev.raise_updated(force_update_devices)

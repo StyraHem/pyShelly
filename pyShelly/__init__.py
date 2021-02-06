@@ -196,7 +196,7 @@ class pyShelly():
                 continue
             if not data['done']:
                 done = False
-                for id, block in self.blocks.items():
+                for id, block in list(self.blocks.items()):
                     if block.ip_addr == ip_addr:
                         self._shelly_by_ip[ip_addr]['done'] = True
                         done = True

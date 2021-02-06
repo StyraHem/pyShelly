@@ -2,10 +2,10 @@
 """Python 2.x and 3.x compability fixes"""
 
 import sys
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 if sys.version_info < (3,):
-    import urllib2
+    import urllib.request, urllib.error, urllib.parse
 
     def ba2c(x):  # Convert bytearra to compatible string
         return str(x)
@@ -17,13 +17,13 @@ if sys.version_info < (3,):
         return str(x)
 
     def uc(x):
-        return unicode(x)
+        return str(x)
 
     def urlencode(x):
-        return urllib.urlencode(x)
+        return urllib.parse.urlencode(x)
 
     def urlopen(x):
-        return urllib2.urlopen(x)
+        return urllib.request.urlopen(x)
 else:
     def ba2c(x):  # Convert bytearra to compatible bytearray
         return x
