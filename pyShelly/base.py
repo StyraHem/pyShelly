@@ -118,7 +118,7 @@ class Base(object):
         return None
 
     def __update_info_values_coap(self, payload, cfg):
-        for name, cfg in cfg.items():
+        for name, cfg in list(cfg.items()):
             value = self._get_coap_value(cfg, payload)
             self.set_info_value(name, value, SRC_COAP)
             # if value is not None:

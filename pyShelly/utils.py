@@ -10,7 +10,7 @@ from .compat import s
 try:
     import http.client as httplib
 except:
-    import httplib
+    import http.client
 
 from .const import (
     LOGGER
@@ -45,7 +45,7 @@ def shelly_http_get(host, url, username, password, log_error=True):
     conn = None
     try:
         LOGGER.debug("http://%s%s", host, url)
-        conn = httplib.HTTPConnection(host, timeout=5)
+        conn = http.client.HTTPConnection(host, timeout=5)
         headers = {"Connection": "close"}
         if username is not None \
             and password is not None:

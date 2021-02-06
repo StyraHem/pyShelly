@@ -16,7 +16,7 @@ from .const import LOGGER
 try:
     import http.client as httplib
 except:
-    import httplib
+    import http.client
 
 class Cloud():
     def __init__(self, root, server, key):
@@ -87,7 +87,7 @@ class Cloud():
         params = params or {}
         try:
             LOGGER.debug("POST to Shelly Cloud")
-            conn = httplib.HTTPSConnection(self.server, timeout=15)
+            conn = http.client.HTTPSConnection(self.server, timeout=15)
             headers = {'Content-Type' : 'application/x-www-form-urlencoded',
                         "Connection": "close"}
             params["auth_key"] = self.auth_key
