@@ -1,18 +1,20 @@
 """Block is a physical device"""
 # pylint: disable=broad-except, bare-except
 
-from datetime import datetime
-from .utils import shelly_http_get
+import json
+from datetime import datetime, timedelta
+from .utils import shelly_http_get, timer
 from .switch import Switch
 from .relay import Relay
 from .powermeter import PowerMeter
 from .sensor import (Sensor, BinarySensor, Flood, DoorWindow, ExtTemp,
-                     ExtHumidity, Gas, TempSensor)
+                     ExtHumidity, Gas, TempSensor, ExtSwitch)
 from .light import RGBW2W, RGBW2C, RGBWW, Bulb, Duo, Vintage
 from .dimmer import Dimmer
 from .roller import Roller
 from .utils import exception_log
 from .base import Base
+
 
 from .const import (
     LOGGER,
@@ -37,12 +39,15 @@ from .const import (
     INFO_VALUE_SENSOR,
     INFO_VALUE_TOTAL_WORK_TIME,
     ATTR_PATH,
+    ATTR_TOPIC,
     ATTR_FMT,
     ATTR_POS,
     ATTR_AUTO_SET,
     BLOCK_INFO_VALUES,
     SHELLY_TYPES,
     SRC_STATUS,
+    SRC_MQTT,
+    SRC_MQTT_STATUS,
     RSSI_LEVELS
 )
 
@@ -71,11 +76,15 @@ class Block(Base):
         self.settings = None
         self.exclude_info_values = []
         #self._info_value_cfg = None
-        self._setup()
+        self._need_setup_delayed_devices = False
+        self.setup_devices()
         self._available = None
         self.status_update_error_cnt = 0
         self.last_try_update_status = None
         self._last_friendly_name = None
+        self.mqtt_name = None
+        self.mqtt_src = None        
+        self._check_delay_load = timer(timedelta(seconds=60))
 
     def update_coap(self, payload, ip_addr):
         self.ip_addr = ip_addr  # If changed ip
@@ -86,22 +95,52 @@ class Block(Base):
             self.set_info_value(INFO_VALUE_PAYLOAD, self.payload, None)
      
         for dev in self.devices:
-            dev.ip_addr = ip_addr
             dev._update_info_values_coap(payload)
             if hasattr(dev, 'update_coap'):
                 dev.update_coap(payload)
             dev.raise_updated()
-        if self.reload:
-            self._reload_devices()
-            for dev in self.devices:
-                dev._update_info_values_coap(payload)
-                if hasattr(dev, 'update_coap'):
-                    dev.update_coap(payload)
-                self.parent.add_device(dev, self.discovery_src)
-            self.reload = False
+        # if self.reload:
+        #     self._reload_devices()
+        #     for dev in self.devices:
+        #         dev._update_info_values_coap(payload)
+        #         if hasattr(dev, 'update_coap'):
+        #             dev.update_coap(payload)
+        #         self.parent.add_device(dev, self.discovery_src)
+        #     self.reload = False
         self.raise_updated()
 
+    def update_mqtt(self, payload):
+        self.mqtt_name = payload['name']
+        self.mqtt_src = payload['src']
+        self.last_updated = datetime.now()
+
+        if payload['topic'] == "info":
+            status = json.loads(payload['data'])
+            self._update_status_info(status, SRC_MQTT_STATUS)
+        elif payload['topic'] == "announce":
+            pass
+        else:
+            self._update_info_values_mqtt(payload, BLOCK_INFO_VALUES)
+            for dev in self.devices:
+                dev._update_info_values_mqtt(payload)
+                if hasattr(dev, 'update_mqtt'):
+                    dev.update_mqtt(payload)
+                dev.raise_updated()
+            # if self.reload:
+            #     self._reload_devices()
+            #     for dev in self.devices:
+            #         dev._update_info_values_coap(payload)
+            #         if hasattr(dev, 'update_coap'):
+            #             dev.update_coap(payload)
+            #         self.parent.add_device(dev, self.discovery_src)
+            #     self.reload = False
+            self.raise_updated()
+
     def loop(self):
+        if self._need_setup_delayed_devices and self._check_delay_load.check():            
+            if self.setup_devices_delayed():
+                self._need_setup_delayed_devices = False
+
         if self._info_value_cfg:
             for iv, cfg in self._info_value_cfg.items():
                 if ATTR_AUTO_SET in cfg:
@@ -127,36 +166,47 @@ class Block(Base):
     def update_status_information(self):
         """Update the status information."""
         self.last_update_status_info = datetime.now()
+        if self.mqtt_name:
+            self.parent.send_mqtt(self, "command", "announce")
+        elif self.ip_addr:
+            if self.status_update_error_cnt >= 3:
+                diff = (datetime.now()-self.last_try_update_status).total_seconds()
+                if diff < 600 or (diff < 3600 and self.status_update_error_cnt >= 5):
+                    return
 
-        if self.status_update_error_cnt >= 3:
-            diff = (datetime.now()-self.last_try_update_status).total_seconds()
-            if diff < 600 or (diff < 3600 and self.status_update_error_cnt >= 5):
+            self.last_try_update_status = datetime.now()
+
+            LOGGER.debug("Get status from %s %s", self.id, self.friendly_name())
+            success, status = self.http_get('/status', False)
+
+            if not success or status == {}:
+                self.status_update_error_cnt += 1
                 return
 
-        self.last_try_update_status = datetime.now()
+            if 'poll' not in self.protocols:
+                self.protocols.append("poll")
 
-        LOGGER.debug("Get status from %s %s", self.id, self.friendly_name())
-        success, status = self.http_get('/status', False)
+            self.status_update_error_cnt = 0
 
-        if not success or status == {}:
-            self.status_update_error_cnt += 1
-            return
+            self._update_status_info(status, SRC_STATUS)
 
-        if 'poll' not in self.protocols:
-            self.protocols.append("poll")
-
-        self.status_update_error_cnt = 0
+    def _update_status_info(self, status, src):
         self.last_updated = datetime.now()
+
+        if 'wifi_sta' in status:
+            wifi = status['wifi_sta']
+            if 'ip' in wifi:
+                self.ip_addr = wifi['ip']   
 
         #Put status in info_values
         for name, cfg in BLOCK_INFO_VALUES.items():
             if name in self.exclude_info_values:
                 continue
-            self._update_info_value(name, status, cfg)
+            self._update_info_value(name, status, cfg, src)
 
         if self._info_value_cfg:
             for name, cfg in self._info_value_cfg.items():
-                self._update_info_value(name, status, cfg)
+                self._update_info_value(name, status, cfg, src)
 
         cloud_status = 'disabled'
         if self.info_values.get(INFO_VALUE_CLOUD_ENABLED):
@@ -164,7 +214,7 @@ class Block(Base):
                 cloud_status = 'connected'
             else:
                 cloud_status = 'disconnected'
-        self.set_info_value(INFO_VALUE_CLOUD_STATUS, cloud_status, SRC_STATUS)
+        self.set_info_value(INFO_VALUE_CLOUD_STATUS, cloud_status, src)
 
         rssi = self.info_values.get(INFO_VALUE_RSSI)
         rssi_level = self.info_values.get(INFO_VALUE_RSSI_LEVEL)
@@ -172,11 +222,11 @@ class Block(Base):
             if rssi >= val or ( rssi_level == name and rssi >= val - 2):
                 rssi_level = name
                 break
-        self.set_info_value(INFO_VALUE_RSSI_LEVEL, rssi_level, SRC_STATUS)
+        self.set_info_value(INFO_VALUE_RSSI_LEVEL, rssi_level, src)
 
         #self.info_values[INFO_VALUE_HAS_FIRMWARE_UPDATE] = self.has_fw_update()
         self.set_info_value(INFO_VALUE_LATEST_BETA_FW_VERSION,
-                            self.latest_fw_version(True), SRC_STATUS)
+                            self.latest_fw_version(True), src)
 
         friendly_name = self.friendly_name()
         if self._last_friendly_name!=friendly_name:
@@ -189,11 +239,11 @@ class Block(Base):
         for dev in self.devices:
             try:
                 if dev._state_cfg:
-                    dev._update_state(status, dev._state_cfg)
+                    dev._update_state(status, dev._state_cfg, src)
                 if dev._info_value_cfg:
                     for name, cfg in dev._info_value_cfg.items():
-                        dev._update_info_value(name, status, cfg)
-                dev.update_status_information(status)
+                        dev._update_info_value(name, status, cfg, src)
+                dev.update_status_information(status, src)
                 dev.raise_updated(force_update_devices)
             except Exception as ex:
                 exception_log(ex, "Error update device status: {} {}", \
@@ -220,13 +270,49 @@ class Block(Base):
         if self.type in SHELLY_TYPES and \
             SHELLY_TYPES[self.type].get('battery'):
                 return
+        if not self.ip_addr:
+            return
         success, settings = self.http_get("/settings")
         if success:
             self.settings = settings
 
-    def _setup(self):
-        #Get settings
+    def setup_devices_delayed(self):
         self.poll_settings()
+        if self.type == 'SHSW-21':
+            if self.settings:
+                if self.settings.get('mode') == 'roller':
+                    self._add_device(Roller(self))
+                else:
+                    self._add_device(Relay(self, 1))
+                    self._add_device(Relay(self, 2, consumption_channel = 0))
+                return True
+        elif self.type == 'SHSW-25':
+            if self.settings:
+                if self.settings.get('mode') == 'roller':
+                    self._add_device(Roller(self))
+                    self._add_device(PowerMeter(self, 1))
+                else:
+                    self._add_device(Relay(self, 1))
+                    self._add_device(Relay(self, 2))
+                    self._add_device(PowerMeter(self, 1))
+                    self._add_device(PowerMeter(self, 2))
+                return True
+        elif self.type == 'SHRGBW2':
+            if self.settings:
+                if self.settings.get('mode', 'color') == 'color':
+                    self._add_device(RGBW2C(self))
+                    self._add_device(PowerMeter(self, 0, position=[211, 4101], topic="color"))
+                else:
+                    for channel in range(4):
+                        self._add_device(RGBW2W(self, channel + 1))
+                        self._add_device(PowerMeter(self, channel+1, [211, 4101], topic= 'white'))
+                return True
+        else:
+            return True
+
+    def setup_devices(self):
+        #Get settings
+        #self.poll_settings()
         #Shelly BULB, ,Shelly Bulb RGBW GU10
         if self.type == 'SHBLB-1' or self.type == 'SHCL-255' or self.type == 'SHCB-1':
             self._add_device(Bulb(self))
@@ -238,10 +324,12 @@ class Block(Base):
             self._add_device(ExtTemp(self, 1), True)
             self._add_device(ExtTemp(self, 2), True)
             self._add_device(ExtHumidity(self, 0), True)
+            self._add_device(ExtSwitch(self), True)            
         #Shelly 1L
         elif self.type == 'SHSW-L':
             self._add_device(Relay(self, 0))
-            self._add_device(Switch(self, 0))
+            self._add_device(Switch(self, 1))
+            self._add_device(Switch(self, 2))
         #Shelly 1 PM
         elif self.type == 'SHSW-PM':
             self._add_device(Relay(self, 0))
@@ -251,37 +339,24 @@ class Block(Base):
             self._add_device(ExtTemp(self, 1), True)
             self._add_device(ExtTemp(self, 2), True)
             self._add_device(ExtHumidity(self, 0), True)
+            self._add_device(ExtSwitch(self), True)
         #Shelly 2
-        elif self.type == 'SHSW-21':
-            if self.settings:
-                if self.settings.get('mode') == 'roller':
-                    self._add_device(Roller(self))
-                else:
-                    self._add_device(Relay(self, 1))
-                    self._add_device(Relay(self, 2, consumption_channel = 0))
-                self._add_device(Switch(self, 1))
-                self._add_device(Switch(self, 2))
-                self._add_device(PowerMeter(self, 0))
+        elif self.type == 'SHSW-21':            
+            self._add_device(Switch(self, 1))
+            self._add_device(Switch(self, 2))
+            self._add_device(PowerMeter(self, 0))
+            self._need_setup_delayed_devices = True
         #Shelly 2.5
         elif self.type == 'SHSW-25':
-            if self.settings:
-                if self.settings.get('mode') == 'roller':
-                    self._add_device(Roller(self))
-                    self._add_device(PowerMeter(self, 1))
-                else:
-                    self._add_device(Relay(self, 1))
-                    self._add_device(Relay(self, 2))
-                    self._add_device(PowerMeter(self, 1))
-                    self._add_device(PowerMeter(self, 2))
-                self._add_device(Switch(self, 1))
-                self._add_device(Switch(self, 2))
-                #self._add_device(InfoSensor(self, 'temperature'))
-            #todo delayed reload
+            self._add_device(Switch(self, 1))
+            self._add_device(Switch(self, 2))
+            self._need_setup_delayed_devices = True
         #Shelly PLUG'S
         elif self.type == 'SHPLG-1' or self.type == 'SHPLG2-1' or \
               self.type == 'SHPLG-S' or self.type == 'SHPLG-U1':
             self._add_device(Relay(self, 0))
             self._add_device(PowerMeter(self, 0))
+        #Shelly EM
         elif self.type == 'SHEM':
             self._add_device(Relay(self, 0, include_power=False, em=True))
             self._add_device(PowerMeter(self, 1, voltage_to_block=True,
@@ -312,52 +387,49 @@ class Block(Base):
             self._add_device(Switch(self, 1, position=[131, 2101]))
             self._add_device(Switch(self, 2, position=[131, 2101]))
             self._add_device(PowerMeter(self, 0, 4101, 4103))
+        #Shelly H&T
         elif self.type == 'SHHT-1':
             self.sleep_device = True
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
             self.exclude_info_values.append(INFO_VALUE_DEVICE_TEMP)
             self._add_device(TempSensor(self))
-            self._add_device(Sensor(self, [44, 3103], 'humidity', 'hum/value'))
+            self._add_device(Sensor(self, [44, 3103], 'humidity', 'hum/value', topic= 'sensor/humidity'))
         #Shellyy RGBW2
         elif self.type == 'SHRGBW2':
-            if self.settings:
-                if self.settings.get('mode', 'color') == 'color':
-                    self._add_device(RGBW2C(self))
-                    self._add_device(PowerMeter(self, 0, position=[211, 4101]))
-                else:
-                    for channel in range(4):
-                        self._add_device(RGBW2W(self, channel + 1))
-                        self._add_device(PowerMeter(self, channel+1, [211, 4101]))
             self._add_device(Switch(self, 0))
+            self._need_setup_delayed_devices = True
             #todo else delayed reload
         #Shelly Flood
         elif self.type == 'SHWT-1':
             self.sleep_device = True
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
             self._add_device(Flood(self))
-            self._add_device(Sensor(self, 33, 'temperature', 'tmp/tC'))
+            self._add_device(Sensor(self, [33, 3101], 'temperature', 'tmp/tC', topic='sensor/temperature'))
+        #Shelly DW
         elif self.type == 'SHDW-1':
             self.sleep_device = True
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
-            self._info_value_cfg = {INFO_VALUE_BATTERY : {ATTR_POS : [77, 3111]},
-                                    INFO_VALUE_TILT : {ATTR_POS : [88, 3109]},
+            self._info_value_cfg = {INFO_VALUE_TILT : {ATTR_POS : [88, 3109], ATTR_PATH : 'accel/tilt', ATTR_TOPIC: 'sensor/tilt'},
                                     INFO_VALUE_VIBRATION : {ATTR_POS : [99, 6110],
-                                                    ATTR_AUTO_SET: [0, 60]},
-                                    INFO_VALUE_ILLUMINANCE: {ATTR_POS : [66, 3106]}
+                                                            ATTR_PATH : 'accel/vibration',
+                                                            ATTR_AUTO_SET: [0, 60],
+                                                            ATTR_TOPIC: 'sensor/vibration'},
+                                    INFO_VALUE_ILLUMINANCE: {ATTR_POS : [66, 3106], ATTR_PATH : 'lux/value', ATTR_TOPIC:'sensor/lux'}
             }
             self._add_device(DoorWindow(self, [55, 3108]))
+        #Shelly DW 2
         elif self.type == 'SHDW-2':
             self.sleep_device = True
             self.exclude_info_values.append(INFO_VALUE_DEVICE_TEMP)
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
-            self._info_value_cfg = {#INFO_VALUE_BATTERY : {ATTR_POS : 3111},
-                                    INFO_VALUE_TILT : {ATTR_POS : 3109, ATTR_PATH : 'accel/tilt'},
+            self._info_value_cfg = {INFO_VALUE_TILT : {ATTR_POS : 3109, ATTR_PATH : 'accel/tilt', ATTR_TOPIC: 'sensor/tilt'},
                                     INFO_VALUE_VIBRATION :
                                         {ATTR_POS : 6110,
                                          ATTR_PATH : 'accel/vibration',
-                                         ATTR_AUTO_SET: [0, 60]},
-                                    INFO_VALUE_TEMP: {ATTR_POS : 3101}, #Todo
-                                    INFO_VALUE_ILLUMINANCE: {ATTR_POS : 3106, ATTR_PATH : 'lux/value'}
+                                         ATTR_AUTO_SET: [0, 60],
+                                         ATTR_TOPIC: 'sensor/vibration'},
+                                    INFO_VALUE_TEMP: {ATTR_POS : 3101, ATTR_PATH : 'tmp/tC', ATTR_TOPIC:'sensor/temperature'}, #Todo
+                                    INFO_VALUE_ILLUMINANCE: {ATTR_POS : 3106, ATTR_PATH : 'lux/value', ATTR_TOPIC:'sensor/lux'}
             }
             self._add_device(DoorWindow(self, 3108))
         elif self.type == 'SHBDUO-1':
@@ -391,7 +463,7 @@ class Block(Base):
             self._add_device(ExtTemp(self, 1), True)
             self._add_device(ExtTemp(self, 2), True)
             self._add_device(ExtHumidity(self, 0), True)
-            self._add_device(Sensor(self, [3118], 'voltage', 'adcs/$/voltage'))
+            self._add_device(Sensor(self, [3118], 'voltage', 'adcs/$/voltage', topic='adc/$'))
         elif self.type == 'SHAIR-1':
             self._info_value_cfg = {
                 INFO_VALUE_TEMP: {ATTR_POS : 119,
@@ -407,7 +479,7 @@ class Block(Base):
         dev.lazy_load = lazy_load
         dev.major_unit = major
         self.devices.append(dev)
-        #self.parent.add_device(dev, self.discovery_src)
+        self.parent.add_device(dev, self.discovery_src)
         return dev
 
     def _reload_devices(self):
@@ -415,7 +487,8 @@ class Block(Base):
             self.parent.remove_device(device, self.discovery_src)
             device.close()
         self.devices = []
-        self._setup()
+        #self.setup_devices()
+        self._need_setup_devices = True
 
     def fw_version(self):
         return self.info_values.get(INFO_VALUE_FW_VERSION)
@@ -461,3 +534,4 @@ class Block(Base):
             return False
         diff = datetime.now() - self.last_updated
         return diff.total_seconds() <= self.unavailable_after_sec
+

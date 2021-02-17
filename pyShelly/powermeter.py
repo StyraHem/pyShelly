@@ -20,13 +20,14 @@ from .const import (
     INFO_VALUE_CURRENT,
     ATTR_POS,
     ATTR_PATH,
-    ATTR_FMT
+    ATTR_FMT,
+    ATTR_TOPIC
 )
 
 class PowerMeter(Device):
     """Class to represent a power meter value"""
     def __init__(self, block, channel, position = None,
-                 tot_pos = None, voltage_to_block=False, em=False):
+                 tot_pos = None, voltage_to_block=False, em=False, topic="emeter"):
         #Todo: voltage_to_block
         super(PowerMeter, self).__init__(block)
         self.id = block.id
@@ -51,30 +52,35 @@ class PowerMeter(Device):
         self._state_cfg = {
             ATTR_POS: notNone(position, [111, 4101, 4102, 4105]),
             ATTR_PATH: meters + '/$/power',
-            ATTR_FMT: ['float']
+            ATTR_FMT: ['float'],
+            ATTR_TOPIC: ['relay/$/power', topic + '/$/power']
         }
         divider = None if em else '/60'
         self._info_value_cfg = {
             INFO_VALUE_POWER_FACTOR : {
                 ATTR_POS: [114, 4110],
-                ATTR_PATH: meters + 'eters/$/pf',
-                ATTR_FMT: ['float']
+                ATTR_PATH: meters + '/$/pf',
+                ATTR_FMT: ['float'],
+                ATTR_TOPIC: topic + '/$/pf'
             },
             INFO_VALUE_CURRENT : {
                 ATTR_POS: [115, 4109],
                 ATTR_PATH: meters + '/$/current',
-                ATTR_FMT: ['float']
+                ATTR_FMT: ['float'],
+                ATTR_TOPIC: topic + '/$/current'
             },
             INFO_VALUE_TOTAL_CONSUMPTION : {
                 ATTR_POS: tot_pos or [4103, 4104, 4106],
                 ATTR_PATH: meters + '/$/total',
-                ATTR_FMT: ['float', divider, 'round:2']
+                ATTR_FMT: ['float', divider, 'round:2'],
+                ATTR_TOPIC: ['relay/$/energy', topic + '/$/total', topic + '/$/energy']
             },
             INFO_VALUE_TOTAL_RETURNED :
             {
                 ATTR_POS: [4107],
                 ATTR_PATH: meters + '/$/total_returned',
-                ATTR_FMT: ['float', divider, 'round:2']
+                ATTR_FMT: ['float', divider, 'round:2'],
+                ATTR_TOPIC: topic + '/$/total_returned'
             }
         }
         (self.block if voltage_to_block else self) \
@@ -82,7 +88,8 @@ class PowerMeter(Device):
             {
                 ATTR_POS: [116, 4108],
                 ATTR_PATH: meters + '/$/voltage',
-                ATTR_FMT: ['float']
+                ATTR_FMT: ['float'],
+                ATTR_TOPIC: topic + '/$/voltage'
             }
 
     # """

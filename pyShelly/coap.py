@@ -24,13 +24,17 @@ class CoAP():
         self._socket = None
 
     def start(self):
-        self._init_socket()
-        self._thread.start()
+        try:
+            self._init_socket()
+            self._thread.start()
+        except:
+            LOGGER.exception("Can't setup CoAP listener")
 
     def discover(self):
-        LOGGER.debug("Sending CoAP discover UDP")
-        msg = bytes(b'\x50\x01\x00\x0A\xb3cit\x01d\xFF')
-        self._socket.sendto(msg, (COAP_IP, COAP_PORT))
+        if self._socket:
+            LOGGER.debug("Sending CoAP discover UDP")
+            msg = bytes(b'\x50\x01\x00\x0A\xb3cit\x01d\xFF')
+            self._socket.sendto(msg, (COAP_IP, COAP_PORT))
 
     def _init_socket(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM,

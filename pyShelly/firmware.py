@@ -21,7 +21,7 @@ class Firmware_manager(Loop):
         self.start_loop()
 
     def loop_timer(self):
-        self.list = self._http_get('https://repo.shelly.cloud/files/firmware')
+        self.list = self._http_get('https://api.shelly.cloud/files/firmware')
 
     def _http_get(self, url):
         f = None

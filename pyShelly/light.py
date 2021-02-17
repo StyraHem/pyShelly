@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+import json
 from .device import Device
 
 from .const import (
@@ -20,7 +20,8 @@ from .const import (
     ATTR_POS,
     ATTR_PATH,
     ATTR_FMT,
-    SRC_COAP, SRC_STATUS
+    ATTR_TOPIC,
+    SRC_COAP, SRC_STATUS, SRC_MQTT
 )
 
 class Light(Device):
@@ -62,14 +63,25 @@ class LightWhite(Light):
             INFO_VALUE_CURRENT_CONSUMPTION : {
                     ATTR_POS: power_pos or [141, 4101],
                     ATTR_PATH: 'meters/$/power',
-                    ATTR_FMT: ['float']
+                    ATTR_FMT: ['float'],
+                    ATTR_TOPIC: 'white/$/power'
             },
             INFO_VALUE_TOTAL_CONSUMPTION : {
                 ATTR_POS: [214, 4103],
                 ATTR_PATH: 'meters/$/total',
-                ATTR_FMT: ['float','/60','round:2']
+                ATTR_FMT: ['float','/60','round:2'],
+                ATTR_TOPIC: 'white/$/energy'
             }
         }
+
+    def update_mqtt(self, payload):
+        """Get the power"""
+        if payload['topic'] == "white/" + str(self._channel) + '/status':
+            status =  json.loads(payload['data'])
+            new_state = status['ison']
+            self.brightness = status['brightness']
+            values = {'brightness': self.brightness, "color_temp": self.color_temp}
+            self._update(SRC_MQTT, new_state, values)
 
     def update_coap(self, payload):
         new_state = self.coap_get(payload, self.state_pos) == 1
@@ -84,7 +96,7 @@ class LightWhite(Light):
 
         self._update(SRC_COAP, new_state, values)
 
-    def update_status_information(self, status):
+    def update_status_information(self, status, src):
         """Update the status information."""
         new_state = None
         lights = status.get(STATUS_RESPONSE_LIGHTS)
@@ -96,30 +108,36 @@ class LightWhite(Light):
             self.color_temp = int(light.get('temp', 0))
             new_state = light.get(STATUS_RESPONSE_LIGHTS_STATE, None)
             values = {'color_temp': self.color_temp, 'brightness': self.brightness}
-            self._update(SRC_STATUS, new_state, values)
+            self._update(src, new_state, values)
 
     def _send_data(self, state, brightness=None, color_temp=None):
         url = self.url + "?"
+        topic = 'white/' + str(self._channel) + '/set'
+        payload = {}
 
         if state is not None:
             if not state or brightness == 0:
                 url += "turn=off"
-                self._send_command(url)
+                payload['turn']='off'
+                self._send_command(url, topic, payload)
                 return
             url += "turn=on&"
+            payload['turn']='on'
 
         if brightness is not None:
             url += "brightness=" + str(brightness) + "&"
+            payload['brightness']=str(brightness)
 
         if color_temp is not None:
             url += "temp=" + str(color_temp) + "&"
+            payload['temp']=str(color_temp)
 
-        self._send_command(url)
+        self._send_command(url, topic, payload)
 
     def turn_on(self, brightness=None, color_temp=None):
         self._send_data(True, brightness, color_temp)
 
-    def set_values(self, state=None, brightness=None, color_temp=None):
+    def set_values(self, state=None, brightness=None, color_temp=None, **kwargs):
         self._send_data(state, brightness, color_temp)
 
     def turn_off(self):
@@ -183,6 +201,29 @@ class LightRGB(Light):
             }
         }
 
+    def update_mqtt(self, payload):
+        if payload['topic'] == "color/" + str(self._channel) + '/status':
+            status =  json.loads(payload['data'])
+            new_state = status['ison']
+
+            self.mode = status['mode']
+            
+            if self.mode == 'color':
+                self.brightness = int(status.get('gain', 0))
+                self.white_value = int(status.get('white', 0))
+                self.rgb = [int(status.get('red')),
+                            int(status.get('green')),
+                            int(status.get('blue'))]
+            
+            self.effect = int(status.get('effect', 0))
+            self.color_temp = int(status.get('temp', 0)) #???
+
+            values = {'mode': self.mode, 'brightness': self.brightness,
+                  'rgb': self.rgb, 'color_temp': self.color_temp,
+                  'white_value': self.white_value,
+                  'effect': self.effect}
+            self._update(SRC_MQTT, new_state, values)
+
     def update_coap(self, payload):
         if not 9101 in payload:
             success, settings = self.block.http_get(self.url) #todo
@@ -236,7 +277,7 @@ class LightRGB(Light):
 
         self._update(SRC_COAP, new_state, values)
 
-    def update_status_information(self, status):
+    def update_status_information(self, status, src):
         """Update the status information."""
         new_state = None
         lights = status.get(STATUS_RESPONSE_LIGHTS)
@@ -271,7 +312,7 @@ class LightRGB(Light):
                       'rgb': self.rgb, 'color_temp': self.color_temp,
                       'white_value': self.white_value,
                       'effect': self.effect}
-            self._update(SRC_STATUS, new_state, values)
+            self._update(src, new_state, values)
 
     def _send_data(self, state, brightness=None, rgb=None, color_temp=None,
                    mode=None, effect=None, white_value=None):
@@ -317,7 +358,7 @@ class LightRGB(Light):
                         color_temp, mode, effect, white_value)
 
     def set_values(self, rgb=None, brightness=None, color_temp=None, mode=None,
-                   effect=None, white_value=None):
+                   effect=None, white_value=None, **kwargs):
         self._send_data(None, brightness, rgb,
                         color_temp, mode, effect, white_value)
 

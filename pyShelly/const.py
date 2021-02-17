@@ -5,7 +5,7 @@ import logging
 LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
-VERSION = "0.2.19"
+VERSION = "0.2.20"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
@@ -92,16 +92,19 @@ ATTR_FMT = 'fmt'
 ATTR_POS = 'pos'
 ATTR_CHANNEL = 'channel'
 ATTR_AUTO_SET = 'auto_set'
+ATTR_TOPIC = 'topic'
 
 SRC_COAP = 1
 SRC_STATUS = 2
+SRC_MQTT = 3
+SRC_MQTT_STATUS = 4
 
 BLOCK_INFO_VALUES = {
     INFO_VALUE_SSID : {ATTR_PATH :'wifi_sta/ssid'},
     INFO_VALUE_RSSI : {ATTR_PATH : 'wifi_sta/rssi'},
     INFO_VALUE_UPTIME : {ATTR_PATH : 'uptime'},
-    INFO_VALUE_DEVICE_TEMP : {ATTR_PATH : 'tmp/tC', ATTR_POS: [311, 3104]}, #, ATTR_FMT : 'round'},
-    INFO_VALUE_OVER_TEMPERATURE : {ATTR_PATH : 'overtemperature', ATTR_POS: 6101},
+    INFO_VALUE_DEVICE_TEMP : {ATTR_PATH : 'tmp/tC', ATTR_POS: [311, 3104], ATTR_TOPIC: 'temperature'}, #, ATTR_FMT : 'round'},
+    INFO_VALUE_OVER_TEMPERATURE : {ATTR_PATH : 'overtemperature', ATTR_POS: 6101, ATTR_TOPIC: 'overtemperature'},
     INFO_VALUE_HAS_FIRMWARE_UPDATE : {ATTR_PATH : 'update/has_update'},
     INFO_VALUE_LATEST_FIRMWARE_VERSION : {ATTR_PATH : 'update/new_version',
                                           ATTR_FMT : 'ver'},
@@ -112,7 +115,7 @@ BLOCK_INFO_VALUES = {
     INFO_VALUE_MQTT_CONNECTED : {ATTR_PATH : 'mqtt/connected'},
     #INFO_VALUE_CURRENT_CONSUMPTION : {ATTR_PATH : 'consumption'},
     INFO_VALUE_VOLTAGE : {ATTR_PATH : 'voltage', ATTR_FMT : 'round'},
-    INFO_VALUE_BATTERY : {ATTR_PATH : 'bat/value', ATTR_POS : 3111},
+    INFO_VALUE_BATTERY : {ATTR_PATH : 'bat/value', ATTR_POS : [77, 3111], ATTR_TOPIC: "sensor/battery"},
     #INFO_VALUE_TILT : {ATTR_PATH : 'accel/tilt'}, #Todo
     #INFO_VALUE_VIBRATION : {ATTR_PATH : 'accel/vibration'}, #Todo
     #INFO_VALUE_TEMP : {ATTR_PATH : 'tmp/tC'},

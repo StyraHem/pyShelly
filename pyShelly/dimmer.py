@@ -48,7 +48,7 @@ class Dimmer(Device):
         #todo, read consumption when firmware fixed
         self._update(SRC_COAP,new_state, values)
 
-    def update_status_information(self, status):
+    def update_status_information(self, status, src):
         """Update the status information."""
         new_state = None
         lights = status.get(STATUS_RESPONSE_LIGHTS)
@@ -66,16 +66,16 @@ class Dimmer(Device):
                 value = input.get(STATUS_RESPONSE_INPUTS_INPUT)
                 if value is not None:
                     self.set_info_value(INFO_VALUE_SWITCH + "_" + str(idx+1),
-                                         value > 0, SRC_STATUS)
+                                         value > 0, src)
         meters = status.get(STATUS_RESPONSE_METERS)
         if meters and len(meters) > 0:
             meter = meters[0]
             value = meter.get(STATUS_RESPONSE_METERS_POWER)
             if value is not None:
                 self.set_info_value(INFO_VALUE_CURRENT_CONSUMPTION,
-                                     float(value), SRC_STATUS)
+                                     float(value), src)
 
-        self._update(SRC_STATUS, new_state, values)
+        self._update(src, new_state, values)
 
     def _send_data(self, state, brightness=None):
         url = self.url + "?"

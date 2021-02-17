@@ -66,7 +66,7 @@ class Roller(Device):
         state = self.position != 0
         self._update(SRC_COAP, state)
 
-    def update_status_information(self, status):
+    def update_status_information(self, status, src):
         """Update the status information."""
         rollers = status.get(STATUS_RESPONSE_ROLLERS)
         if rollers:
@@ -77,9 +77,9 @@ class Roller(Device):
             self._set_pos(roller[STATUS_RESPONSE_ROLLERS_POSITION])
             self.set_info_value(INFO_VALUE_CURRENT_CONSUMPTION,
                                 roller[STATUS_RESPONSE_ROLLERS_POWER],
-                                SRC_STATUS)
+                                src)
             state = self.position != 0
-            self._update(SRC_STATUS, state)
+            self._update(src, state)
 
     def up(self):
         self._send_command("/roller/0?go=open")
