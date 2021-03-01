@@ -103,7 +103,7 @@ class pyShelly():
         self._debug_server = None
         self._firmware_mgr =  Firmware_manager(self)
         self.host_ip = ''
-        self.bind_ip = ''
+        self.bind_ip = '0.0.0.0'
         self.mqtt_port = 0
         self.firmware_url = None
         self.zeroconf = None

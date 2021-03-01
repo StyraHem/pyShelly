@@ -5,7 +5,7 @@ import logging
 LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
-VERSION = "0.2.21"
+VERSION = "0.2.22"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
@@ -154,14 +154,15 @@ SHELLY_TYPES = {
                'mqtt':'shellydw2'},
     'SHBDUO-1': {'name': "Shelly Duo", 'mqtt':'ShellyBulbDuo'},
     'SHBVIN-1': {'name': "Shelly Vintage", 'mqtt':'ShellyVintage'},
-    'SHBTN-1': {'name': "Shelly Button 1", 'mqtt':'shellybutton1',
-                'battery' : True},
+    'SHBTN-1': {'name': "Shelly Button 1", 'mqtt':'shellybutton1', 'battery' : True},
+    'SHBTN-2': {'name': "Shelly Button 1", 'battery' : True},
     'SHIX3-1': {'name': "Shelly i3", 'mqtt':'shellyix3'},
     'SHGS-1': {'name': "Shelly Gas", 'mqtt':'shellygas'},
     'SHAIR-1': {'name': "Shelly Air", 'mqtt':'ShellyAir'},
     'SHPLG-U1': {'name': "Shelly Plug US", 'mqtt':'shellyplugu1'},
     'SHUNI-1': {'name': "Shelly UNI", 'mqtt':'shellyuni'},
-    'SHSW-L': {'name': "Shelly 1L", 'mqtt':'shelly1l'}
+    'SHSW-L': {'name': "Shelly 1L", 'mqtt':'shelly1l'},
+    'SHMOS-01': {'name': "Shelly Motion", 'mqtt':'shellymotionsensor'}
 }
 
 EFFECTS_RGBW2 = [

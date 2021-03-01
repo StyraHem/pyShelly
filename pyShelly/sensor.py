@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
-
+import json
 from .device import Device
 from .const import (
-    INFO_VALUE_VIBRATION,
     INFO_VALUE_HUMIDITY,
     ATTR_PATH,
     ATTR_FMT,
     ATTR_POS,
-    ATTR_TOPIC
+    ATTR_TOPIC,
+    SRC_MQTT
 )
 
 class Sensor(Device):
@@ -52,12 +52,32 @@ class Sensor(Device):
     #         #self._update(None, None, {self.sensor_type:self.format(data)})
     #         self._update(self.format(data))
 
+class BinarySensor(Sensor):
+    """Abstract class to represent binary sensor"""
+    def __init__(self, block, pos, device_type, status_attr, topic=None):
+        super(BinarySensor, self).__init__(block, pos, device_type, status_attr, topic=topic)
+        self.device_type = "BINARY_SENSOR"
+
+    def format(self, value):
+        if value in ('open','mild','heavy','true') :
+            return True
+        if value in ('close','none','false'):
+            return False
+        return bool(value)
+
+class Motion(BinarySensor):
+    #{"motion":true,"timestamp":1614416952,"active":true,"vibration":true,"lux":303,"bat":87}
+    #{"G":[[0,6107,1],[0,3119,1614417090],[0,3120,1],[0,6110,0],[0,3106,285],[0,3111,87],[0,9103,11]]}
+    """Class to represent a external temp sensor"""
+    def __init__(self, block):
+        super(Motion, self).__init__(block, 6107, \
+            'motion', 'sensor/motion', topic="@motion")
 
 class ExtSwitch(Sensor):
     """Class to represent a external temp sensor"""
     def __init__(self, block):
         super(ExtSwitch, self).__init__(block, 3117, \
-            'external_switch', 'ext_switch/0/input', topic="ext_switch/$")
+            'external_switch', 'ext_switch/0/input', topic="/status")
         
 class TempSensor(Sensor):
     """Class to represent a external temp sensor"""
@@ -96,19 +116,6 @@ class ExtHumidity(Sensor):
             'humidity', 'ext_humidity/' + str(idx) + "/hum", idx, "ext_humidity/$")
         self.sleep_device = False
         self.ext_sensor = 1
-
-class BinarySensor(Sensor):
-    """Abstract class to represent binary sensor"""
-    def __init__(self, block, pos, device_type, status_attr, topic=None):
-        super(BinarySensor, self).__init__(block, pos, device_type, status_attr, topic=topic)
-        self.device_type = "BINARY_SENSOR"
-
-    def format(self, value):
-        if value in ('open','mild','heavy','true') :
-            return True
-        if value in ('close','none','false'):
-            return False
-        return bool(value)
 
 class Flood(BinarySensor):
     """Class to represent a flood sensor"""

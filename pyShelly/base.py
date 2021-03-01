@@ -1,5 +1,5 @@
 import traceback
-
+import json
 from datetime import datetime
 
 from .const import (
@@ -171,12 +171,19 @@ class Base(object):
     def _get_mqtt_value(self, cfg, payload):
         if ATTR_TOPIC in cfg:
             topic_list = cfg[ATTR_TOPIC]
+            payload_topic = payload['topic']            
             if not type(topic_list) is list:
                 topic_list = [topic_list]
             for topic in topic_list:
-                topic = topic.replace('$', str(cfg.get(ATTR_CHANNEL, self._channel))) #Todo cache??
-                if payload['topic'] == topic:         
-                    return self._fmt_info_value(payload['data'], cfg, SRC_MQTT)                
+                if payload_topic == 'status':
+                    if topic[0]=='@':
+                        if not 'json_data' in payload:
+                            payload['json_data'] = json.loads(payload['data'])
+                        return self._fmt_info_value(payload['json_data'][topic[1:]], cfg, SRC_MQTT)
+                else:                                
+                    topic = topic.replace('$', str(cfg.get(ATTR_CHANNEL, self._channel))) #Todo cache??
+                    if payload_topic == topic:         
+                        return self._fmt_info_value(payload['data'], cfg, SRC_MQTT)                
 
     def _update_info_values_mqtt(self, payload, extra_info_value_cfg=None):
         if self._state_cfg:

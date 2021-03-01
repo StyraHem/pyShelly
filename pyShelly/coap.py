@@ -40,7 +40,7 @@ class CoAP():
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM,
                              socket.IPPROTO_UDP)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 10)
+        #sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 10)
         sock.bind((self._root.bind_ip, COAP_PORT))
         if self._root.host_ip:
             mreq = struct.pack("=4s4s",
@@ -124,6 +124,7 @@ class CoAP():
                     pos = 8
 
                 byte = data[pos]
+                tkl = byte & 0x0F
                 #ver = byte >> 6
                 #typex = (byte >> 4) & 0x3
                 #tokenlen = byte & 0xF
@@ -132,7 +133,7 @@ class CoAP():
                 #msgid = 256 * data[2] + data[3]
                 LOGGER.debug("CoAP msg: %s %s", code, ipaddr) #, data)
 
-                pos = pos + 4
+                pos = pos + 4 + tkl
 
                 #LOGGER.debug(' Code: %s', code)
 

@@ -8,7 +8,7 @@ from .switch import Switch
 from .relay import Relay
 from .powermeter import PowerMeter
 from .sensor import (Sensor, BinarySensor, Flood, DoorWindow, ExtTemp,
-                     ExtHumidity, Gas, TempSensor, ExtSwitch)
+                     ExtHumidity, Gas, TempSensor, ExtSwitch, Motion)
 from .light import RGBW2W, RGBW2C, RGBWW, Bulb, Duo, Vintage
 from .dimmer import Dimmer
 from .roller import Roller
@@ -168,7 +168,7 @@ class Block(Base):
         self.last_update_status_info = datetime.now()
         if self.mqtt_name:
             self.parent.send_mqtt(self, "command", "announce")
-        elif self.ip_addr:
+        if self.ip_addr:
             if self.status_update_error_cnt >= 3:
                 diff = (datetime.now()-self.last_try_update_status).total_seconds()
                 if diff < 600 or (diff < 3600 and self.status_update_error_cnt >= 5):
@@ -440,7 +440,7 @@ class Block(Base):
             self._add_device(Vintage(self))
             self._add_device(PowerMeter(self, 0, position=[141, 4101],
                                         tot_pos=[214, 4103]))
-        elif self.type == 'SHBTN-1':
+        elif self.type in ('SHBTN-1', 'SHBTN-2'):
             self.sleep_device = True
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
             self._add_device(Switch(self, 0, simulate_state=True,
@@ -474,6 +474,14 @@ class Block(Base):
             self._add_device(Relay(self, 0))
             self._add_device(PowerMeter(self, 0))
             self._add_device(Switch(self, 0))
+        elif self.type == 'SHMOS-01':
+            self._info_value_cfg = {
+                INFO_VALUE_VIBRATION : {ATTR_POS : 6110, ATTR_PATH : 'sensor/vibration', ATTR_TOPIC: '@vibration', ATTR_FMT: 'bool'},
+                INFO_VALUE_ILLUMINANCE: {ATTR_POS : 3106, ATTR_PATH : 'lux/value', ATTR_TOPIC:'sensor/lux'}
+            }
+            #shellies/shellymotionsensor-60A423976594/status {"motion":true,"timestamp":1614416952,"active":true,"vibration":true,"lux":303,"bat":87}
+            #{"G":[[0,6107,1],[0,3119,1614417090],[0,3120,1],[0,6110,0],[0,3106,285],[0,3111,87],[0,9103,11]]}
+            self._add_device(Motion(self))
 
     def _add_device(self, dev, lazy_load=False, major=False):
         dev.lazy_load = lazy_load
