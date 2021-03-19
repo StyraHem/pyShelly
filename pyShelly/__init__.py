@@ -20,7 +20,7 @@ from .utils import exception_log, timer
 from .coap import CoAP
 from .mqtt_server import MQTT_server
 from .mqtt_client import MQTT_client
-from .debug import Debug_server
+#from .debug import Debug_server
 try:
     from .mdns import MDns
 except:
@@ -100,7 +100,7 @@ class pyShelly():
         self._mdns = None
         self._mqtt_server = MQTT_server(self)
         self._mqtt_client = MQTT_client(self)
-        self._debug_server = None
+        #self._debug_server = None
         self._firmware_mgr =  Firmware_manager(self)
         self.host_ip = ''
         self.bind_ip = '0.0.0.0'
@@ -129,6 +129,8 @@ class pyShelly():
     def send_mqtt(self, block, topic, payload):
         if isinstance(payload, dict):
             payload = json.dumps(payload)
+        if not isinstance(payload, str):
+            payload = str(payload)
         if self._mqtt_client and block.mqtt_src=="Client":
             self._mqtt_client.send(block.mqtt_name, topic, payload)
         if self._mqtt_server and block.mqtt_src=="Server":
@@ -167,7 +169,7 @@ class pyShelly():
             self._mqtt_server.start()
         if self._mqtt_client:
             self._mqtt_client.start()
-        self._debug_server = Debug_server(self)
+        #self._debug_server = Debug_server(self)
         #asyncio.ensure_future(self._update_loop())
         self._update_thread = threading.Thread(target=self._update_loop)
         self._update_thread.name = "Update loop"

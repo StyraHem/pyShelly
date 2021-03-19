@@ -28,6 +28,7 @@ class MQTT_connection:
                         break
                     pkg_type=head[0]>>4
                     flags=head[0]&0xF
+                    qos = (flags >> 1) & 0x3
                     length = 0
                     for s in range(0,4):
                         ldata = self._connection.recv(1)[0]
@@ -48,10 +49,14 @@ class MQTT_connection:
                         msg = self._mqtt_server.create_msg(self._id, 'command', 'announce')
                         self._connection.send(msg)
                     if pkg_type==3:
+                        pos = 2
                         topic_len = (data[0]<<8) + data[1]
-                        topic = data[2:2+topic_len].decode('ASCII') 
-                        payload = data[2+topic_len:].decode('ASCII')                         
-                        self._mqtt_server.receive_msg(topic, payload)           
+                        topic = data[pos:pos+topic_len].decode('ASCII') 
+                        pos += topic_len
+                        if qos>0: 
+                            pos+=2
+                        payload = data[pos:].decode('ASCII')                         
+                        self._mqtt_server.receive_msg(topic, payload)         
                         # if topic=='shellies/announce':
                         #     payload = json.loads(payload)
                         #     ip_addr = payload['ip']

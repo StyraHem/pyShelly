@@ -201,6 +201,8 @@ class LightRGB(Light):
             }
         }
 
+        self.topic = "color/0"
+
     def update_mqtt(self, payload):
         if payload['topic'] == "color/" + str(self._channel) + '/status':
             status =  json.loads(payload['data'])
@@ -317,40 +319,52 @@ class LightRGB(Light):
     def _send_data(self, state, brightness=None, rgb=None, color_temp=None,
                    mode=None, effect=None, white_value=None):
         url = self.url + "?"
+        payload = {}
 
         if state is not None:
             if not state or brightness == 0:
                 url += "turn=off"
-                self._send_command(url)
+                self._send_command(url, self.topic + "/command", "off")
                 return
+            self._send_command(None, self.topic + "/command", "on")
+            #payload["turn"] = "on" #Bug not working in FW
             url += "turn=on&"
 
         if mode is not None:
             self._send_command("/settings/?mode=" + mode)
+            payload["mode"] = mode
         else:
             mode = self.mode
 
         if effect is not None:
+            payload["effect"] = effect
             self._send_command("/color/0/?effect=" + str(effect))
 
         if brightness is not None:
             if mode == "white":
+                payload["brightness"] = brightness
                 url += "brightness=" + str(brightness) + "&"
             else:
+                payload["gain"] = brightness
                 url += "gain=" + str(brightness) + "&"
 
         if white_value is not None:
+            payload["white"] = white_value
             url += "white=" + str(white_value) + "&"
 
         if rgb is not None:
+            payload["red"] = rgb[0]
+            payload["green"] = rgb[1]
+            payload["blue"] = rgb[2]
             url += "red=" + str(rgb[0]) + "&"
             url += "green=" + str(rgb[1]) + "&"
             url += "blue=" + str(rgb[2]) + "&"
 
         if color_temp is not None:
+            payload["temp"] = color_temp
             url += "temp=" + str(color_temp) + "&"
 
-        self._send_command(url)
+        self._send_command(url, self.topic + "/set", payload)
 
     def turn_on(self, rgb=None, brightness=None, color_temp=None, mode=None,
                 effect=None, white_value=None):
@@ -395,6 +409,7 @@ class RGBW2W(LightWhite):
         #self.id = self.id + '-' + str(channel)
         self.mode = "white"
         self.url = "/white/" + str(channel - 1)
+        self.topic = "white/" + str(channel - 1)
         self.effects_list = None
         self.allow_switch_mode = False
 
@@ -418,6 +433,7 @@ class RGBW2C(LightRGB):
         super(RGBW2C, self).__init__(block, [161, 1101], 0, [211, 4101])
         self.mode = "color"
         self.url = "/color/0"
+        self.topic = "color/0"
         self.effects_list = EFFECTS_RGBW2
         self.allow_switch_mode = False
         self.support_white_value = True

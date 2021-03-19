@@ -42,10 +42,6 @@ class Dimmer(Device):
         if consumption is not None:
             self.set_info_value(INFO_VALUE_CURRENT_CONSUMPTION,
                                     float(consumption), SRC_COAP)
-
-            #if value is not None:
-            #    self.info_values[INFO_VALUE_SWITCH + "_" + str(idx+1)] = value > 0
-        #todo, read consumption when firmware fixed
         self._update(SRC_COAP,new_state, values)
 
     def update_status_information(self, status, src):
@@ -79,16 +75,19 @@ class Dimmer(Device):
 
     def _send_data(self, state, brightness=None):
         url = self.url + "?"
+        payload = {}
         if state is not None:
             if not state or brightness == 0:
                 url += "turn=off"
-                self._send_command(url)
+                self._send_command(url, "light/0/set", {"turn":"off"})
                 return
             url += "turn=on&"
+            payload["turn"] = "on"
         if brightness is not None:
             url += "brightness=" + str(brightness) + "&"
+            payload["brightness"] = brightness
 
-        self._send_command(url)
+        self._send_command(url, "light/0/set", payload)
 
     def turn_on(self, brightness=None):
         self._send_data(True, brightness)

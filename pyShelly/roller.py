@@ -82,16 +82,16 @@ class Roller(Device):
             self._update(src, state)
 
     def up(self):
-        self._send_command("/roller/0?go=open")
+        self._send_command("/roller/0?go=open", "roller/0/command", "open")
 
     def down(self):
-        self._send_command("/roller/0?go=close")
+        self._send_command("/roller/0?go=close", "roller/0/command", "close")
 
     def stop(self):
-        self._send_command("/roller/0?go=stop")
+        self._send_command("/roller/0?go=stop", "roller/0/command", "stop")
 
     def set_position(self, pos):
         if self.support_position:
             self.position=pos
             self.raise_updated(True)
-            self._send_command("/roller/0?go=to_pos&roller_pos=" + str(pos))
+            self._send_command("/roller/0?go=to_pos&roller_pos=" + str(pos), "roller/0/command/pos", pos)
