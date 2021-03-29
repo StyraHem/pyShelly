@@ -1,10 +1,10 @@
 import json
-import urllib.request
 import re
 from datetime import timedelta
 
 from .compat import s
 from .utils import exception_log
+from .compat import urlopen
 from .const import (
     REGEX_VER
 )
@@ -21,12 +21,12 @@ class Firmware_manager(Loop):
         self.start_loop()
 
     def loop_timer(self):
-        self.list = self._http_get('https://repo.shelly.cloud/files/firmware')
+        self.list = self._http_get('https://api.shelly.cloud/files/firmware')
 
     def _http_get(self, url):
         f = None
         try:
-            f = urllib.request.urlopen(url)
+            f = urlopen(url)
             body = f.read()
             res = json.loads(s(body))
             return res['data']

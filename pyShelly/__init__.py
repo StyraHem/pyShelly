@@ -4,7 +4,10 @@
 import base64
 from datetime import datetime, timedelta
 import json
-import asyncio
+try:
+    import asyncio
+except:
+    pass
 import socket
 import struct
 import threading
@@ -15,8 +18,13 @@ from .block import Block
 from .device import Device
 from .utils import exception_log, timer
 from .coap import CoAP
-from .mqtt import MQTT
-from .mdns import MDns
+from .mqtt_server import MQTT_server
+from .mqtt_client import MQTT_client
+#from .debug import Debug_server
+try:
+    from .mdns import MDns
+except:
+    pass
 from .firmware import Firmware_manager
 
 #from .device.relay import Relay
@@ -90,23 +98,43 @@ class pyShelly():
 
         self._coap = CoAP(self)
         self._mdns = None
-        self._mqtt = MQTT(self)
+        self._mqtt_server = MQTT_server(self)
+        self._mqtt_client = MQTT_client(self)
+        #self._debug_server = None
         self._firmware_mgr =  Firmware_manager(self)
         self.host_ip = ''
-        self.bind_ip = ''
+        self.bind_ip = '0.0.0.0'
         self.mqtt_port = 0
         self.firmware_url = None
         self.zeroconf = None
+        self.mqtt_server_host = ''
+        self.mqtt_server_port = 0
+        self.mqtt_server_username = ''
+        self.mqtt_server_password = ''
 
         self._shelly_by_ip = {}
         #self.loop = asyncio.get_event_loop()
-        if loop:
-            self.event_loop = loop
-        else:
-            self.event_loop = asyncio.get_event_loop()
+        self.event_loop = None
+        try:
+            if loop:
+                self.event_loop = loop
+            else:
+                self.event_loop = asyncio.get_event_loop()
+        except:
+            pass
 
         self._send_discovery_timer = timer(timedelta(seconds=60))
-        self._check_by_ip_timer = timer(timedelta(seconds=60))
+        self._check_by_ip_timer = timer(timedelta(seconds=60))        
+
+    def send_mqtt(self, block, topic, payload):
+        if isinstance(payload, dict):
+            payload = json.dumps(payload)
+        if not isinstance(payload, str):
+            payload = str(payload)
+        if self._mqtt_client and block.mqtt_src=="Client":
+            self._mqtt_client.send(block.mqtt_name, topic, payload)
+        if self._mqtt_server and block.mqtt_src=="Server":
+            self._mqtt_server.send(block.mqtt_name, topic, payload)
 
     def load_cache(self, name):
         if self.cb_load_cache:
@@ -117,18 +145,31 @@ class pyShelly():
         if self.cb_save_cache:
             self.cb_save_cache(name, data)
 
+    def set_cloud_settings(self, server, key, _firstTime=False):
+        if self.cloud_auth_key==key and self.cloud_server==server and not _firstTime:
+            return
+        if self.cloud:
+            self.cloud.stop()
+            self.cloud=None
+        if server and key:
+            self.cloud = Cloud(self, server, key)
+            self.cloud.start(not _firstTime)
+        self.cloud_server = server
+        self.cloud_auth_key = key
+
     def start(self):
         if self.mdns_enabled:
             self._mdns = MDns(self, self.zeroconf)
-        if self.cloud_auth_key and self.cloud_server:
-            self.cloud = Cloud(self, self.cloud_server, self.cloud_auth_key)
-            self.cloud.start()
+        self.set_cloud_settings(self.cloud_server, self.cloud_auth_key, True)
         if self._coap:
             self._coap.start()
         if self._mdns:
             self._mdns.start()
-        if self._mqtt:
-            self._mqtt.start()
+        if self._mqtt_server:
+            self._mqtt_server.start()
+        if self._mqtt_client:
+            self._mqtt_client.start()
+        #self._debug_server = Debug_server(self)
         #asyncio.ensure_future(self._update_loop())
         self._update_thread = threading.Thread(target=self._update_loop)
         self._update_thread.name = "Update loop"
@@ -144,8 +185,10 @@ class pyShelly():
             self._coap.close()
         if self._mdns:
             self._mdns.close()
-        if self._mqtt:
-            self._mqtt.close()
+        if self._mqtt_server:
+            self._mqtt_server.close()
+        if self._mqtt_client:
+            self._mqtt_client.close()
         if self._update_thread is not None:
             self._update_thread.join()
         if self._socket:
@@ -198,8 +241,7 @@ class pyShelly():
                         device_id = dev["hostname"].rpartition('-')[2]
                         device_type = dev["type"]
                         ip_addr = status["wifi_sta"]["ip"]
-                        LOGGER.debug("Add device from IP, %s, %s, %s",
-                                     device_id, device_type, ip_addr)
+                        LOGGER.debug("Add device from IP, %s, %s, %s", device_id, device_type, ip_addr)
                         self.update_block(device_id, device_type, ip_addr,
                                           data['src'],
                                           None)
@@ -238,14 +280,14 @@ class pyShelly():
             callback(dev, discovery_src)
 
     def update_block(self, block_id, device_type, ipaddr, src, payload,
-                     force_poll=False):
+                     force_poll=False, mqtt=None):
         if self.only_device_id is not None and \
             block_id != self.only_device_id:
             return
 
         block_added = False
         if block_id not in self.blocks:
-            if not ipaddr:
+            if not ipaddr and not mqtt:
                 return
             block = self.blocks[block_id] = \
                 Block(self, block_id, device_type, ipaddr, src)
@@ -257,15 +299,18 @@ class pyShelly():
             block.protocols.append(src)
 
         if payload:
-            data = {d[1]:d[2] for d in json.loads(payload)['G']}
-            block.payload = payload
-            block.update_coap(data, ipaddr)
+            if src == "MQTT":
+                block.update_mqtt(payload)
+            else:
+                data = {d[1]:d[2] for d in json.loads(payload)['G']}
+                block.payload = payload
+                block.update_coap(data, ipaddr)
 
         if block_added:
             for callback in self.cb_block_added:
                 callback(block)
-            for device in block.devices:
-                self.add_device(device, block.discovery_src)
+            #for device in block.devices:
+            #    self.add_device(device, block.discovery_src)
 
         if block.sleep_device or force_poll:
             self._poll_block(block, force_poll)
@@ -300,7 +345,6 @@ class pyShelly():
             (block.last_update_status_info is None or \
             now - block.last_update_status_info \
                 > self.update_status_interval)):
-
             LOGGER.debug("Polling block, %s %s", block.id, block.type)
             block.last_update_status_info = now
             t = threading.Thread(

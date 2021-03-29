@@ -24,19 +24,23 @@ class CoAP():
         self._socket = None
 
     def start(self):
-        self._init_socket()
-        self._thread.start()
+        try:
+            self._init_socket()
+            self._thread.start()
+        except:
+            LOGGER.exception("Can't setup CoAP listener")
 
     def discover(self):
-        LOGGER.debug("Sending CoAP discover UDP")
-        msg = bytes(b'\x50\x01\x00\x0A\xb3cit\x01d\xFF')
-        self._socket.sendto(msg, (COAP_IP, COAP_PORT))
+        if self._socket:
+            LOGGER.debug("Sending CoAP discover UDP")
+            msg = bytes(b'\x50\x01\x00\x0A\xb3cit\x01d\xFF')
+            self._socket.sendto(msg, (COAP_IP, COAP_PORT))
 
     def _init_socket(self):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM,
                              socket.IPPROTO_UDP)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 10)
+        #sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 10)
         sock.bind((self._root.bind_ip, COAP_PORT))
         if self._root.host_ip:
             mreq = struct.pack("=4s4s",
@@ -106,7 +110,7 @@ class CoAP():
                 #LOGGER.debug("Got UDP message")
 
                 data = bytearray(data_tmp)
-                LOGGER.debug("CoAP msg: %s %s", ipaddr, data_tmp)
+                LOGGER.debug("CoAP msg: %s", ipaddr) #, data_tmp)
 
                 if len(data) < 10:
                     continue
@@ -120,15 +124,16 @@ class CoAP():
                     pos = 8
 
                 byte = data[pos]
+                tkl = byte & 0x0F
                 #ver = byte >> 6
                 #typex = (byte >> 4) & 0x3
                 #tokenlen = byte & 0xF
 
                 code = data[pos+1]
                 #msgid = 256 * data[2] + data[3]
-                LOGGER.debug("CoAP msg: %s %s %s", code, ipaddr, data)
+                LOGGER.debug("CoAP msg: %s %s", code, ipaddr) #, data)
 
-                pos = pos + 4
+                pos = pos + 4 + tkl
 
                 #LOGGER.debug(' Code: %s', code)
 
@@ -176,9 +181,7 @@ class CoAP():
                     if payload: #Fix for DW2 payload error
                         payload = payload.replace(",,",",").replace("][", "],[")
 
-                    LOGGER.debug('CoAP Code: %s, Type %s, Id %s, Payload *%s*',
-                                 code, device_type, device_id,
-                                 payload.replace(' ', ''))
+                    LOGGER.debug('CoAP Code: %s, Type %s, Id %s, Payload *%s*', code, device_type, device_id, payload.replace(' ', ''))
 
                     if code == 30:
                         self._root.update_block(device_id, device_type,

@@ -11,7 +11,6 @@ class Device(Base):
         self.id = block.id
         self.unit_id = block.id
         self.type = block.type
-        self.ip_addr = block.ip_addr
         self.is_device = True
         self.is_sensor = False
         self.sub_name = None
@@ -19,11 +18,15 @@ class Device(Base):
         #self.sensor_values = None
         self.state = None
         self.device_type = None
-        self.device_sub_type = None #Used to make sensors unique
-        self.lazy_load = False
+        self.device_sub_type = None #Used to make sensors unique        
         self.device_nr = None
         self.master_unit = False
+        self.head_unit = False
         self.ext_sensor = None
+
+    @property
+    def ip_addr(self):
+        return self.block.ip_addr
 
     def friendly_name(self):
         try:
@@ -78,8 +81,11 @@ class Device(Base):
             name = name + " (" + self.sub_name + ")"
         return name
 
-    def _send_command(self, url):
-        self.block.http_get(url)
+    def _send_command(self, url=None, topic=None, payload=None):
+        if self.ip_addr and url:
+            self.block.http_get(url)
+        if topic and self.block.mqtt_name:
+            self.block.parent.send_mqtt(self.block, topic, payload)
         self.block.update_status_interval = None #Force update
 
     def available(self):
@@ -90,25 +96,17 @@ class Device(Base):
         return self.block.protocols
 
     def _update(self, src, new_state=None, new_state_values=None):
-        LOGGER.debug(
-            "Update id:%s state:%s stateValue:%s",
-            self.id, new_state, new_state_values)
+        LOGGER.debug("Update id:%s state:%s stateValue:%s", self.id, new_state, new_state_values)
         self._set_state(new_state, src)
-        if new_state_values is not None:
+        if new_state_values is not None:    #Used to check if need update
             if self.state_values != new_state_values:
                 self.state_values = new_state_values
                 self.need_update = True
-        #if new_values is not None:
-        #    self.sensor_values = new_values
-        #    self.need_update = True
-        #if info_values is not None:
-        #    self.info_values = info_values
-        #    self.need_update = True
         if self.lazy_load:
             self.block.parent.callback_add_device(self)
         self.raise_updated()
 
-    def update_status_information(self, _status):
+    def update_status_information(self, _status, src):
         """Update the status information."""
 
     def fw_version(self):

@@ -4,7 +4,6 @@
 import base64
 import traceback
 import json
-import urllib
 import socket
 from datetime import datetime
 from .compat import s
@@ -47,15 +46,18 @@ def shelly_http_get(host, url, username, password, log_error=True):
     try:
         LOGGER.debug("http://%s%s", host, url)
         conn = httplib.HTTPConnection(host, timeout=5)
-        headers = {}
-        if username is not None \
-            and password is not None:
-            combo = '%s:%s' % (username, password)
-            auth = s(
-                base64.b64encode(combo.encode()))  # .replace('\n', '')
-            headers["Authorization"] = "Basic %s" % auth
+        headers = {"Connection": "close"}        
         conn.request("GET", url, None, headers)
         resp = conn.getresponse()
+
+        if resp.status == 401 and \
+            username is not None and password is not None:
+                combo = '%s:%s' % (username, password)
+                auth = s(
+                    base64.b64encode(combo.encode()))  # .replace('\n', '')
+                headers["Authorization"] = "Basic %s" % auth
+                conn.request("GET", url, None, headers)
+                resp = conn.getresponse()
 
         if resp.status == 200:
             body = resp.read()

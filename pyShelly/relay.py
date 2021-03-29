@@ -21,7 +21,8 @@ from .const import (
     ATTR_POS,
     ATTR_FMT,
     ATTR_PATH,
-    ATTR_CHANNEL
+    ATTR_CHANNEL,
+    ATTR_TOPIC
 )
 
 class Relay(Device):
@@ -32,23 +33,26 @@ class Relay(Device):
         self.id = block.id
         if channel > 0:
             self.id += '-' + str(channel)
-            self._channel = ch = channel - 1
+            self._channel = channel - 1
             self.device_nr = channel
         else:
-            self._channel = ch = 0
+            self._channel = 0
         self.state = None
         self.device_type = "RELAY"
+        self.is_sensor = include_power
         self._state_cfg = {
             ATTR_POS: [112, 1101],
             ATTR_PATH: 'relays/$/ison',
-            ATTR_FMT: 'bool'
+            ATTR_FMT: 'bool',
+            ATTR_TOPIC: 'relay/$'
         }
         self._info_value_cfg = {
             #Todo add total used and returned 4106, 4107
             INFO_VALUE_SWITCH : {
                 ATTR_POS: [118, 2101],
                 ATTR_PATH: 'inputs/$/input',
-                ATTR_FMT: 'bool'
+                ATTR_FMT: 'bool',
+                ATTR_TOPIC: 'input/$'
             },
             INFO_VALUE_OVER_POWER : {
                 ATTR_POS: [6102],
@@ -64,15 +68,18 @@ class Relay(Device):
                     ATTR_POS: [111, 4101, 4102, 4105],
                     ATTR_CHANNEL: notNone(consumption_channel, self._channel),
                     ATTR_PATH: meters + '/$/power',
-                    ATTR_FMT: ['float']
+                    ATTR_FMT: ['float'],
+                    ATTR_TOPIC: 'relay/$/power'
                 },
                 INFO_VALUE_TOTAL_CONSUMPTION : {
                     ATTR_POS: [4103, 4104, 4106],
                     ATTR_CHANNEL: notNone(consumption_channel, self._channel),
                     ATTR_PATH: meters + '/$/total',
-                    ATTR_FMT: ['float', divider,'round:2']
+                    ATTR_FMT: ['float', divider,'round:2'],
+                    ATTR_TOPIC: 'relay/$/energy'
                 }
             })
+
         # else:
         #     _info_value_cfg.update({
         #         INFO_VALUE_CURRENT_CONSUMPTION : {
@@ -137,7 +144,7 @@ class Relay(Device):
     #     self._update(new_state, info_values=self.info_values)
 
     def turn_on(self):
-        self._send_command("/relay/" + str(self._channel) + "?turn=on")
+        self._send_command("/relay/" + str(self._channel) + "?turn=on", "relay/" + str(self._channel) + "/command", "on")
 
     def turn_off(self):
-        self._send_command("/relay/" + str(self._channel) + "?turn=off")
+        self._send_command("/relay/" + str(self._channel) + "?turn=off", "relay/" + str(self._channel) + "/command", "off")
