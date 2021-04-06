@@ -1,10 +1,12 @@
 import socket
 import threading
 import json
+from .compat import b
 from .mqtt import MQTT
 from .const import (
     LOGGER, SHELLY_TYPES
 )
+from .utils import exception_log
 
 class MQTT_connection:
     def __init__(self, mqtt, connection, client_address):
@@ -23,7 +25,7 @@ class MQTT_connection:
         try:
             while not self._mqtt_server._root.stopped.isSet():
                 try:
-                    head = self._connection.recv(1)
+                    head = b(self._connection.recv(1))
                     if not head:
                         break
                     pkg_type=head[0]>>4
@@ -31,12 +33,12 @@ class MQTT_connection:
                     qos = (flags >> 1) & 0x3
                     length = 0
                     for s in range(0,4):
-                        ldata = self._connection.recv(1)[0]
+                        ldata = b(self._connection.recv(1))[0]
                         length += (ldata & 0x7F) << (s * 7)
                         if not ldata & 128:
                             break
                     LOGGER.debug("type=%d, flags=%d, length=%d", pkg_type, flags, length)
-                    data = self._connection.recv(length, socket.MSG_WAITALL) if length else []
+                    data = b(self._connection.recv(length, socket.MSG_WAITALL)) if length else []
 
                     if pkg_type==1: #connected
                         if data[0]!=0 or data[1]!=4 or data[2:6]!=b'MQTT':
@@ -79,7 +81,7 @@ class MQTT_connection:
                 except socket.timeout:
                     pass
                 except Exception as ex:
-                    LOGGER.exception("Error receiving MQTT message")
+                    exception_log(ex, "Error receiving MQTT message")
                     break
         finally:
             #Clean up

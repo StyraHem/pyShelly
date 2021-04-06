@@ -4,7 +4,7 @@ from .const import (
     LOGGER, SHELLY_TYPES
 )
 
-class MQTT():
+class MQTT(object):
 
     def __init__(self, root, name):
         self._root = root

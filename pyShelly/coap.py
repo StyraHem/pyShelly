@@ -193,5 +193,5 @@ class CoAP():
 
             except Exception as ex:
                 #LOGGER.debug("Error receive CoAP %s", str(ex))
-                LOGGER.exception("Error receive CoAP")
-                #exception_log(ex, "Error receiving CoAP UDP")
+                #LOGGER.exception("Error receive CoAP,  " + str(ex))
+                exception_log(ex, "Error receiving CoAP UDP")

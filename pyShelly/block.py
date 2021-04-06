@@ -77,6 +77,7 @@ class Block(Base):
         self.exclude_info_values = []
         #self._info_value_cfg = None
         self._need_setup_delayed_devices = False
+        self._cnt_setup_delayed_devices = 0
         self.setup_devices()
         self._available = None
         self.status_update_error_cnt = 0
@@ -84,7 +85,7 @@ class Block(Base):
         self._last_friendly_name = None
         self.mqtt_name = None
         self.mqtt_src = None        
-        self._check_delay_load = timer(timedelta(seconds=60))
+        self._check_delay_load = timer(timedelta(seconds=1))
 
     def update_coap(self, payload, ip_addr):
         self.ip_addr = ip_addr  # If changed ip
@@ -137,7 +138,12 @@ class Block(Base):
             self.raise_updated()
 
     def loop(self):
-        if self._need_setup_delayed_devices and self._check_delay_load.check():            
+        if self._need_setup_delayed_devices and self._check_delay_load.check():
+            self._cnt_setup_delayed_devices += 1
+            if self._cnt_setup_delayed_devices == 10:
+                self._check_delay_load.set_interval(60)
+            if self._cnt_setup_delayed_devices == 60:
+                self._check_delay_load.set_interval(3600)
             if self.setup_devices_delayed():
                 self._need_setup_delayed_devices = False
 

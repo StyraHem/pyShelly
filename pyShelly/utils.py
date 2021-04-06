@@ -20,6 +20,8 @@ class timer():
     def __init__(self, interval):
         self._interval = interval
         self._last_time = None
+    def set_interval(self, interval):
+        self._interval = interval
     def check(self):
         if self._interval is not None:
             now = datetime.now()

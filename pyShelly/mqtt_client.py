@@ -1,4 +1,7 @@
-import paho.mqtt.client as mqtt
+try:
+    import paho.mqtt.client as mqtt
+except:
+    pass
 from .compat import s
 from .mqtt import MQTT
 from .const import (

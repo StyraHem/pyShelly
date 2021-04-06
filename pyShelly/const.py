@@ -5,7 +5,7 @@ import logging
 LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
-VERSION = "0.2.23"
+VERSION = "0.2.24"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
@@ -13,7 +13,8 @@ COAP_PORT = 5683
 MDNS_IP = "224.0.0.251"
 MDNS_PORT = 5353
 
-REGEX_VER = r"^20(\d{6}).+v(\d+\.\d+\.\d+(-rc\d)?)(_.*)?@"
+#20210323-105928/v1.10.1-gf276b51
+REGEX_VER = r"^20(\d{6}).+v(\d+\.\d+\.\d+(-rc\d)?)([@-].*)?$"
 
 """Define constants for result from /status response from device"""
 STATUS_RESPONSE_RELAYS = 'relays'
@@ -153,7 +154,7 @@ SHELLY_TYPES = {
     'SHDW-2': {'name': "Shelly Door/Window 2", 'battery' : True,
                'mqtt':'shellydw2'},
     'SHBDUO-1': {'name': "Shelly Duo", 'mqtt':'ShellyBulbDuo'},
-    'SHBVIN-1': {'name': "Shelly Vintage", 'mqtt':'ShellyVintage'},
+    'SHVIN-1': {'name': "Shelly Vintage", 'mqtt':'ShellyVintage'},
     'SHBTN-1': {'name': "Shelly Button 1", 'mqtt':'shellybutton1', 'battery' : True},
     'SHBTN-2': {'name': "Shelly Button 1", 'battery' : True},
     'SHIX3-1': {'name': "Shelly i3", 'mqtt':'shellyix3'},
