@@ -25,9 +25,9 @@ def find_version(*file_paths):
         return "0.0.0"
 
 if sys.version_info < (3,):
-    REQUIRES = [],
+    REQUIRES = ['websocket-client'],
 else:
-    REQUIRES = ['zeroconf', 'websockets'],
+    REQUIRES = ['zeroconf', 'websocket-client'],
 
 setuptools.setup(
     name="pyShelly",
