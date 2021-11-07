@@ -16,6 +16,9 @@ This library was created for Shelly Plugins for Home Assistant and Telldus Tells
 - Monitor status
 - Monitor switch status
 - Control (turn on/off etc)
+- MQTT Server
+- MQTT Client
+- Websocket
 - Run only locally
 - Support user name and password
 - Coexist with Shelly Cloud and Shelly app
@@ -31,8 +34,11 @@ This library was created for Shelly Plugins for Home Assistant and Telldus Tells
 - Shelly Addon for 1/1PM, temp and humidity
 - Shelly 2 (relay or roller mode)
 - Shelly 4 Pro
-- Shelly PLUG
-- Shelly PLUG S
+- Shelly Plug
+- Shelly Plug S
+- Shelly Plus 1
+- Shelly Plus 1PM
+- Shelly Pro 4PM
 - Shelly BULB
 - Shelly RGBWW
 - Shelly RGBW2
