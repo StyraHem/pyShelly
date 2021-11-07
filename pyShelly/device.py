@@ -72,11 +72,14 @@ class Device(Base):
             name = name + " (" + self.sub_name + ")"
         return name
 
-    def _send_command(self, url=None, topic=None, payload=None):
-        if self.ip_addr and url:
-            self.block.http_get(url)
-        if topic and self.block.mqtt_name:
-            self.block.parent.send_mqtt(self.block, topic, payload)
+    def _send_command(self, url=None, topic=None, payload=None, rpc_method=None, rpc_params=None):
+        res = False
+        if rpc_method and self.block.websocket:
+            res = self.block.websocket.send(rpc_method, rpc_params)
+        if not res and topic and self.block.mqtt_name:
+            res = self.block.parent.send_mqtt(self.block, topic, payload, rpc_method, rpc_params)
+        if not res and self.ip_addr and url:
+            res, _ = self.block.http_get(url)
         self.block.update_status_interval = None #Force update
 
     def available(self):

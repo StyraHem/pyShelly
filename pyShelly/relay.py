@@ -22,7 +22,8 @@ from .const import (
     ATTR_FMT,
     ATTR_PATH,
     ATTR_CHANNEL,
-    ATTR_TOPIC
+    ATTR_TOPIC,
+    ATTR_RPC
 )
 
 class Relay(Device):
@@ -44,7 +45,8 @@ class Relay(Device):
             ATTR_POS: [112, 1101],
             ATTR_PATH: 'relays/$/ison',
             ATTR_FMT: 'bool',
-            ATTR_TOPIC: 'relay/$'
+            ATTR_TOPIC: 'relay/$',
+            ATTR_RPC: 'switch:$/output'
         }
         self._info_value_cfg = {
             #Todo add total used and returned 4106, 4107
@@ -52,7 +54,8 @@ class Relay(Device):
                 ATTR_POS: [118, 2101],
                 ATTR_PATH: 'inputs/$/input',
                 ATTR_FMT: 'bool',
-                ATTR_TOPIC: 'input/$'
+                ATTR_TOPIC: 'input/$',
+                ATTR_RPC: 'input:$/state'
             },
             INFO_VALUE_OVER_POWER : {
                 ATTR_POS: [6102],
@@ -69,14 +72,16 @@ class Relay(Device):
                     ATTR_CHANNEL: notNone(consumption_channel, self._channel),
                     ATTR_PATH: meters + '/$/power',
                     ATTR_FMT: ['float'],
-                    ATTR_TOPIC: 'relay/$/power'
+                    ATTR_TOPIC: 'relay/$/power',
+                    ATTR_RPC: 'switch:$/apower'
                 },
                 INFO_VALUE_TOTAL_CONSUMPTION : {
                     ATTR_POS: [4103, 4104, 4106],
                     ATTR_CHANNEL: notNone(consumption_channel, self._channel),
                     ATTR_PATH: meters + '/$/total',
                     ATTR_FMT: ['float', divider,'round:2'],
-                    ATTR_TOPIC: 'relay/$/energy'
+                    ATTR_TOPIC: 'relay/$/energy',
+                    ATTR_RPC: 'switch:$/total'
                 }
             })
 
@@ -144,7 +149,15 @@ class Relay(Device):
     #     self._update(new_state, info_values=self.info_values)
 
     def turn_on(self):
-        self._send_command("/relay/" + str(self._channel) + "?turn=on", "relay/" + str(self._channel) + "/command", "on")
+        channel = str(self._channel)
+        self._send_command(
+            "/relay/" + channel + "?turn=on",
+            "relay/" + channel + "/command", "on",
+            "Switch.Set", {"id":channel, "on":True})
 
     def turn_off(self):
-        self._send_command("/relay/" + str(self._channel) + "?turn=off", "relay/" + str(self._channel) + "/command", "off")
+        channel = str(self._channel)
+        self._send_command(
+            "/relay/" + channel + "?turn=off",
+            "relay/" + channel + "/command", "off",
+            "Switch.Set", {"id":channel, "on":False})

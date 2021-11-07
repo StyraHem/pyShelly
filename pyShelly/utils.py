@@ -7,6 +7,7 @@ import json
 import socket
 from datetime import datetime
 from .compat import s
+from datetime import timedelta
 try:
     import http.client as httplib
 except:
@@ -18,9 +19,11 @@ from .const import (
 
 class timer():
     def __init__(self, interval):
-        self._interval = interval
+        self.set_interval(interval)
         self._last_time = None
     def set_interval(self, interval):
+        if isinstance(interval, int):
+            interval = timedelta(seconds=interval)
         self._interval = interval
     def check(self):
         if self._interval is not None:

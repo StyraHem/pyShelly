@@ -4,18 +4,9 @@ from .device import Device
 from .utils import notNone
 from .const import (
     #LOGGER,
-    STATUS_RESPONSE_METERS,
-    STATUS_RESPONSE_EMETERS,
-    STATUS_RESPONSE_METERS_POWER,
-    STATUS_RESPONSE_METERS_TOTAL,
-    STATUS_RESPONSE_METERS_VOLTAGE,
-    STATUS_RESPONSE_METERS_PF,
-    STATUS_RESPONSE_METERS_CURRENT,
-    STATUS_RESPONSE_METERS_TOTAL_RETURNED,
-    INFO_VALUE_CURRENT_CONSUMPTION,
+    ATTR_RPC,
     INFO_VALUE_TOTAL_CONSUMPTION,
     INFO_VALUE_TOTAL_RETURNED,
-    INFO_VALUE_VOLTAGE,
     INFO_VALUE_POWER_FACTOR,
     INFO_VALUE_CURRENT,
     ATTR_POS,
@@ -53,7 +44,8 @@ class PowerMeter(Device):
             ATTR_POS: notNone(position, [111, 4101, 4102, 4105]),
             ATTR_PATH: meters + '/$/power',
             ATTR_FMT: ['float'],
-            ATTR_TOPIC: ['relay/$/power', topic + '/$/power']
+            ATTR_TOPIC: ['relay/$/power', topic + '/$/power'],
+            ATTR_RPC: 'switch:$/apower'
         }
         divider = None if em else '/60'
         self._info_value_cfg = {
@@ -67,13 +59,15 @@ class PowerMeter(Device):
                 ATTR_POS: [115, 4109],
                 ATTR_PATH: meters + '/$/current',
                 ATTR_FMT: ['float'],
-                ATTR_TOPIC: topic + '/$/current'
+                ATTR_TOPIC: topic + '/$/current',
+                ATTR_RPC: 'switch:$/current'
             },
             INFO_VALUE_TOTAL_CONSUMPTION : {
                 ATTR_POS: tot_pos or [4103, 4104, 4106],
                 ATTR_PATH: meters + '/$/total',
                 ATTR_FMT: ['float', divider, 'round:2'],
-                ATTR_TOPIC: ['relay/$/energy', topic + '/$/total', topic + '/$/energy']
+                ATTR_TOPIC: ['relay/$/energy', topic + '/$/total', topic + '/$/energy'],
+                ATTR_RPC: 'switch:$/aenergy/total'
             },
             INFO_VALUE_TOTAL_RETURNED :
             {
@@ -83,14 +77,14 @@ class PowerMeter(Device):
                 ATTR_TOPIC: topic + '/$/total_returned'
             }
         }
-        (self.block if voltage_to_block else self) \
-            ._info_value_cfg[INFO_VALUE_VOLTAGE] = \
-            {
-                ATTR_POS: [116, 4108],
-                ATTR_PATH: meters + '/$/voltage',
-                ATTR_FMT: ['float'],
-                ATTR_TOPIC: topic + '/$/voltage'
-            }
+        # (self.block if voltage_to_block else self) \
+        #     ._info_value_cfg[INFO_VALUE_VOLTAGE] = \
+        #     {
+        #         ATTR_POS: [116, 4108],
+        #         ATTR_PATH: meters + '/$/voltage',
+        #         ATTR_FMT: ['float'],
+        #         ATTR_TOPIC: topic + '/$/voltage'
+        #     }
 
     # """
     # def update_status_information(self, status):

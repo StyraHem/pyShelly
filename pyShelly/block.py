@@ -2,7 +2,7 @@
 # pylint: disable=broad-except, bare-except
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from .utils import shelly_http_get, timer
 from .switch import Switch
 from .relay import Relay
@@ -14,7 +14,7 @@ from .dimmer import Dimmer
 from .roller import Roller
 from .utils import exception_log
 from .base import Base
-
+from .ws_client import WebSocket
 
 from .const import (
     LOGGER,
@@ -43,6 +43,7 @@ from .const import (
     ATTR_FMT,
     ATTR_POS,
     ATTR_AUTO_SET,
+    ATTR_RPC,
     BLOCK_INFO_VALUES,
     SHELLY_TYPES,
     SRC_STATUS,
@@ -57,6 +58,7 @@ class Block(Base):
         self.id = block_id
         self.unit_id = block_id
         self.type = block_type
+        self.rpc = False
         self.parent = parent
         self.ip_addr = ip_addr
         self.devices = []
@@ -75,6 +77,7 @@ class Block(Base):
         self.payload = None
         self.settings = None
         self.exclude_info_values = []
+        self.websocket = None
         #self._info_value_cfg = None
         self._need_setup_delayed_devices = False
         self._cnt_setup_delayed_devices = 0
@@ -85,7 +88,7 @@ class Block(Base):
         self._last_friendly_name = None
         self.mqtt_name = None
         self.mqtt_src = None        
-        self._check_delay_load = timer(timedelta(seconds=1))
+        self._check_delay_load = timer(1)
 
     def update_coap(self, payload, ip_addr):
         self.ip_addr = ip_addr  # If changed ip
@@ -110,34 +113,47 @@ class Block(Base):
         #     self.reload = False
         self.raise_updated()
 
+    def update_rpc(self, rpc_data):
+        self.last_updated = datetime.now()
+        ipaddr = self._get_rpc_value({ATTR_RPC:'wifi/sta_ip'}, rpc_data)
+        if ipaddr:
+            self.ip_addr=ipaddr
+        self._update_info_values_rpc(rpc_data, BLOCK_INFO_VALUES)
+        for dev in self.devices:
+            dev._update_info_values_rpc(rpc_data)
+            if hasattr(dev, 'update_rpc'):
+                dev.update_rpc(rpc_data)
+            dev.raise_updated()
+        self.raise_updated()
+
     def update_mqtt(self, payload):
         self.mqtt_name = payload['name']
         self.mqtt_src = payload['src']
         self.last_updated = datetime.now()
-
-        if payload['topic'] == "info":
+        topic = payload['topic']
+        if topic == "info":
             status = json.loads(payload['data'])
             self._update_status_info(status, SRC_MQTT_STATUS)
-        elif payload['topic'] == "announce":
+        elif topic == "announce":
             pass
         else:
-            self._update_info_values_mqtt(payload, BLOCK_INFO_VALUES)
-            for dev in self.devices:
-                dev._update_info_values_mqtt(payload)
-                if hasattr(dev, 'update_mqtt'):
-                    dev.update_mqtt(payload)
-                dev.raise_updated()
-            # if self.reload:
-            #     self._reload_devices()
-            #     for dev in self.devices:
-            #         dev._update_info_values_coap(payload)
-            #         if hasattr(dev, 'update_coap'):
-            #             dev.update_coap(payload)
-            #         self.parent.add_device(dev, self.discovery_src)
-            #     self.reload = False
-            self.raise_updated()
+            if self.rpc:
+                data = json.loads(payload['data'])
+                data = data['params'] if 'params' in data else data['result']
+                self.update_rpc(data)
+            else:
+                self._update_info_values_mqtt(payload, BLOCK_INFO_VALUES)
+                for dev in self.devices:
+                    dev._update_info_values_mqtt(payload)
+                    if hasattr(dev, 'update_mqtt'):
+                        dev.update_mqtt(payload)
+                    dev.raise_updated()
+                self.raise_updated()
 
     def loop(self):
+        if self.websocket:
+            self.websocket.check()
+
         if self._need_setup_delayed_devices and self._check_delay_load.check():
             self._cnt_setup_delayed_devices += 1
             if self._cnt_setup_delayed_devices == 10:
@@ -173,8 +189,13 @@ class Block(Base):
         """Update the status information."""
         self.last_update_status_info = datetime.now()
         if self.mqtt_name:
-            self.parent.send_mqtt(self, "command", "announce")
-        if self.ip_addr:
+            self.parent.send_mqtt(self, "command", "announce",
+                "Shelly.GetStatus")
+        res = False
+        if self.websocket:
+            res = self.websocket.send("Shelly.GetStatus")
+
+        if not res and self.ip_addr:
             if self.status_update_error_cnt >= 3:
                 diff = (datetime.now()-self.last_try_update_status).total_seconds()
                 if diff < 600 or (diff < 3600 and self.status_update_error_cnt >= 5):
@@ -183,7 +204,8 @@ class Block(Base):
             self.last_try_update_status = datetime.now()
 
             LOGGER.debug("Get status from %s %s", self.id, self.friendly_name())
-            success, status = self.http_get('/status', False)
+            url = "/rpc/Shelly.GetStatus" if self.rpc else "/status"
+            success, status = self.http_get(url, False)
 
             if not success or status == {}:
                 self.status_update_error_cnt += 1
@@ -194,7 +216,10 @@ class Block(Base):
 
             self.status_update_error_cnt = 0
 
-            self._update_status_info(status, SRC_STATUS)
+            if self.rpc:
+                self.update_rpc(status)
+            else:
+                self._update_status_info(status, SRC_STATUS)
 
     def _update_status_info(self, status, src):
         self.last_updated = datetime.now()
@@ -224,11 +249,12 @@ class Block(Base):
 
         rssi = self.info_values.get(INFO_VALUE_RSSI)
         rssi_level = self.info_values.get(INFO_VALUE_RSSI_LEVEL)
-        for val, name in RSSI_LEVELS.items():
-            if rssi >= val or ( rssi_level == name and rssi >= val - 2):
-                rssi_level = name
-                break
-        self.set_info_value(INFO_VALUE_RSSI_LEVEL, rssi_level, src)
+        if rssi is not None:
+            for val, name in RSSI_LEVELS.items():
+                if rssi >= val or ( rssi_level == name and rssi >= val - 2):
+                    rssi_level = name
+                    break
+            self.set_info_value(INFO_VALUE_RSSI_LEVEL, rssi_level, src)
 
         #self.info_values[INFO_VALUE_HAS_FIRMWARE_UPDATE] = self.has_fw_update()
         self.set_info_value(INFO_VALUE_LATEST_BETA_FW_VERSION,
@@ -236,8 +262,8 @@ class Block(Base):
 
         friendly_name = self.friendly_name()
         if self._last_friendly_name!=friendly_name:
-            self._last_friendly_name!=friendly_name
-            self.need_update
+            self._last_friendly_name=friendly_name
+            self.need_update=True
 
         force_update_devices = self.need_update #Block updated
         self.raise_updated()
@@ -336,7 +362,7 @@ class Block(Base):
             self._add_device(Relay(self, 0))
             self._add_device(Switch(self, 1))
             self._add_device(Switch(self, 2))
-        #Shelly 1 PM
+        #Shelly 1PM
         elif self.type == 'SHSW-PM':
             self._add_device(Relay(self, 0))
             self._add_device(PowerMeter(self, 0))
@@ -346,8 +372,14 @@ class Block(Base):
             self._add_device(ExtTemp(self, 2), True)
             self._add_device(ExtHumidity(self, 0), True)
             self._add_device(ExtSwitch(self), True)
+        #Shelly Plus 1PM
+        elif self.type == 'ShellyPlus1PM':
+            self.rpc = True
+            self._add_device(Relay(self, 0))
+            self._add_device(PowerMeter(self, 0))
+            self._add_device(Switch(self, 0))
         #Shelly 2
-        elif self.type == 'SHSW-21':            
+        elif self.type == 'SHSW-21':           
             self._add_device(Switch(self, 1))
             self._add_device(Switch(self, 2))
             self._add_device(PowerMeter(self, 0))
@@ -380,6 +412,13 @@ class Block(Base):
             self._add_device(RGBW2W(self, 2))
         #Shelly 4 Pro
         elif self.type == 'SHSW-44':
+            for channel in range(4):
+                self._add_device(Relay(self, channel + 1))
+                self._add_device(PowerMeter(self, channel + 1))
+                self._add_device(Switch(self, channel + 1))
+        #Shelly Pro 4PM
+        elif self.type == 'ShellyPro4PM':
+            self.rpc = True
             for channel in range(4):
                 self._add_device(Relay(self, channel + 1))
                 self._add_device(PowerMeter(self, channel + 1))
@@ -488,6 +527,9 @@ class Block(Base):
             #shellies/shellymotionsensor-60A423976594/status {"motion":true,"timestamp":1614416952,"active":true,"vibration":true,"lux":303,"bat":87}
             #{"G":[[0,6107,1],[0,3119,1614417090],[0,3120,1],[0,6110,0],[0,3106,285],[0,3111,87],[0,9103,11]]}
             self._add_device(Motion(self))
+
+        if (self.rpc):
+            self.websocket = WebSocket(self)
 
     def _add_device(self, dev, lazy_load=False, major=False):
         dev.lazy_load = lazy_load

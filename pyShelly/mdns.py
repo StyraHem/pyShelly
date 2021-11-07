@@ -6,7 +6,7 @@ import ipaddress
 from zeroconf import ( ServiceBrowser, Zeroconf )
 
 MATCH_NAME = \
-    re.compile("(?P<devtype>shelly.+)-(?P<id>[0-9A-F]+)._http._tcp.local.")
+    re.compile("(?P<devtype>shelly.+)-(?P<id>[0-9A-Fa-f]+)._(http|shelly)._tcp.local.")
 
 EXCLUDE = ['shellydw', 'shellyht', 'shellyflood']
 
@@ -35,12 +35,15 @@ class MDns:
         self._common_zeroconf = zeroconf
         self._zeroconf = None
         self._browser = None
+        self._browser2 = None
 
     def start(self):
         self._zeroconf = zeroconf = self._common_zeroconf or Zeroconf()
         self._browser = \
             ServiceBrowser(zeroconf, "_http._tcp.local.", self)
-
+        self._browser2 = \
+            ServiceBrowser(zeroconf, "_shelly._tcp.local.", self)
+        
     def close(self):
         if self._zeroconf:
             if not self._common_zeroconf:

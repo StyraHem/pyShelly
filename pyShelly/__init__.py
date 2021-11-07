@@ -4,6 +4,7 @@
 import base64
 from datetime import datetime, timedelta
 import json
+from re import T
 try:
     import asyncio
 except:
@@ -123,18 +124,33 @@ class pyShelly():
         except:
             pass
 
-        self._send_discovery_timer = timer(timedelta(seconds=60))
-        self._check_by_ip_timer = timer(timedelta(seconds=60))        
+        self._send_discovery_timer = timer(60)
+        self._check_by_ip_timer = timer(10)        
 
-    def send_mqtt(self, block, topic, payload):
+    def send_mqtt(self, block, topic, payload, rpc, params=None):
+        res = False
+        if block.rpc:
+            payload = { "id" : 123, 
+                        "src" : "shelly4hass",
+                        "method" : rpc,
+                        "params" : params }
+            topic = block.mqtt_name + "/rpc"
+        else:
+            topic = "shellies/" + block.mqtt_name + "/" + topic
+            
         if isinstance(payload, dict):
             payload = json.dumps(payload)
         if not isinstance(payload, str):
             payload = str(payload)
+
         if self._mqtt_client and block.mqtt_src=="Client":
-            self._mqtt_client.send(block.mqtt_name, topic, payload)
+            self._mqtt_client.send(block, topic, payload)
+            res = True
         if self._mqtt_server and block.mqtt_src=="Server":
-            self._mqtt_server.send(block.mqtt_name, topic, payload)
+            self._mqtt_server.send(block, topic, payload)
+            res = True
+
+        return res
 
     def load_cache(self, name):
         if self.cb_load_cache:
@@ -198,7 +214,9 @@ class pyShelly():
         if self._coap:
             self._coap.discover()
 
-    def add_device_by_ip(self, ip_addr, src):
+    def add_device_by_ip(self, ip_addr, src): 
+        if not ip_addr:
+            return       
         if ip_addr not in self._shelly_by_ip:
             LOGGER.debug("Add device by host %s %s", ip_addr, src)
             self._shelly_by_ip[ip_addr] = {'done':False, 'src':src,
@@ -218,33 +236,52 @@ class pyShelly():
                 data['delay'] = delay - 1
                 continue
             if not data['done']:
-                done = False
-                for id, block in self.blocks.items():
+                done = False                
+                for id in self.blocks.keys():
+                    block = self.blocks[id]                    
                     if block.ip_addr == ip_addr:
                         self._shelly_by_ip[ip_addr]['done'] = True
                         done = True
                 if done:
                     continue
-                success, settings = shelly_http_get(
-                    ip_addr, "/settings", self.username, self.password, False)
+                
+                success, shelly = shelly_http_get(
+                    ip_addr, "/shelly", self.username, self.password, False)                
+
                 if success:
-                    success, status = shelly_http_get(
-                        ip_addr, "/status", self.username, self.password, False)
-                    if success:
+                    gen = shelly.get('gen', 1)                    
+                    if gen==1:
+                        success, settings = shelly_http_get(
+                            ip_addr, "/settings", self.username, self.password, False)
+                        if success:
+                            success, status = shelly_http_get(
+                                ip_addr, "/status", self.username, self.password, False)
+                            if success:
+                                done = True
+                                self._shelly_by_ip[ip_addr]['done'] = True
+                                dev = settings["device"]
+                                device_id = dev["hostname"].rpartition('-')[2]
+                                device_type = dev["type"]
+                                ip_addr = status["wifi_sta"]["ip"]
+                                LOGGER.debug("Add device from IP, %s, %s, %s", device_id, device_type, ip_addr)
+                                self.update_block(device_id, device_type, ip_addr,
+                                                data['src'],
+                                                None)
+                                if device_id in self.blocks:
+                                    block = self.blocks[device_id]
+                                    if block and block.sleep_device:
+                                        self._shelly_by_ip[ip_addr]['poll_block'] \
+                                            = block
+                                self._shelly_by_ip[ip_addr]['errors'] = 0
+                    elif gen==2:
                         done = True
                         self._shelly_by_ip[ip_addr]['done'] = True
-                        dev = settings["device"]
-                        if not "hostname" in dev: #invalide device
-                            LOGGER.info("Error adding device (missing hostname), %s %s",
-                                ip_addr, data['src'])
-                            continue
-                        device_id = dev["hostname"].rpartition('-')[2]
-                        device_type = dev["type"]
-                        ip_addr = status["wifi_sta"]["ip"]
+                        device_id = shelly["mac"]
+                        device_type = "Shelly" + shelly["app"]
                         LOGGER.debug("Add device from IP, %s, %s, %s", device_id, device_type, ip_addr)
                         self.update_block(device_id, device_type, ip_addr,
-                                          data['src'],
-                                          None)
+                                        data['src'],
+                                        None)
                         if device_id in self.blocks:
                             block = self.blocks[device_id]
                             if block and block.sleep_device:
@@ -281,6 +318,8 @@ class pyShelly():
 
     def update_block(self, block_id, device_type, ipaddr, src, payload,
                      force_poll=False, mqtt=None):
+        block_id = block_id.upper()
+
         if self.only_device_id is not None and \
             block_id != self.only_device_id:
             return
@@ -309,8 +348,6 @@ class pyShelly():
         if block_added:
             for callback in self.cb_block_added:
                 callback(block)
-            #for device in block.devices:
-            #    self.add_device(device, block.discovery_src)
 
         if block.sleep_device or force_poll:
             self._poll_block(block, force_poll)
@@ -334,7 +371,7 @@ class pyShelly():
                     block.check_available()
                     block.loop()
 
-                self.stopped.wait(5)
+                self.stopped.wait(1)
             except Exception as ex:
                 exception_log(ex, "Error update loop")
 

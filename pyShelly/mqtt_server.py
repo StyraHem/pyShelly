@@ -50,7 +50,7 @@ class MQTT_connection:
                         self._connection.send(msg)
                         msg = self._mqtt_server.create_msg(self._id, 'command', 'announce')
                         self._connection.send(msg)
-                    if pkg_type==3:
+                    elif pkg_type==3:
                         pos = 2
                         topic_len = (data[0]<<8) + data[1]
                         topic = data[pos:pos+topic_len].decode('ASCII') 
@@ -58,7 +58,7 @@ class MQTT_connection:
                         if qos>0: 
                             pos+=2
                         payload = data[pos:].decode('ASCII')                         
-                        self._mqtt_server.receive_msg(topic, payload)         
+                        self._mqtt_server.receive_msg(topic, payload)
                         # if topic=='shellies/announce':
                         #     payload = json.loads(payload)
                         #     ip_addr = payload['ip']
@@ -74,10 +74,17 @@ class MQTT_connection:
                         #     shelly_type, device_id = shelly_id.rsplit('-',1)
                         #     device_type = self._mqtt_server._mqtt_types.get(shelly_type)
                         #     self._mqtt_server._root.update_block(device_id, \
-                        #             device_type, None, 'MQTT-data', None, True)                        
-                    if pkg_type==12: #Ping
+                        #             device_type, None, 'MQTT-data', None, True)   
+                    elif pkg_type==8:  #Subscribe  
+                        msg = b'\x90\x03'
+                        msg += ((data[0]<<8) + data[1]).to_bytes(2, 'big')
+                        msg += b'\x01'
+                        self._connection.send(msg)                 
+                    elif pkg_type==12: #Ping
                         msg = b'\xD0\x00'
                         self._connection.send(msg)
+                    else:
+                        print("Unknown MQTT Message ", pkg_type)
                 except socket.timeout:
                     pass
                 except Exception as ex:
@@ -121,6 +128,7 @@ class MQTT_server(MQTT):
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.bind((self._root.bind_ip, self._root.mqtt_port))
         sock.listen(1)
+        sock.settimeout(1)
         self._socket = sock
 
     def _loop(self):
@@ -129,10 +137,14 @@ class MQTT_server(MQTT):
             try:
                 # Wait for a connection
                 connection, client_address = self._socket.accept()
+                #print("MQTT Connection", client_address)
                 conn = MQTT_connection(self, connection, client_address)
                 self._connections.append(conn)
+            except socket.timeout:
+                pass
             except:
-                LOGGER.exception("Error connect MQTT")
+                if not self._root.stopped.isSet():
+                    LOGGER.exception("Error connect MQTT")
 
     def close(self):
         if self._socket:
@@ -146,19 +158,19 @@ class MQTT_server(MQTT):
             data.insert(0, (length & 0x7F) | 0x80)
 
     def create_msg(self, name, topic, payload):
-        t = "shellies/" + name + "/" + topic
-        data = bytearray(t, 'cp1252')
-        data.insert(0, len(t) >> 8)
-        data.insert(1, len(t) & 0xFF)
+        #t = "shellies/" + name + "/" + topic
+        data = bytearray(topic, 'cp1252')
+        data.insert(0, len(topic) >> 8)
+        data.insert(1, len(topic) & 0xFF)
         data.extend(bytearray(payload, 'cp1252'))
         self._add_len(data)
         data.insert(0, 0x30)
         return data
 
-    def send(self, name, topic, payload):
-        data = self.create_msg(name, topic, payload)
+    def send(self, block, topic, payload):
+        data = self.create_msg(block.mqtt_name, topic, payload)
         for conn in self._connections:
-            if name == conn._id:
+            if block.mqtt_name == conn._id:
                 conn.send(data)
 
 

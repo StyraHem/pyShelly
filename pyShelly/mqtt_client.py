@@ -24,11 +24,6 @@ class MQTT_client(MQTT):
                 self._client.username_pw_set(self._root.mqtt_server_username, self._root.mqtt_server_password)
 
             self._client.connect_async(self._root.mqtt_server_host, self._root.mqtt_server_port, 60)
-
-            # Blocking call that processes network traffic, dispatches callbacks and
-            # handles reconnecting.
-            # Other loop*() functions are available that give a threaded interface and a
-            # manual interface.
             self._client.loop_start()
 
     def close(self):
@@ -38,12 +33,15 @@ class MQTT_client(MQTT):
 
     def on_connect(self, client, userdata, flags, rc):
         client.subscribe("shellies/#")
-        client.publish("shellies/command", "announce")    
+        client.subscribe("+/events/rpc")
+        client.subscribe("+/status/+")
+        client.subscribe("shelly4hass/#")
+        client.publish("shellies/command", "announce")
             
     def on_message(self, client, userdata, msg):
-        self.receive_msg(msg.topic, s(msg.payload))        
+        self.receive_msg(msg.topic, s(msg.payload))
 
-    def send(self, name, topic, payload):
-        t = "shellies/" + name + "/" + topic
-        self._client.publish(t, payload)
+    def send(self, block, topic, payload):
+        #t = "shellies/" + block.mqtt_name + "/" + topic
+        self._client.publish(topic, payload)
 

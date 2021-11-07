@@ -10,6 +10,7 @@ from .const import (
     ATTR_POS,
     ATTR_CHANNEL,
     ATTR_TOPIC,
+    ATTR_RPC,
     REGEX_VER,
     SRC_COAP,
     SRC_STATUS,
@@ -150,8 +151,8 @@ class Base(object):
                 self.state_mqtt = new_state
             if src == SRC_MQTT_STATUS:
                 self.state_mqtt_status = new_state
-            if self.debug:
-                self.need_update = True
+            #if self.debug:
+            #    self.need_update = True
             if self.state != new_state:
                 self.state = new_state
                 self.need_update = True
@@ -169,9 +170,9 @@ class Base(object):
             self.__update_info_values_coap(payload, self._info_value_cfg)
 
     def _get_mqtt_value(self, cfg, payload):
+        payload_topic = payload['topic']            
         if ATTR_TOPIC in cfg:
             topic_list = cfg[ATTR_TOPIC]
-            payload_topic = payload['topic']            
             if not type(topic_list) is list:
                 topic_list = [topic_list]
             for topic in topic_list:
@@ -185,7 +186,7 @@ class Base(object):
                     if payload_topic == topic:         
                         return self._fmt_info_value(payload['data'], cfg, SRC_MQTT)                
 
-    def _update_info_values_mqtt(self, payload, extra_info_value_cfg=None):
+    def _update_info_values_mqtt(self, payload, extra_info_value_cfg=None):                
         if self._state_cfg:
             new_state = self._get_mqtt_value(self._state_cfg, payload)
             self._set_state(new_state, SRC_MQTT)
@@ -196,6 +197,33 @@ class Base(object):
         if self._info_value_cfg:
             for name, cfg in self._info_value_cfg.items():
                 value = self._get_mqtt_value(cfg, payload)
+                self.set_info_value(name, value, SRC_MQTT)
+
+    def _get_rpc_value(self, cfg, rpc_data):
+        if ATTR_RPC in cfg:            
+            rpc_list = cfg[ATTR_RPC]
+            if not type(rpc_list) is list:
+                rpc_list = [rpc_list]
+            for rpc in rpc_list:
+                rpc = rpc.replace('$', str(cfg.get(ATTR_CHANNEL, self._channel))) #Todo cache??
+                value = rpc_data 
+                for key in rpc.split('/'):
+                    if value is not None:
+                        value = value.get(key, None)
+                if value != None:
+                    return self._fmt_info_value(value, cfg, SRC_MQTT)  
+
+    def _update_info_values_rpc(self, rpc_data, extra_info_value_cfg=None):                
+        if self._state_cfg:
+            new_state = self._get_rpc_value(self._state_cfg, rpc_data)
+            self._set_state(new_state, SRC_MQTT)
+        if extra_info_value_cfg:
+            for name, cfg in extra_info_value_cfg.items():
+                value = self._get_rpc_value(cfg, rpc_data)
+                self.set_info_value(name, value, SRC_MQTT)                  
+        if self._info_value_cfg:
+            for name, cfg in self._info_value_cfg.items():
+                value = self._get_rpc_value(cfg, rpc_data)
                 self.set_info_value(name, value, SRC_MQTT)
 
     #Todo: remove
@@ -229,6 +257,6 @@ class Base(object):
             self.info_values_mqtt[name] = value
         elif src == SRC_MQTT_STATUS:
             self.info_values_mqtt_status[name] = value
-        if self.debug:
-            self.need_update = True
+        #if self.debug:
+        #    self.need_update = True
 

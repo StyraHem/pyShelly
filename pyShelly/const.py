@@ -5,7 +5,7 @@ import logging
 LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
-VERSION = "0.2.24"
+VERSION = "0.3.1"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
@@ -14,7 +14,8 @@ MDNS_IP = "224.0.0.251"
 MDNS_PORT = 5353
 
 #20210323-105928/v1.10.1-gf276b51
-REGEX_VER = r"^20(\d{6}).+v(\d+\.\d+\.\d+(-rc\d)?)([@-].*)?$"
+#20201019-110845/v1.6.6_4Pro@bad181e4
+REGEX_VER = r"^20(\d{6}).+v(\d+\.\d+\.\d+(-rc\d)?)([^\d].*)?$"
 
 """Define constants for result from /status response from device"""
 STATUS_RESPONSE_RELAYS = 'relays'
@@ -94,6 +95,7 @@ ATTR_POS = 'pos'
 ATTR_CHANNEL = 'channel'
 ATTR_AUTO_SET = 'auto_set'
 ATTR_TOPIC = 'topic'
+ATTR_RPC = 'rpc'
 
 SRC_COAP = 1
 SRC_STATUS = 2
@@ -111,11 +113,11 @@ BLOCK_INFO_VALUES = {
                                           ATTR_FMT : 'ver'},
     INFO_VALUE_FW_VERSION : {ATTR_PATH : 'update/old_version',
                              ATTR_FMT : 'ver'},
-    INFO_VALUE_CLOUD_ENABLED : {ATTR_PATH : 'cloud/enabled'},
-    INFO_VALUE_CLOUD_CONNECTED : {ATTR_PATH : 'cloud/connected'},
-    INFO_VALUE_MQTT_CONNECTED : {ATTR_PATH : 'mqtt/connected'},
+    INFO_VALUE_CLOUD_ENABLED : {ATTR_PATH : 'cloud/enabled', ATTR_RPC : 'cloud/enabled'},
+    INFO_VALUE_CLOUD_CONNECTED : {ATTR_PATH : 'cloud/connected', ATTR_RPC : 'cloud/connected'},
+    INFO_VALUE_MQTT_CONNECTED : {ATTR_PATH : 'mqtt/connected', ATTR_RPC : 'mqtt/connected'},
     #INFO_VALUE_CURRENT_CONSUMPTION : {ATTR_PATH : 'consumption'},
-    INFO_VALUE_VOLTAGE : {ATTR_PATH : 'voltage', ATTR_FMT : 'round'},
+    INFO_VALUE_VOLTAGE : {ATTR_PATH : 'voltage', ATTR_FMT : 'round', ATTR_RPC : 'switch:$/voltage'},
     INFO_VALUE_BATTERY : {ATTR_PATH : 'bat/value', ATTR_POS : [77, 3111], ATTR_TOPIC: "sensor/battery"},
     #INFO_VALUE_TILT : {ATTR_PATH : 'accel/tilt'}, #Todo
     #INFO_VALUE_VIBRATION : {ATTR_PATH : 'accel/vibration'}, #Todo
@@ -163,7 +165,9 @@ SHELLY_TYPES = {
     'SHPLG-U1': {'name': "Shelly Plug US", 'mqtt':'shellyplugu1'},
     'SHUNI-1': {'name': "Shelly UNI", 'mqtt':'shellyuni'},
     'SHSW-L': {'name': "Shelly 1L", 'mqtt':'shelly1l'},
-    'SHMOS-01': {'name': "Shelly Motion", 'mqtt':'shellymotionsensor'}
+    'SHMOS-01': {'name': "Shelly Motion", 'mqtt':'shellymotionsensor'},
+    'ShellyPlus1PM': {'name':"Shelly Plus 1PM", 'mqtt':'shellyplus1pm'},
+    'ShellyPro4PM': {'name':"Shelly Pro 4PM", 'mqtt':'shellypro4pm'}
 }
 
 EFFECTS_RGBW2 = [
@@ -189,3 +193,4 @@ RSSI_LEVELS = {
     -70 : "good",
     -1000: "weak"
 }
+

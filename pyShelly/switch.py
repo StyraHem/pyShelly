@@ -12,7 +12,7 @@ from .const import (
     STATUS_RESPONSE_INPUTS_EVENT,
     STATUS_RESPONSE_INPUTS_EVENT_CNT,
     SRC_COAP, SRC_STATUS, SRC_MQTT,
-    ATTR_POS, ATTR_PATH, ATTR_FMT, ATTR_TOPIC
+    ATTR_POS, ATTR_PATH, ATTR_FMT, ATTR_TOPIC, ATTR_RPC
 )
 
 class Switch(Device):
@@ -35,7 +35,7 @@ class Switch(Device):
         self.device_type = "SWITCH"
         self.last_event = None
         self.event_cnt = None
-        self.battery_bug_fix = False
+        #self.battery_bug_fix = False
         self.hold_delay = None #bug fix
         self.hold_event_cnt = None
         self.battery = False
@@ -61,13 +61,17 @@ class Switch(Device):
         self._update(src, state, {'last_event' : self.last_event,
                                   'event_cnt' : self.event_cnt})
 
+    def update_rpc(self, rpc_data):
+        state = self._get_rpc_value({ATTR_RPC:'input:$/state'}, rpc_data)
+        self.__update(state, None, None, SRC_MQTT)
+
     def update_mqtt(self, payload):
         if payload['topic'] == "input_event/" + str(self._channel):
             data = json.loads(payload['data'])
             event = data["event"]
             event_cnt = data["event_cnt"]
             self.__update(None, event_cnt, event, SRC_MQTT)
-
+            #Todo read state???
     #     #input_event/0
 
     def update_coap(self, payload):
@@ -81,22 +85,12 @@ class Switch(Device):
 
     def update_status_information(self, status, src):
         """Update the status information."""
-        #new_state = None
-        # if not self.battery_bug_fix:
-        #     inputs = status.get(STATUS_RESPONSE_INPUTS)
-        #     if inputs:
-        #         value = inputs[self._channel]
-        #         new_state = value.get(STATUS_RESPONSE_INPUTS_INPUT, None) != 0
-        #         event_cnt = value.get(STATUS_RESPONSE_INPUTS_EVENT_CNT, None)
-        #         if not event_cnt is None and self.event_cnt != event_cnt:
-        #             if self._simulate_state and self.event_cnt is not None:
-        #                 new_state = True
-        #                 self.timer = Timer(1,self._turn_off)
-        #                 self.timer.start()
-        #             self.last_event = value.get(STATUS_RESPONSE_INPUTS_EVENT, None)
-        #             self.event_cnt = event_cnt
-        #self._update(src, new_state, {'last_event' : self.last_event,
-        #                                 'event_cnt' : self.event_cnt})
+        new_state = None
+        inputs = status.get(STATUS_RESPONSE_INPUTS)
+        if inputs:
+            value = inputs[self._channel]
+            new_state = value.get(STATUS_RESPONSE_INPUTS_INPUT, None) != 0
+            self._update(src, new_state)
 
     def _turn_off(self):
         self._update(None, False)
