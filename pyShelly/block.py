@@ -372,6 +372,11 @@ class Block(Base):
             self._add_device(ExtTemp(self, 2), True)
             self._add_device(ExtHumidity(self, 0), True)
             self._add_device(ExtSwitch(self), True)
+        #Shelly Plus 1
+        elif self.type == 'ShellyPlus1':
+            self.rpc = True
+            self._add_device(Relay(self, 0))
+            self._add_device(Switch(self, 0))
         #Shelly Plus 1PM
         elif self.type == 'ShellyPlus1PM':
             self.rpc = True

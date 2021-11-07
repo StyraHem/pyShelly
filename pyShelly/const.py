@@ -166,6 +166,7 @@ SHELLY_TYPES = {
     'SHUNI-1': {'name': "Shelly UNI", 'mqtt':'shellyuni'},
     'SHSW-L': {'name': "Shelly 1L", 'mqtt':'shelly1l'},
     'SHMOS-01': {'name': "Shelly Motion", 'mqtt':'shellymotionsensor'},
+    'ShellyPlus1': {'name':"Shelly Plus 1", 'mqtt':'shellyplus1'},
     'ShellyPlus1PM': {'name':"Shelly Plus 1PM", 'mqtt':'shellyplus1pm'},
     'ShellyPro4PM': {'name':"Shelly Pro 4PM", 'mqtt':'shellypro4pm'}
 }
