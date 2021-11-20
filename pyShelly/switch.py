@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from threading import Timer
+
 from .device import Device
 from .utils import notNone
 from threading import Timer
@@ -39,6 +41,29 @@ class Switch(Device):
         self.hold_delay = None #bug fix
         self.hold_event_cnt = None
         self.battery = False
+
+        self.kg_last_event = ""
+        self.kg_last_event_cnt = None
+        self.kg_last_state = None
+        self.kg_click_count = 0
+        self.kg_click_timer = None
+        self.kg_send_event_events = ""
+        self.kg_send_event_click_count = 0
+        self.kg_start_state = None
+        self.kg_momentary_button = False
+
+    def kg_send_event(self):
+        if self.kg_momentary_button:
+            self.kg_send_event_events = self.kg_last_event
+            self.kg_send_event_click_count = 0
+        else:    
+            self.kg_send_event_events = ""
+            self.kg_send_event_click_count = self.kg_click_count
+
+        self.kg_last_event = ""
+        self.kg_click_count = 0
+        self.raise_updated(True)
+
 
     def __update(self, state, event_cnt, last_event, src):
         if self.battery:
@@ -81,7 +106,104 @@ class Switch(Device):
         self.battery = self.coap_get(payload, [3112]) == 0
         last_event = self.coap_get(payload, self._event_pos)
         self.__update(state, event_cnt, last_event, SRC_COAP)
-       
+
+#   Start state                   Action           CoAP
+#   -----------------------------------------------------------------------------------------------------------
+#       0                                          [0,2101,0],[0,2102," "],[0,2103,42]
+#                                 1 Fast click     [0,2101,0],[0,2102,"S"],[0,2103,43]
+#
+#       0                                          [0,2101,0],[0,2102," "],[0,2103,43] 
+#                                 1 Normal click   [0,2101,1],[0,2102," "],[0,2103,43]
+#                                                  [0,2101,0],[0,2102,"S"],[0,2103,44]
+#
+#       0                                          [0,2101,0],[0,2102," "],[0,2103,45]
+#                                 2 Fast click     [0,2101,0],[0,2102,"S"],[0,2103,47]
+#
+#       0                                          [0,2101,0],[0,2102," "],[0,2103,461]
+#                                 1 Long click     [0,2101,1],[0,2102," "],[0,2103,461]
+#                                 slow             [0,2101,1],[0,2102,"L"],[0,2103,462]
+#                                                  [0,2101,0],[0,2102," "],[0,2103,462]
+#
+#       0                                          [0,2101,0],[0,2102," "],[0,2103,67]
+#                                 1 Long click     [0,2101,1],[0,2102," "],[0,2103,67]
+#                                 fast             [0,2101,0],[0,2102,"L"],[0,2103,68]
+#
+#       1                                          [0,2101,1],[0,2102," "],[0,2103,74]     
+#                                 1 Fast click     [0,2101,1],[0,2102," "],[0,2103,74] 
+#                                                  [0,2101,1],[0,2102,"L"],[0,2103,75]
+#
+#       1                                          [0,2101,1],[0,2102," "],[0,2103,466]
+#                                 1 Normal click   [0,2101,0],[0,2102," "],[0,2103,466] 
+#                                                  [0,2101,1],[0,2102," "],[0,2103,466]
+#                                                  [0,2101,1],[0,2102,"L"],[0,2103,467]
+
+        kg_curr_state = self.coap_get(payload, self._position)
+        kg_curr_event = self.coap_get(payload, self._event_pos)
+        kg_curr_event_cnt = self.coap_get(payload, self._event_cnt_pos)
+        if not kg_curr_event_cnt is None:
+            if not self.kg_last_event_cnt is None and not self.kg_last_state is None:
+                if kg_curr_event_cnt != self.kg_last_event_cnt:
+                    if not self.kg_click_timer is None:
+                        self.kg_click_timer.cancel()
+                        self.kg_click_timer = None
+                        
+                    if kg_curr_event == "S":
+                        if self.kg_last_state == 1:
+                            self.kg_click_count += 1
+                        else:    
+                            self.kg_click_count += 2
+                        if kg_curr_state == 1:
+                            self.kg_click_count += 1
+
+                        if kg_curr_event_cnt - self.kg_last_event_cnt > 1:
+                            self.kg_click_count += (kg_curr_event_cnt - self.kg_last_event_cnt - 1) * 2
+                            kg_curr_event = "S"*(kg_curr_event_cnt - self.kg_last_event_cnt)
+
+                    if kg_curr_event == "L":
+                        if self.kg_momentary_button:
+                            if kg_curr_state != self.kg_last_state:
+                                self.kg_click_count += 1
+                            self.kg_send_event_events = self.kg_last_event + "LSTART"
+                            self.kg_send_event_click_count = 0
+                            self.raise_updated(True)
+                        else:        
+                            if self.kg_last_state == 0:
+                                self.kg_click_count += 1
+                            else:    
+                                self.kg_click_count += 2
+
+                            if kg_curr_state == 0:
+                                self.kg_click_count += 1
+
+                            if kg_curr_event_cnt - self.kg_last_event_cnt > 1:
+                                self.kg_click_count += (kg_curr_event_cnt - self.kg_last_event_cnt - 1) * 2
+
+                    self.kg_last_event += kg_curr_event
+
+                    if not self.kg_momentary_button or kg_curr_state == 0:
+                        self.kg_click_timer = Timer(0.7, self.kg_send_event)
+                        self.kg_click_timer.start()
+
+                if kg_curr_event_cnt == self.kg_last_event_cnt and kg_curr_state != self.kg_last_state:
+                    if not self.kg_click_timer is None:
+                        self.kg_click_timer.cancel()
+                        self.kg_click_timer = None
+
+                    self.kg_click_count += 1
+
+                    if self.kg_momentary_button and kg_curr_state == 0 and len(self.kg_last_event) > 0:
+                        if self.kg_last_event[-1] == "L":
+                            self.kg_send_event_events = self.kg_last_event + "STOP"
+                            self.kg_send_event_click_count = 0
+                            self.raise_updated(True)
+
+                    if not self.kg_momentary_button or kg_curr_state == 0:
+                        self.kg_click_timer = Timer(0.7, self.kg_send_event)
+                        self.kg_click_timer.start()
+
+            self.kg_last_state = kg_curr_state            
+            self.kg_last_event_cnt = kg_curr_event_cnt
+
 
     def update_status_information(self, status, src):
         """Update the status information."""
