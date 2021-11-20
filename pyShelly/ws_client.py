@@ -1,4 +1,5 @@
 import socket
+import uuid
 import threading
 import json
 import websocket
@@ -17,6 +18,7 @@ class WebSocket:
         self.send_id = 1
         self.connected = False
         self.ws = None
+        self.uid = uuid.uuid4().hex[:8]
         self.last_try_connect = None
         self.try_connect = 0
         #websocket.enableTrace(True)
@@ -38,7 +40,7 @@ class WebSocket:
         try:
             data = {
                 "id": self.send_id,
-                "src": "s4h_ws",
+                "src": "s4h_ws_" + self.uid,
                 "method" : method,
                 "params" : params
             }
