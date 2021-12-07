@@ -61,6 +61,17 @@ class Switch(Device):
         self._update(src, state, {'last_event' : self.last_event,
                                   'event_cnt' : self.event_cnt})
 
+    def rpc_event(self, comp, type):
+        state = None
+        if comp=='input:' + str(self._channel):
+            if type == "btn_down":
+                state = True
+            if type == "btn_up":
+                state = False
+            #if type == "single_push":
+        if state != None:
+            self.__update(state, None, None, SRC_MQTT)
+
     def update_rpc(self, rpc_data):
         state = self._get_rpc_value({ATTR_RPC:'input:$/state'}, rpc_data)
         self.__update(state, None, None, SRC_MQTT)
@@ -71,8 +82,6 @@ class Switch(Device):
             event = data["event"]
             event_cnt = data["event_cnt"]
             self.__update(None, event_cnt, event, SRC_MQTT)
-            #Todo read state???
-    #     #input_event/0
 
     def update_coap(self, payload):
         """Get the power"""
@@ -81,7 +90,6 @@ class Switch(Device):
         self.battery = self.coap_get(payload, [3112]) == 0
         last_event = self.coap_get(payload, self._event_pos)
         self.__update(state, event_cnt, last_event, SRC_COAP)
-       
 
     def update_status_information(self, status, src):
         """Update the status information."""

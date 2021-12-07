@@ -119,6 +119,14 @@ class Block(Base):
         if ipaddr:
             self.ip_addr=ipaddr
         self._update_info_values_rpc(rpc_data, BLOCK_INFO_VALUES)
+        if 'events' in rpc_data:
+            events = rpc_data['events']
+            for event in events:
+                comp = event.get("component")
+                type = event.get("event")
+                for dev in self.devices:
+                    if hasattr(dev, 'rpc_event'):
+                        dev.rpc_event(comp, type)
         for dev in self.devices:
             dev._update_info_values_rpc(rpc_data)
             if hasattr(dev, 'update_rpc'):
@@ -178,12 +186,15 @@ class Block(Base):
                                 self.set_info_value(iv, new_value, None)
                                 self.raise_updated()
 
+    def force_all_update(self):
+        self.raise_updated(True)
+        for dev in self.devices:
+            dev.raise_updated(True)
+
     def check_available(self):
         if self.available() != self._available:
             self._available = self.available()
-            self.raise_updated(True)
-            for dev in self.devices:
-                dev.raise_updated(True)
+            self.force_all_update()
 
     def update_status_information(self):
         """Update the status information."""
