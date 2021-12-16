@@ -9,6 +9,7 @@ from .const import (
     INFO_VALUE_TOTAL_RETURNED,
     INFO_VALUE_POWER_FACTOR,
     INFO_VALUE_CURRENT,
+    INFO_VALUE_VOLTAGE,
     ATTR_POS,
     ATTR_PATH,
     ATTR_FMT,
@@ -77,14 +78,14 @@ class PowerMeter(Device):
                 ATTR_TOPIC: topic + '/$/total_returned'
             }
         }
-        # (self.block if voltage_to_block else self) \
-        #     ._info_value_cfg[INFO_VALUE_VOLTAGE] = \
-        #     {
-        #         ATTR_POS: [116, 4108],
-        #         ATTR_PATH: meters + '/$/voltage',
-        #         ATTR_FMT: ['float'],
-        #         ATTR_TOPIC: topic + '/$/voltage'
-        #     }
+        (self.block if voltage_to_block else self) \
+            ._info_value_cfg[INFO_VALUE_VOLTAGE] = \
+            {
+                ATTR_POS: [116, 4108],
+                ATTR_PATH: meters + '/$/voltage',
+                ATTR_FMT: ['float'],
+                ATTR_TOPIC: topic + '/$/voltage'
+            }
 
     # """
     # def update_status_information(self, status):

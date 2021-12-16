@@ -17,8 +17,9 @@ class MDns:
 
     def get_ip(self, type, name):
         info = self._zeroconf.get_service_info(type, name)
-        for addr in info.addresses:
-            return str(ipaddress.IPv4Address(addr))
+        if info:
+            for addr in info.addresses:
+                return str(ipaddress.IPv4Address(addr))
 
     def add_service(self, zeroconf, type, name):
         test = MATCH_NAME.fullmatch(name)
@@ -28,9 +29,10 @@ class MDns:
             if device_type in EXCLUDE:
                 return
             info = zeroconf.get_service_info(type, name)
-            for addr in info.addresses:
-                #ipaddr = str(ipaddress.IPv4Address(addr))
-                self._root.add_device_by_ip("%s|%s" % (type, name) , "mDns")
+            if info:
+                for addr in info.addresses:
+                    #ipaddr = str(ipaddress.IPv4Address(addr))
+                    self._root.add_device_by_ip("%s|%s" % (type, name) , "mDns")
 
     def update_service(self, zconf, type, name):
         """ Update a service in the collection. """        
