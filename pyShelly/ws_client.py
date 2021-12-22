@@ -3,14 +3,13 @@ import uuid
 import threading
 import json
 import websocket
-import asyncio
-import _thread
 from datetime import datetime
+
+from .utils import error_log
 
 from .const import (
     LOGGER, SHELLY_TYPES
 )
-from .utils import exception_log
 
 class WebSocket:
     def __init__(self, block):
@@ -21,6 +20,7 @@ class WebSocket:
         self.uid = uuid.uuid4().hex[:8]
         self.last_try_connect = None
         self.try_connect = 0
+        self.thread = None
         #websocket.enableTrace(True)
         self.check()
     def on_open(self, ws):
@@ -33,7 +33,15 @@ class WebSocket:
         #print("Websocket closed", self.block.ip_addr)
     def on_message(self, ws, message):
         json_msg = json.loads(message)
-        self.block.update_rpc(json_msg["params"] if "params" in json_msg else json_msg["result"])
+        if "error" in json_msg:
+            error = json_msg["error"]["message"];
+            json_error = json.loads(error)
+            if "auth_type" in json_error:
+                error_log("Restrict login is not supported for Plus/Pro devices.")
+            else:   
+                error_log("WS error: {0}", error)
+        else:
+            self.block.update_rpc(json_msg["params"] if "params" in json_msg else json_msg["result"])
     def send(self, method, params=None):
         if not self.connected:
             return False
@@ -59,6 +67,7 @@ class WebSocket:
         )
         self.ws.run_forever(ping_interval=60)
         #print("Close")
+
     def check(self):
         if self.connected:
             return
@@ -70,5 +79,8 @@ class WebSocket:
                 if diff < 30 or (diff < 60 and self.try_connect >= 5):
                     return
             self.last_try_connect = datetime.now()
-            _thread.start_new_thread(self.ws_thread, ())
+            #_thread.start_new_thread(self.ws_thread, ())
+            self.thread = threading.Thread(name="S4H-WebSocket", target=self.ws_thread);
+            self.thread.daemon = True
+            self.thread.start(); 
             

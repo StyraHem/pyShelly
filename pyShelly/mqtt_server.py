@@ -77,7 +77,11 @@ class MQTT_connection:
                         #             device_type, None, 'MQTT-data', None, True)   
                     elif pkg_type==8:  #Subscribe  
                         msg = b'\x90\x03'
-                        msg += ((data[0]<<8) + data[1]).to_bytes(2, 'big')
+                        #msg += ((data[0]<<8) + data[1]).to_bytes(2, 'big')
+                        n = (data[0]<<8) + data[1]
+                        h = '%x' % n
+                        s = ('0'*(len(h) % 2) + h).zfill(length*2).decode('hex')
+                        msg += s
                         msg += b'\x01'
                         self._connection.send(msg)                 
                     elif pkg_type==12: #Ping
@@ -113,7 +117,7 @@ class MQTT_server(MQTT):
     def __init__(self, root):
         super(MQTT_server, self).__init__(root, "Server")
         self._thread = threading.Thread(target=self._loop)
-        self._thread.name = "MQTT"
+        self._thread.name = "S4H-MQTT"
         self._thread.daemon = True
         self._socket = None
         self._connections = []

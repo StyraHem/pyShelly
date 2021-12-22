@@ -399,6 +399,6 @@ class pyShelly():
             block.last_update_status_info = now
             t = threading.Thread(
                 target=block.update_status_information)
-            t.name = "Poll status"
+            t.name = "S4H-Poll status"
             t.daemon = True
             t.start()

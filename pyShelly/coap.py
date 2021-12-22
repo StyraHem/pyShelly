@@ -19,7 +19,7 @@ class CoAP():
     def __init__(self, root):
         self._root = root
         self._thread = threading.Thread(target=self._loop)
-        self._thread.name = "CoAP"
+        self._thread.name = "S4H-CoAP"
         self._thread.daemon = True
         self._socket = None
 

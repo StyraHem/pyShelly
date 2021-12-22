@@ -18,7 +18,7 @@ class Loop(object):
 
     def start_loop(self):
         self._loop_thread = threading.Thread(target=self._start_loop)
-        self._loop_thread.name = self._loop_name
+        self._loop_thread.name = "S4H-" + self._loop_name
         self._loop_thread.daemon = True
         self._loop_thread.start()
 

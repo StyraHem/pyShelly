@@ -36,7 +36,7 @@ class Cloud():
         if cleanCache:
             self._root.save_cache('cloud', {})
         self._cloud_thread = threading.Thread(target=self._update_loop)
-        self._cloud_thread.name = "Cloud"
+        self._cloud_thread.name = "S4H-Cloud"
         self._cloud_thread.daemon = True
         self._cloud_thread.start()
 
