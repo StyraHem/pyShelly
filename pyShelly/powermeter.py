@@ -19,7 +19,7 @@ from .const import (
 class PowerMeter(Device):
     """Class to represent a power meter value"""
     def __init__(self, block, channel, position = None,
-                 tot_pos = None, voltage_to_block=False, em=False, topic="emeter"):
+                 tot_pos = None, voltage_to_block=False, em=False, topic="emeter", gen=1):
         #Todo: voltage_to_block
         super(PowerMeter, self).__init__(block)
         self.id = block.id
@@ -48,7 +48,7 @@ class PowerMeter(Device):
             ATTR_TOPIC: ['relay/$/power', topic + '/$/power'],
             ATTR_RPC: 'switch:$/apower'
         }
-        divider = None if em else '/60'
+        divider = None if (em or gen == 2) else '/60'
         self._info_value_cfg = {
             INFO_VALUE_POWER_FACTOR : {
                 ATTR_POS: [114, 4110],
