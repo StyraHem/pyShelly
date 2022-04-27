@@ -15,7 +15,8 @@ from .const import (
     SRC_COAP,
     SRC_STATUS,
     SRC_MQTT,
-    SRC_MQTT_STATUS
+    SRC_MQTT_STATUS,
+    SRC_WS
 )
 class Base(object):
 
@@ -27,11 +28,13 @@ class Base(object):
         self.info_values_coap = {}
         self.info_values_mqtt = {}
         self.info_values_mqtt_status = {}
+        self.info_values_ws = {}
         self._state_cfg = None
         self.state_status = None
         self.state_coap = None
         self.state_mqtt = None
         self.state_mqtt_status = None
+        self.state_ws = None
         self._channel = 0
         self.cb_updated = []
         self.need_update = False
@@ -151,6 +154,8 @@ class Base(object):
                 self.state_mqtt = new_state
             if src == SRC_MQTT_STATUS:
                 self.state_mqtt_status = new_state
+            if src == SRC_WS:
+                self.state_ws = new_state
             #if self.debug:
             #    self.need_update = True
             if self.state != new_state:
@@ -209,7 +214,10 @@ class Base(object):
                 value = rpc_data 
                 for key in rpc.split('/'):
                     if value is not None:
-                        value = value.get(key, None)
+                        if key.startswith('include:'):
+                            value = (key[8:] in value)
+                        else:
+                            value = value.get(key, None)
                 if value != None:
                     return self._fmt_info_value(value, cfg, SRC_MQTT)  
 
@@ -257,6 +265,8 @@ class Base(object):
             self.info_values_mqtt[name] = value
         elif src == SRC_MQTT_STATUS:
             self.info_values_mqtt_status[name] = value
+        elif src == SRC_WS:
+            self.info_values_ws[name] = value
         #if self.debug:
         #    self.need_update = True
 

@@ -113,7 +113,7 @@ class Block(Base):
         #     self.reload = False
         self.raise_updated()
 
-    def update_rpc(self, rpc_data):
+    def update_rpc(self, rpc_data, src):
         self.last_updated = datetime.now()
         ipaddr = self._get_rpc_value({ATTR_RPC:'wifi/sta_ip'}, rpc_data)
         if ipaddr:
@@ -130,7 +130,7 @@ class Block(Base):
         for dev in self.devices:
             dev._update_info_values_rpc(rpc_data)
             if hasattr(dev, 'update_rpc'):
-                dev.update_rpc(rpc_data)
+                dev.update_rpc(rpc_data, src)
             dev.raise_updated()
         self.raise_updated()
 
@@ -148,7 +148,7 @@ class Block(Base):
             if self.rpc:
                 data = json.loads(payload['data'])
                 data = data['params'] if 'params' in data else data['result']
-                self.update_rpc(data)
+                self.update_rpc(data, SRC_MQTT)
             else:
                 self._update_info_values_mqtt(payload, BLOCK_INFO_VALUES)
                 for dev in self.devices:
@@ -228,7 +228,7 @@ class Block(Base):
             self.status_update_error_cnt = 0
 
             if self.rpc:
-                self.update_rpc(status)
+                self.update_rpc(status, SRC_STATUS)
             else:
                 self._update_status_info(status, SRC_STATUS)
 

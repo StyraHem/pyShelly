@@ -72,7 +72,7 @@ class Switch(Device):
         if state != None:
             self.__update(state, None, None, SRC_MQTT)
 
-    def update_rpc(self, rpc_data):
+    def update_rpc(self, rpc_data, src):
         state = self._get_rpc_value({ATTR_RPC:'input:$/state'}, rpc_data)
         self.__update(state, None, None, SRC_MQTT)
 

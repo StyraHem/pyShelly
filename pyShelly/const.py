@@ -60,6 +60,7 @@ INFO_VALUE_RSSI = 'rssi'
 INFO_VALUE_RSSI_LEVEL = 'rssi_level'
 INFO_VALUE_UPTIME = 'uptime'
 INFO_VALUE_OVER_POWER = 'over_power'
+INFO_VALUE_OVER_VOLTAGE = 'over_voltage'
 INFO_VALUE_DEVICE_TEMP = 'device_temp'
 INFO_VALUE_OVER_TEMPERATURE = 'over_temp'
 INFO_VALUE_SSID = 'ssid'
@@ -101,13 +102,15 @@ SRC_COAP = 1
 SRC_STATUS = 2
 SRC_MQTT = 3
 SRC_MQTT_STATUS = 4
+SRC_RPC = 5
+SRC_WS = 6
 
 BLOCK_INFO_VALUES = {
-    INFO_VALUE_SSID : {ATTR_PATH :'wifi_sta/ssid'},
-    INFO_VALUE_RSSI : {ATTR_PATH : 'wifi_sta/rssi'},
-    INFO_VALUE_UPTIME : {ATTR_PATH : 'uptime'},
-    INFO_VALUE_DEVICE_TEMP : {ATTR_PATH : 'tmp/tC', ATTR_POS: [311, 3104], ATTR_TOPIC: 'temperature'}, #, ATTR_FMT : 'round'},
-    INFO_VALUE_OVER_TEMPERATURE : {ATTR_PATH : 'overtemperature', ATTR_POS: 6101, ATTR_TOPIC: 'overtemperature'},
+    INFO_VALUE_SSID : {ATTR_PATH :'wifi_sta/ssid', ATTR_RPC:'wifi:ssid'},
+    INFO_VALUE_RSSI : {ATTR_PATH : 'wifi_sta/rssi', ATTR_RPC:'wifi/rssi'},
+    INFO_VALUE_UPTIME : {ATTR_PATH : 'uptime', ATTR_RPC:'sys/uptime'},
+    INFO_VALUE_DEVICE_TEMP : {ATTR_PATH : 'tmp/tC', ATTR_POS: [311, 3104], ATTR_TOPIC: 'temperature', ATTR_RPC:'switch:$/temperature/tC'}, #, ATTR_FMT : 'round'},
+    INFO_VALUE_OVER_TEMPERATURE : {ATTR_PATH : 'overtemperature', ATTR_POS: 6101, ATTR_TOPIC: 'overtemperature', ATTR_RPC: 'switch:$/errors/include:overtemp'},
     INFO_VALUE_HAS_FIRMWARE_UPDATE : {ATTR_PATH : 'update/has_update'},
     INFO_VALUE_LATEST_FIRMWARE_VERSION : {ATTR_PATH : 'update/new_version',
                                           ATTR_FMT : 'ver'},

@@ -8,7 +8,7 @@ from datetime import datetime
 from .utils import error_log
 
 from .const import (
-    LOGGER, SHELLY_TYPES
+    LOGGER, SHELLY_TYPES, SRC_WS
 )
 
 class WebSocket:
@@ -37,11 +37,20 @@ class WebSocket:
             error = json_msg["error"]["message"];
             json_error = json.loads(error)
             if "auth_type" in json_error:
-                error_log("Restrict login is not supported for Plus/Pro devices.")
+                # auth: {
+                #   "realm": "shellypro4pm-84cca87e48d8",
+                #   "username": "admin",
+                #   "nonce": 1640195650,
+                #   "cnonce": 1640195650468,
+                #   "response": "cee1a9eab83de7b33a065b5bae9c695ae39cd40dcc1396af69108b2ad9c77528",
+                #   "algorithm": "SHA-256"
+                # }
+                error_log("Restrict login is not supported for Plus/Pro device ({}, {}, {}).", 
+                            self.block.id, self.block.type, self.block.ip_addr)
             else:   
                 error_log("WS error: {0}", error)
         else:
-            self.block.update_rpc(json_msg["params"] if "params" in json_msg else json_msg["result"])
+            self.block.update_rpc(json_msg["params"] if "params" in json_msg else json_msg["result"], SRC_WS)
     def send(self, method, params=None):
         if not self.connected:
             return False

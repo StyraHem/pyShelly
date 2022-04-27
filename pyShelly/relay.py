@@ -9,6 +9,7 @@ from .const import (
     INFO_VALUE_CURRENT_CONSUMPTION,
     INFO_VALUE_TOTAL_CONSUMPTION,
     INFO_VALUE_OVER_POWER,
+    INFO_VALUE_OVER_VOLTAGE,
     INFO_VALUE_SWITCH,
     STATUS_RESPONSE_RELAYS,
     STATUS_RESPONSE_RELAY_OVER_POWER,
@@ -60,6 +61,11 @@ class Relay(Device):
             INFO_VALUE_OVER_POWER : {
                 ATTR_POS: [6102],
                 ATTR_PATH: 'relays/$/overpower',
+                ATTR_FMT: 'bool',
+                ATTR_RPC: 'switch:$/errors/include:overpower'
+            },
+            INFO_VALUE_OVER_VOLTAGE : {
+                ATTR_RPC: 'switch:$/errors/include:overvoltage',
                 ATTR_FMT: 'bool'
             }
         }

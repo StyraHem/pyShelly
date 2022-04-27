@@ -38,6 +38,10 @@ def error_log(_msg, *args):
     msg = _msg.format(*args)
     LOGGER.error(msg)
 
+def warning_log(_msg, *args):
+    msg = _msg.format(*args)
+    LOGGER.warning(msg)
+
 def exception_log(ex, _msg, *args):
     """Log exception"""
     msg = _msg.format(*args)

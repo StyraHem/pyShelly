@@ -1,3 +1,4 @@
+import codecs
 import socket
 import threading
 import json
@@ -6,7 +7,7 @@ from .mqtt import MQTT
 from .const import (
     LOGGER, SHELLY_TYPES
 )
-from .utils import exception_log
+from .utils import (exception_log, warning_log)
 
 class MQTT_connection:
     def __init__(self, mqtt, connection, client_address):
@@ -39,7 +40,11 @@ class MQTT_connection:
                             break
                     LOGGER.debug("type=%d, flags=%d, length=%d", pkg_type, flags, length)
                     data = b(self._connection.recv(length, socket.MSG_WAITALL)) if length else []
-
+                    if (len(data)!=length):
+                        warning_log("Receiving wrong size of MQTT message", length, len(data))
+                        print(data.decode('ASCII'))
+                        break
+                    
                     if pkg_type==1: #connected
                         if data[0]!=0 or data[1]!=4 or data[2:6]!=b'MQTT':
                             break
@@ -57,7 +62,7 @@ class MQTT_connection:
                         pos += topic_len
                         if qos>0: 
                             pos+=2
-                        payload = data[pos:].decode('ASCII')                         
+                        payload = data[pos:].decode('ASCII')
                         self._mqtt_server.receive_msg(topic, payload)
                         # if topic=='shellies/announce':
                         #     payload = json.loads(payload)
@@ -80,7 +85,8 @@ class MQTT_connection:
                         #msg += ((data[0]<<8) + data[1]).to_bytes(2, 'big')
                         n = (data[0]<<8) + data[1]
                         h = '%x' % n
-                        s = ('0'*(len(h) % 2) + h).zfill(length*2).decode('hex')
+                        s = ('0'*(len(h) % 2) + h).zfill(length*2)
+                        s = codecs.decode(s, 'hex')
                         msg += s
                         msg += b'\x01'
                         self._connection.send(msg)                 
