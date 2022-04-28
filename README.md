@@ -16,18 +16,20 @@ This library was created for Shelly Plugins for Home Assistant and Telldus Tells
 - Monitor status
 - Monitor switch status
 - Control (turn on/off etc)
-- MQTT Server
-- MQTT Client
+- MQTT Server (buildin MQTT server taht devices can connect to directly)
+- MQTT Client (using a MQTT broker)
 - Websocket
 - Run only locally
 - Support user name and password
 - Coexist with Shelly Cloud and Shelly app
 - Support static and dynamic ip address
 - mDns and MQTT discovery
+- RPC (gen 2 devices)
 - Cloud support (Get names of devices etc)
 
 ## Devices supported
 
+### Gen 1 devices
 - Shelly 1
 - Shelly 1 PM (bug in firmware)
 - Shelly 1L
@@ -36,9 +38,6 @@ This library was created for Shelly Plugins for Home Assistant and Telldus Tells
 - Shelly 4 Pro
 - Shelly Plug
 - Shelly Plug S
-- Shelly Plus 1
-- Shelly Plus 1PM
-- Shelly Pro 4PM
 - Shelly BULB
 - Shelly RGBWW
 - Shelly RGBW2
@@ -59,6 +58,17 @@ This library was created for Shelly Plugins for Home Assistant and Telldus Tells
 - Shelly Button 1
 - Shelly Gas
 - Shelly Air (not tested)
+##Plus devices
+- Shelly Plus 1
+- Shelly Plus 1PM
+- Shelly Plus 2
+- Shelly Plus 2PM
+- Shelly Plus i3
+##Pro devices
+- Shelly Pro 1
+- Shelly Pro 1PM
+- Shelly Pro 2
+- Shelly Pro 2PM
 
 ## Usage
 
