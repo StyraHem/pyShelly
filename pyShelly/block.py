@@ -411,6 +411,19 @@ class Block(Base):
             self._add_device(Relay(self, 0))
             self._add_device(PowerMeter(self, 0, gen=2))
             self._add_device(Switch(self, 0))
+        #Shelly Plus 1
+        elif self.type == 'ShellyPlus2':
+            self.rpc = True
+            for channel in range(2):
+                self._add_device(Relay(self, channel + 1))
+                self._add_device(Switch(self, channel + 1))
+        #Shelly Plus 1PM
+        elif self.type == 'ShellyPlus2PM':
+            self.rpc = True
+            for channel in range(2):
+                self._add_device(Relay(self, channel + 1))
+                self._add_device(PowerMeter(self, channel + 1, gen=2))
+                self._add_device(Switch(self, channel + 1))
         #Shelly 2
         elif self.type == 'SHSW-21':           
             self._add_device(Switch(self, 1))
