@@ -59,14 +59,14 @@ This library was created for Shelly Plugins for Home Assistant and Telldus Tells
 - Shelly Gas
 - Shelly Air (not tested)
 
-###Plus devices
+### Plus devices
 - Shelly Plus 1
 - Shelly Plus 1PM
 - Shelly Plus 2
 - Shelly Plus 2PM
 - Shelly Plus i3
 
-###Pro devices
+### Pro devices
 - Shelly Pro 1
 - Shelly Pro 1PM
 - Shelly Pro 2
