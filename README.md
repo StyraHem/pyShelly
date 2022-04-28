@@ -71,6 +71,11 @@ This library was created for Shelly Plugins for Home Assistant and Telldus Tells
 - Shelly Pro 1PM
 - Shelly Pro 2
 - Shelly Pro 2PM
+- Shelly Pro 4PM
+
+### Comming soon
+- Shelly TRV
+- Shelly Plus H&T
 
 ## Usage
 
