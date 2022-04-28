@@ -104,6 +104,7 @@ SRC_MQTT = 3
 SRC_MQTT_STATUS = 4
 SRC_RPC = 5
 SRC_WS = 6
+SRC_WS_STATUS = 7
 
 BLOCK_INFO_VALUES = {
     INFO_VALUE_SSID : {ATTR_PATH :'wifi_sta/ssid', ATTR_RPC:'wifi:ssid'},
@@ -116,7 +117,7 @@ BLOCK_INFO_VALUES = {
                                           ATTR_FMT : 'ver'},
     INFO_VALUE_FW_VERSION : {ATTR_PATH : 'update/old_version',
                              ATTR_FMT : 'ver'},
-    INFO_VALUE_CLOUD_ENABLED : {ATTR_PATH : 'cloud/enabled', ATTR_RPC : 'cloud/enabled'},
+    INFO_VALUE_CLOUD_ENABLED : {ATTR_PATH : 'cloud/enabled', ATTR_RPC : 'cloud/enable'}, #ed remover 220428
     INFO_VALUE_CLOUD_CONNECTED : {ATTR_PATH : 'cloud/connected', ATTR_RPC : 'cloud/connected'},
     INFO_VALUE_MQTT_CONNECTED : {ATTR_PATH : 'mqtt/connected', ATTR_RPC : 'mqtt/connected'},
     #INFO_VALUE_CURRENT_CONSUMPTION : {ATTR_PATH : 'consumption'},
@@ -170,8 +171,14 @@ SHELLY_TYPES = {
     'SHSW-L': {'name': "Shelly 1L", 'mqtt':'shelly1l'},
     'SHMOS-01': {'name': "Shelly Motion", 'mqtt':'shellymotionsensor'},
     'ShellyPlus1': {'name':"Shelly Plus 1", 'mqtt':'shellyplus1'},
-    'ShellyPlus1PM': {'name':"Shelly Plus 1PM", 'mqtt':'shellyplus1pm'},
-    'ShellyPro4PM': {'name':"Shelly Pro 4PM", 'mqtt':'shellypro4pm'}
+    'ShellyPlus1PM': {'name':"Shelly Plus 1PM", 'mqtt':'shellyplus1pm'},    
+    'ShellyPro1': {'name':"Shelly Pro 1", 'mqtt':'shellypro1'},
+    'ShellyPro1PM': {'name':"Shelly Pro 1PM", 'mqtt':'shellypro1pm'},
+    'ShellyPro2': {'name':"Shelly Pro 2", 'mqtt':'shellypro2'},
+    'ShellyPro2PM': {'name':"Shelly Pro 2PM", 'mqtt':'shellypro2pm'},
+    'ShellyPro4PM': {'name':"Shelly Pro 4PM", 'mqtt':'shellypro4pm'},
+    'ShellyPlusI4': {'name':"Shelly Plus i4", 'mqtt':'shellyplusi4'},
+    'SNSN-0013A': {'name': "Shelly Plus H&T", 'mqtt':'shellyplusht'}
 }
 
 EFFECTS_RGBW2 = [

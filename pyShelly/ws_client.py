@@ -8,7 +8,7 @@ from datetime import datetime
 from .utils import error_log
 
 from .const import (
-    LOGGER, SHELLY_TYPES, SRC_WS
+    LOGGER, SHELLY_TYPES, SRC_WS, SRC_WS_STATUS
 )
 
 class WebSocket:
@@ -50,7 +50,8 @@ class WebSocket:
             else:   
                 error_log("WS error: {0}", error)
         else:
-            self.block.update_rpc(json_msg["params"] if "params" in json_msg else json_msg["result"], SRC_WS)
+            params = "params" in json_msg
+            self.block.update_rpc(json_msg["params"] if params else json_msg["result"], SRC_WS if params else SRC_WS_STATUS)
     def send(self, method, params=None):
         if not self.connected:
             return False

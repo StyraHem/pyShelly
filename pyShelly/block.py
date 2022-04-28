@@ -1,8 +1,11 @@
 """Block is a physical device"""
 # pylint: disable=broad-except, bare-except
 
+from distutils.log import debug
 import json
 from datetime import datetime
+
+from attr import NOTHING
 from .utils import shelly_http_get, timer
 from .switch import Switch
 from .relay import Relay
@@ -118,7 +121,7 @@ class Block(Base):
         ipaddr = self._get_rpc_value({ATTR_RPC:'wifi/sta_ip'}, rpc_data)
         if ipaddr:
             self.ip_addr=ipaddr
-        self._update_info_values_rpc(rpc_data, BLOCK_INFO_VALUES)
+        self._update_info_values_rpc(rpc_data, src, BLOCK_INFO_VALUES)
         if 'events' in rpc_data:
             events = rpc_data['events']
             for event in events:
@@ -127,11 +130,17 @@ class Block(Base):
                 for dev in self.devices:
                     if hasattr(dev, 'rpc_event'):
                         dev.rpc_event(comp, type)
+
+        self._update_infovalues(src)
+
+        force_update_devices = self.need_update #Block updated
+        self.raise_updated()
+        
         for dev in self.devices:
-            dev._update_info_values_rpc(rpc_data)
+            dev._update_info_values_rpc(rpc_data, src)
             if hasattr(dev, 'update_rpc'):
                 dev.update_rpc(rpc_data, src)
-            dev.raise_updated()
+            dev.raise_updated(force_update_devices)
         self.raise_updated()
 
     def update_mqtt(self, payload):
@@ -205,6 +214,7 @@ class Block(Base):
         res = False
         if self.websocket:
             res = self.websocket.send("Shelly.GetStatus")
+            self.websocket.send("Shelly.GetConfig")
 
         if not res and self.ip_addr:
             if self.status_update_error_cnt >= 3:
@@ -232,31 +242,19 @@ class Block(Base):
             else:
                 self._update_status_info(status, SRC_STATUS)
 
-    def _update_status_info(self, status, src):
-        self.last_updated = datetime.now()
+    def _update_infovalues(self, src): 
+        cloud_status = ''
+        connected = self.info_values.get(INFO_VALUE_CLOUD_CONNECTED)
+        enabled = self.info_values.get(INFO_VALUE_CLOUD_ENABLED)
+        if connected:
+            cloud_status = 'connected'
+        elif enabled:
+            cloud_status = 'disconnected'
+        elif enabled is not None:
+            cloud_status = 'disabled'
 
-        if 'wifi_sta' in status:
-            wifi = status['wifi_sta']
-            if 'ip' in wifi:
-                self.ip_addr = wifi['ip']   
-
-        #Put status in info_values
-        for name, cfg in BLOCK_INFO_VALUES.items():
-            if name in self.exclude_info_values:
-                continue
-            self._update_info_value(name, status, cfg, src)
-
-        if self._info_value_cfg:
-            for name, cfg in self._info_value_cfg.items():
-                self._update_info_value(name, status, cfg, src)
-
-        cloud_status = 'disabled'
-        if self.info_values.get(INFO_VALUE_CLOUD_ENABLED):
-            if self.info_values.get(INFO_VALUE_CLOUD_CONNECTED):
-                cloud_status = 'connected'
-            else:
-                cloud_status = 'disconnected'
-        self.set_info_value(INFO_VALUE_CLOUD_STATUS, cloud_status, src)
+        if cloud_status:
+            self.set_info_value(INFO_VALUE_CLOUD_STATUS, cloud_status, src)
 
         rssi = self.info_values.get(INFO_VALUE_RSSI)
         rssi_level = self.info_values.get(INFO_VALUE_RSSI_LEVEL)
@@ -276,6 +274,26 @@ class Block(Base):
             self._last_friendly_name=friendly_name
             self.need_update=True
 
+    def _update_status_info(self, status, src):
+        self.last_updated = datetime.now()
+
+        if 'wifi_sta' in status:
+            wifi = status['wifi_sta']
+            if 'ip' in wifi:
+                self.ip_addr = wifi['ip']   
+
+        #Put status in info_values
+        for name, cfg in BLOCK_INFO_VALUES.items():
+            if name in self.exclude_info_values:
+                continue
+            self._update_info_value(name, status, cfg, src)
+
+        if self._info_value_cfg:
+            for name, cfg in self._info_value_cfg.items():
+                self._update_info_value(name, status, cfg, src)
+
+        self._update_infovalues(src)
+        
         force_update_devices = self.need_update #Block updated
         self.raise_updated()
 
@@ -432,6 +450,32 @@ class Block(Base):
                 self._add_device(Relay(self, channel + 1))
                 self._add_device(PowerMeter(self, channel + 1))
                 self._add_device(Switch(self, channel + 1))
+        #Shelly Pro 1
+        elif self.type == 'ShellyPro1':
+            self.rpc = True
+            self._add_device(Relay(self, 1))
+            self._add_device(Switch(self, 1))
+            self._add_device(Switch(self, 2))
+        #Shelly Pro 1PM
+        elif self.type == 'ShellyPro1PM':
+            self.rpc = True
+            self._add_device(Relay(self, 1))
+            self._add_device(PowerMeter(self, 1, gen=2))
+            self._add_device(Switch(self, 1))
+            self._add_device(Switch(self, 2))
+        #Shelly Pro 2
+        elif self.type == 'ShellyPro2':
+            self.rpc = True
+            for channel in range(2):
+                self._add_device(Relay(self, channel + 1))
+                self._add_device(Switch(self, channel + 1))
+        #Shelly Pro 2PM
+        elif self.type == 'ShellyPro2PM':
+            self.rpc = True
+            for channel in range(2):
+                self._add_device(Relay(self, channel + 1))
+                self._add_device(PowerMeter(self, channel + 1, gen=2))
+                self._add_device(Switch(self, channel + 1))
         #Shelly Pro 4PM
         elif self.type == 'ShellyPro4PM':
             self.rpc = True
@@ -450,6 +494,14 @@ class Block(Base):
             self._add_device(PowerMeter(self, 0, 4101, 4103))
         #Shelly H&T
         elif self.type == 'SHHT-1':
+            self.sleep_device = True
+            self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
+            self.exclude_info_values.append(INFO_VALUE_DEVICE_TEMP)
+            self._add_device(TempSensor(self))
+            self._add_device(Sensor(self, [44, 3103], 'humidity', 'hum/value', topic= 'sensor/humidity'))
+        #Shelly H&T Plus
+        elif self.type == 'SNSN-0013A':
+            debug
             self.sleep_device = True
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
             self.exclude_info_values.append(INFO_VALUE_DEVICE_TEMP)
@@ -506,10 +558,18 @@ class Block(Base):
             self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
             self._add_device(Switch(self, 0, simulate_state=True,
                                     master_unit=True))
+        #Shelly i3
         elif self.type == 'SHIX3-1':
             self._add_device(Switch(self, 1, master_unit=True))
             self._add_device(Switch(self, 2))
             self._add_device(Switch(self, 3))
+        #Shelly Plus i4
+        elif self.type == 'ShellyPlusI4':
+            self.rpc = True
+            self._add_device(Switch(self, 1, master_unit=True))
+            self._add_device(Switch(self, 2))
+            self._add_device(Switch(self, 3))
+            self._add_device(Switch(self, 4))
         elif self.type == 'SHGS-1':
             self._info_value_cfg = {INFO_VALUE_GAS : {ATTR_POS : 122},
                                     INFO_VALUE_SENSOR : {ATTR_POS : [118, 2101]}
@@ -542,7 +602,7 @@ class Block(Base):
             }
             #shellies/shellymotionsensor-60A423976594/status {"motion":true,"timestamp":1614416952,"active":true,"vibration":true,"lux":303,"bat":87}
             #{"G":[[0,6107,1],[0,3119,1614417090],[0,3120,1],[0,6110,0],[0,3106,285],[0,3111,87],[0,9103,11]]}
-            self._add_device(Motion(self))
+            self._add_device(Motion(self))    
 
         if (self.rpc):
             self.websocket = WebSocket(self)

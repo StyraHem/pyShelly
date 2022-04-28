@@ -16,7 +16,8 @@ from .const import (
     SRC_STATUS,
     SRC_MQTT,
     SRC_MQTT_STATUS,
-    SRC_WS
+    SRC_WS,
+    SRC_WS_STATUS
 )
 class Base(object):
 
@@ -29,12 +30,15 @@ class Base(object):
         self.info_values_mqtt = {}
         self.info_values_mqtt_status = {}
         self.info_values_ws = {}
+        self.info_values_ws_status = {}
         self._state_cfg = None
+        self.debug_status = {}
         self.state_status = None
         self.state_coap = None
         self.state_mqtt = None
         self.state_mqtt_status = None
         self.state_ws = None
+        self.state_ws_status = None
         self._channel = 0
         self.cb_updated = []
         self.need_update = False
@@ -156,8 +160,10 @@ class Base(object):
                 self.state_mqtt_status = new_state
             if src == SRC_WS:
                 self.state_ws = new_state
-            #if self.debug:
-            #    self.need_update = True
+            if src == SRC_WS_STATUS:
+                self.state_ws_status = new_state
+            if self.debug:
+                self.need_update = True
             if self.state != new_state:
                 self.state = new_state
                 self.need_update = True
@@ -221,18 +227,18 @@ class Base(object):
                 if value != None:
                     return self._fmt_info_value(value, cfg, SRC_MQTT)  
 
-    def _update_info_values_rpc(self, rpc_data, extra_info_value_cfg=None):                
+    def _update_info_values_rpc(self, rpc_data, src, extra_info_value_cfg=None):                
         if self._state_cfg:
             new_state = self._get_rpc_value(self._state_cfg, rpc_data)
-            self._set_state(new_state, SRC_MQTT)
+            self._set_state(new_state, src)
         if extra_info_value_cfg:
             for name, cfg in extra_info_value_cfg.items():
                 value = self._get_rpc_value(cfg, rpc_data)
-                self.set_info_value(name, value, SRC_MQTT)                  
+                self.set_info_value(name, value, src)                  
         if self._info_value_cfg:
             for name, cfg in self._info_value_cfg.items():
                 value = self._get_rpc_value(cfg, rpc_data)
-                self.set_info_value(name, value, SRC_MQTT)
+                self.set_info_value(name, value, src)
 
     #Todo: remove
     def coap_get(self, payload, pos_list, default=None, channel=None):
@@ -267,6 +273,8 @@ class Base(object):
             self.info_values_mqtt_status[name] = value
         elif src == SRC_WS:
             self.info_values_ws[name] = value
+        elif src == SRC_WS_STATUS:
+            self.info_values_ws_status[name] = value
         #if self.debug:
         #    self.need_update = True
 
