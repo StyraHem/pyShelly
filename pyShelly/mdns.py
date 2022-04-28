@@ -22,7 +22,6 @@ class MDns:
                 return str(ipaddress.IPv4Address(addr))
 
     def add_service(self, zeroconf, type, name):
-        print("DDNS " + name)
         test = MATCH_NAME.fullmatch(name)
         if test:
             device_type = test.group('devtype')

@@ -32,7 +32,6 @@ class Base(object):
         self.info_values_ws = {}
         self.info_values_ws_status = {}
         self._state_cfg = None
-        self.debug_status = {}
         self.state_status = None
         self.state_coap = None
         self.state_mqtt = None

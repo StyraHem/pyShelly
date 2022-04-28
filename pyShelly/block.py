@@ -5,7 +5,6 @@ from distutils.log import debug
 import json
 from datetime import datetime
 
-from attr import NOTHING
 from .utils import shelly_http_get, timer
 from .switch import Switch
 from .relay import Relay
