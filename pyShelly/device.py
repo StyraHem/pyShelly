@@ -76,7 +76,7 @@ class Device(Base):
         res = False
         if rpc_method and self.block.websocket:
             res = self.block.websocket.send(rpc_method, rpc_params)
-        if not res and topic and self.block.mqtt_name:
+        if not res and topic and self.block.mqtt_available:
             res = self.block.parent.send_mqtt(self.block, topic, payload, rpc_method, rpc_params)
         if not res and self.ip_addr and url:
             res, _ = self.block.http_get(url)

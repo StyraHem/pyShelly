@@ -11,6 +11,7 @@ from .relay import Relay
 from .powermeter import PowerMeter
 from .sensor import (Sensor, BinarySensor, Flood, DoorWindow, ExtTemp,
                      ExtHumidity, Gas, TempSensor, ExtSwitch, Motion)
+from .trv import Trv
 from .light import RGBW2W, RGBW2C, RGBWW, Bulb, Duo, Vintage
 from .dimmer import Dimmer
 from .roller import Roller
@@ -89,6 +90,7 @@ class Block(Base):
         self.last_try_update_status = None
         self._last_friendly_name = None
         self.mqtt_name = None
+        self.mqtt_last_seen = None
         self.mqtt_src = None        
         self._check_delay_load = timer(1)
 
@@ -142,8 +144,17 @@ class Block(Base):
             dev.raise_updated(force_update_devices)
         self.raise_updated()
 
+    @property
+    def mqtt_available(self):
+        if not self.mqtt_name:
+            return False
+        if (datetime.now() - self.last_updated).total_seconds() > 60*60*24:
+            return False
+        return True
+
     def update_mqtt(self, payload):
         self.mqtt_name = payload['name']
+        self.mqtt_last_seen = datetime.now() 
         self.mqtt_src = payload['src']
         self.last_updated = datetime.now()
         topic = payload['topic']
@@ -207,7 +218,7 @@ class Block(Base):
     def update_status_information(self):
         """Update the status information."""
         self.last_update_status_info = datetime.now()
-        if self.mqtt_name:
+        if self.mqtt_available:
             self.parent.send_mqtt(self, "command", "announce",
                 "Shelly.GetStatus")
         res = False
@@ -350,7 +361,7 @@ class Block(Base):
             if self.settings:
                 if self.settings.get('mode') == 'roller':
                     self._add_device(Roller(self))
-                    self._add_device(PowerMeter(self, 1))
+                    self._add_device(PowerMeter(self, 0))
                 else:
                     self._add_device(Relay(self, 1))
                     self._add_device(Relay(self, 2))
@@ -615,6 +626,10 @@ class Block(Base):
             #shellies/shellymotionsensor-60A423976594/status {"motion":true,"timestamp":1614416952,"active":true,"vibration":true,"lux":303,"bat":87}
             #{"G":[[0,6107,1],[0,3119,1614417090],[0,3120,1],[0,6110,0],[0,3106,285],[0,3111,87],[0,9103,11]]}
             self._add_device(Motion(self))    
+        elif self.type == 'SHTRV-01':
+            self._add_device(Trv(self))  
+        else:
+            pass  
 
         if (self.rpc):
             self.websocket = WebSocket(self)

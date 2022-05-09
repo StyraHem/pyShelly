@@ -50,6 +50,8 @@ class MQTT(object):
                 _, name, cmd = topic.split('/', 2)
                 if name == 'announce':
                     return
+                if cmd == 'command':
+                    return; 
                 _type, device_id = name.rsplit('-', 1)
                 device_type = self._mqtt_types.get(_type)
                 payload = {

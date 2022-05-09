@@ -5,7 +5,7 @@ import logging
 LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
@@ -89,6 +89,8 @@ INFO_VALUE_ILLUMINANCE = 'illuminance'
 INFO_VALUE_GAS = 'gas'
 INFO_VALUE_SENSOR = 'sensor'
 INFO_VALUE_TOTAL_WORK_TIME = 'total_work_time'
+INFO_VALUE_TARGET_TEMP = 'target_temperature'
+INFO_VALUE_POSITION = 'position'
 
 ATTR_PATH = 'path'
 ATTR_FMT = 'fmt'
@@ -180,6 +182,7 @@ SHELLY_TYPES = {
     'ShellyPro2PM': {'name':"Shelly Pro 2PM", 'mqtt':'shellypro2pm'},
     'ShellyPro4PM': {'name':"Shelly Pro 4PM", 'mqtt':'shellypro4pm'},
     'ShellyPlusI4': {'name':"Shelly Plus i4", 'mqtt':'shellyplusi4'},
+    'SHTRV-01': {'name':"Shelly TRV", 'mqtt':'shellytrv'},
     #'SNSN-0013A': {'name': "Shelly Plus H&T", 'mqtt':'shellyplusht'}
 }
 

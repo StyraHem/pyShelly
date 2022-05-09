@@ -34,13 +34,13 @@ class Roller(Device):
         #success, settings = self.block.http_get("/roller/0") #Todo move
         #if success:
         #    self.support_position = settings.get("positioning", False)
-        self._info_value_cfg = {
-            INFO_VALUE_TOTAL_CONSUMPTION : {
-                ATTR_POS: [4104],
-                ATTR_PATH: 'meters/$/total',
-                ATTR_FMT: ['float','/60','round:2']
-            }
-        }
+        # self._info_value_cfg = {
+        #     INFO_VALUE_TOTAL_CONSUMPTION : {
+        #         ATTR_POS: [4104],
+        #         ATTR_PATH: 'meters/$/total',
+        #         ATTR_FMT: ['float','/60','round:2']
+        #     }
+        # }
 
     def _set_pos(self, pos):
         if pos is None or pos < 0 or pos > 100:
@@ -78,6 +78,10 @@ class Roller(Device):
             self.set_info_value(INFO_VALUE_CURRENT_CONSUMPTION,
                                 roller[STATUS_RESPONSE_ROLLERS_POWER],
                                 src)
+            total = 0
+            for meter in status['meters']:
+                total += round(float(meter['total']) / 60, 2)
+            self.set_info_value(INFO_VALUE_TOTAL_CONSUMPTION, total, src)
             state = self.position != 0
             self._update(src, state)
 
