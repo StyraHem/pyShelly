@@ -343,7 +343,10 @@ class Block(Base):
                 return
         if not self.ip_addr:
             return
-        success, settings = self.http_get("/settings")
+        if self.rpc:
+            success, settings = self.http_get("/rpc/Shelly.GetDeviceInfo")
+        else:
+            success, settings = self.http_get("/settings")
         if success:
             self.settings = settings
 
@@ -368,6 +371,16 @@ class Block(Base):
                     self._add_device(PowerMeter(self, 1))
                     self._add_device(PowerMeter(self, 2))
                 return True
+        elif self.type == 'ShellyPlus2PM':
+            if self.settings:
+                if self.settings.get('profile') == 'cover':
+                    self._add_device(Roller(self, gen=2))
+                    self._add_device(PowerMeter(self, 0))
+                else:
+                    for channel in range(2):
+                        self._add_device(Relay(self, channel + 1))
+                        self._add_device(PowerMeter(self, channel + 1, gen=2))
+                        self._add_device(Switch(self, channel + 1))
         elif self.type == 'SHRGBW2':
             if self.settings:
                 if self.settings.get('mode', 'color') == 'color':
@@ -431,10 +444,7 @@ class Block(Base):
         #Shelly Plus 1PM
         elif self.type == 'ShellyPlus2PM':
             self.rpc = True
-            for channel in range(2):
-                self._add_device(Relay(self, channel + 1))
-                self._add_device(PowerMeter(self, channel + 1, gen=2))
-                self._add_device(Switch(self, channel + 1))
+            self._need_setup_delayed_devices = True
         #Shelly 2
         elif self.type == 'SHSW-21':           
             self._add_device(Switch(self, 1))
