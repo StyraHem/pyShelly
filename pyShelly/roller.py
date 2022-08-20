@@ -27,7 +27,7 @@ class Roller(Device):
         self.position = None
         self.is_sensor = True
         self.sub_name = "Roller"
-        self.support_position = False
+        self.support_position = True
         self.motion_state = ""
         self.last_direction = ""
         self.info_values = {}
