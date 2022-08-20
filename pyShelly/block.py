@@ -374,7 +374,7 @@ class Block(Base):
         elif self.type == 'ShellyPlus2PM':
             if self.settings:
                 if self.settings.get('profile') == 'cover':
-                    self._add_device(Roller(self))
+                    self._add_device(Roller(self, gen=2))
                     self._add_device(PowerMeter(self, 0))
                 else:
                     for channel in range(2):

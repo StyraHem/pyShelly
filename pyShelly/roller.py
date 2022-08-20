@@ -19,7 +19,7 @@ from .const import (
 )
 
 class Roller(Device):
-    def __init__(self, block):
+    def __init__(self, block, gen=1):
         super(Roller, self).__init__(block)
         self.id = block.id
         self.device_type = "ROLLER"
@@ -27,7 +27,10 @@ class Roller(Device):
         self.position = None
         self.is_sensor = True
         self.sub_name = "Roller"
-        self.support_position = True
+        if gen == 2:
+            self.support_position = True
+        else:
+            self.support_position = False
         self.motion_state = ""
         self.last_direction = ""
         self.info_values = {}
