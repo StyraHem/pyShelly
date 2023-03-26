@@ -342,7 +342,6 @@ class pyShelly():
 
     def update_block(self, block_id, device_type, ipaddr, src, payload,
                      force_poll=False, mqtt=None):
-
         block_id = block_id.upper()
 
         if self.only_device_id is not None and \
@@ -412,7 +411,6 @@ class pyShelly():
             now - block.last_update_status_info \
                 > self.update_status_interval)):
             LOGGER.debug("Polling block, %s %s", block.id, block.type)
-            print("Polling block, %s %s", block.id, block.type)
             block.last_update_status_info = now
             t = threading.Thread(
                 target=block.update_status_information)
