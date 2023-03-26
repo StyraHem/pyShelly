@@ -21,6 +21,9 @@ from .utils import exception_log, timer
 from .coap import CoAP
 from .mqtt_server import MQTT_server
 from .mqtt_client import MQTT_client
+
+import prometheus_client
+
 #from .debug import Debug_server
 try:
     from .mdns import MDns
@@ -113,6 +116,11 @@ class pyShelly():
         self.mqtt_server_username = ''
         self.mqtt_server_password = ''
 
+        # prometheus support
+        self.prometheus_enabled = False 
+        self.prometheus_server_port = 8000
+        self._prometheus_server = None
+
         self._shelly_by_ip = {}
         #self.loop = asyncio.get_event_loop()
         self.event_loop = None
@@ -185,6 +193,13 @@ class pyShelly():
             self._mqtt_server.start()
         if self._mqtt_client:
             self._mqtt_client.start()
+        if self.prometheus_enabled:
+            try:
+                self._prometheus_server = prometheus_client.start_http_server(int(self.prometheus_server_port))
+            except Exception as e:
+                LOGGER.fatal(
+                    "starting the http server on port '{}' failed with: {}".format(self.prometheus_server_port, str(e))
+                )
         #self._debug_server = Debug_server(self)
         #asyncio.ensure_future(self._update_loop())
         self._update_thread = threading.Thread(target=self._update_loop)
@@ -327,6 +342,7 @@ class pyShelly():
 
     def update_block(self, block_id, device_type, ipaddr, src, payload,
                      force_poll=False, mqtt=None):
+
         block_id = block_id.upper()
 
         if self.only_device_id is not None and \
@@ -396,6 +412,7 @@ class pyShelly():
             now - block.last_update_status_info \
                 > self.update_status_interval)):
             LOGGER.debug("Polling block, %s %s", block.id, block.type)
+            print("Polling block, %s %s", block.id, block.type)
             block.last_update_status_info = now
             t = threading.Thread(
                 target=block.update_status_information)

@@ -15,6 +15,7 @@ from .const import (
     ATTR_FMT,
     ATTR_TOPIC
 )
+import prometheus_client
 
 class PowerMeter(Device):
     """Class to represent a power meter value"""
@@ -86,6 +87,50 @@ class PowerMeter(Device):
                 ATTR_FMT: ['float'],
                 ATTR_TOPIC: topic + '/$/voltage'
             }
+        
+        self._prometheus_metric_power_actual = None
+        self._prometheus_metric_power_counter = None
+        if self.block.parent.prometheus_enabled:
+            self.__init_metrics()
+
+    def __init_metrics(self):
+        namespace = 'shelly'
+        # labelnames = ['room', 'device_label', 'device_type']
+        labelnames = ['room', 'device_type', 'device_id', 'friendly_name']
+
+        if self._prometheus_metric_power_actual is None:
+            self._prometheus_metric_power_actual = prometheus_client.Gauge(
+                name='power_actual',
+                documentation='Current real AC power being drawn (or injected), in Watts',
+                labelnames=labelnames,
+                namespace=namespace
+            )
+
+        if self._prometheus_metric_power_counter is None:
+            self._prometheus_metric_power_counter = prometheus_client.Gauge(
+                name='power_counter',
+                documentation='Total real AC power being drawn (or injected), in Watt Hours',
+                labelnames=labelnames,
+                namespace=namespace
+            )
+
+    def collect_metrics(self, _status):
+        """Collect metrics"""
+        if meters:=_status.get("meters"):
+            meter = meters[0]
+            power = meter.get("power")
+            total = meter.get("total")
+            if power is not None:
+                print("Collecting power metrics (actual).")
+                self._prometheus_metric_power_actual.labels(room=self.block.room_name(), friendly_name = self.block.friendly_name(), device_type=self.block.type_name(), device_id=self.id).set(power)
+            if total is not None:
+                print("Collecting power metrics (counter).")
+                self._prometheus_metric_power_counter.labels(room=self.block.room_name(), friendly_name = self.block.friendly_name(),device_type=self.block.type_name(), device_id=self.id).set(float(total)/60)
+
+    def update_status_information(self, _status, src):
+        if self.block.parent.prometheus_enabled:
+            self.collect_metrics(_status)
+
 
     # """
     # def update_status_information(self, status):

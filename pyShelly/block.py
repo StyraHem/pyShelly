@@ -219,7 +219,7 @@ class Block(Base):
         """Update the status information."""
         self.last_update_status_info = datetime.now()
         if self.mqtt_available:
-            self.parent.send_mqtt(self, "command", "announce",
+          self.parent.send_mqtt(self, "command", "announce",
                 "Shelly.GetStatus")
         res = False
         if self.websocket:
@@ -235,9 +235,10 @@ class Block(Base):
             self.last_try_update_status = datetime.now()
 
             LOGGER.debug("Get status from %s %s", self.id, self.friendly_name())
+            print("Get status from %s %s", self.id, self.friendly_name())
             url = "/rpc/Shelly.GetStatus" if self.rpc else "/status"
             success, status = self.http_get(url, False)
-
+            
             if not success or status == {}:
                 self.status_update_error_cnt += 1
                 return
