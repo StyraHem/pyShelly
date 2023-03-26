@@ -237,7 +237,7 @@ class Block(Base):
             LOGGER.debug("Get status from %s %s", self.id, self.friendly_name())
             url = "/rpc/Shelly.GetStatus" if self.rpc else "/status"
             success, status = self.http_get(url, False)
-            
+                            
             if not success or status == {}:
                 self.status_update_error_cnt += 1
                 return
