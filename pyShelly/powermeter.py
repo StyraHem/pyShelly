@@ -88,14 +88,10 @@ class PowerMeter(Device):
                 ATTR_TOPIC: topic + '/$/voltage'
             }
         
-        self._prometheus_metric_power_actual = None
-        self._prometheus_metric_power_counter = None
         if self.block.parent.prometheus_enabled:
             self.__init_metrics()
 
     def __init_metrics(self):
-        namespace = 'shelly'
-        # labelnames = ['room', 'device_label', 'device_type']
         labelnames = ['room', 'device_type', 'device_id', 'friendly_name']
 
         if 'power_actual' not in self.block.parent._prometheus_metrics:
@@ -103,7 +99,7 @@ class PowerMeter(Device):
                 name='power_actual',
                 documentation='Current real AC power being drawn (or injected), in Watts',
                 labelnames=labelnames,
-                namespace=namespace
+                namespace=self.block.parent.prometheus_namespace
             )
 
         if 'power_counter' not in self.block.parent._prometheus_metrics:
@@ -111,7 +107,7 @@ class PowerMeter(Device):
                 name='power_counter',
                 documentation='Total real AC power being drawn (or injected), in Watt Hours',
                 labelnames=labelnames,
-                namespace=namespace
+                namespace=self.block.parent.prometheus_namespace
             )
 
     def collect_metrics(self, _status):

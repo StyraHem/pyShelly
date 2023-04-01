@@ -122,6 +122,7 @@ class pyShelly():
         self.prometheus_server_port = 8000
         self._prometheus_server = None
         self._prometheus_metrics = {}
+        self.prometheus_namespace = "shellies"
 
         self._shelly_by_ip = {}
         #self.loop = asyncio.get_event_loop()
