@@ -17,8 +17,9 @@ shelly.cb_device_added.append(device_added)
 shelly.start()
 # the below could be used to add a Shelly Plug S which is running in factory mode 
 # alternatively devices could be discovered (CoAP) using shelly.discover()
-shelly.add_device_by_ip("192.168.178.210", "IP-addr")
-shelly.add_device_by_ip("192.168.178.200", "IP-addr")
+shelly_ips = os.environ.get('SHELLY_IPS').split(",")
+for shelly_ip in shelly_ips:
+  shelly.add_device_by_ip(shelly_ip, "IP-addr")
 # shelly.discover()
 
 while True:
