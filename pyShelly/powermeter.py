@@ -3,7 +3,7 @@
 from .device import Device
 from .utils import notNone
 from .const import (
-    #LOGGER,
+    LOGGER,
     ATTR_RPC,
     INFO_VALUE_TOTAL_CONSUMPTION,
     INFO_VALUE_TOTAL_RETURNED,
@@ -117,10 +117,10 @@ class PowerMeter(Device):
             power = meter.get("power")
             total = meter.get("total")
             if power is not None:
-                print("Collecting power metrics (actual) for device " + self.block.friendly_name())
+                LOGGER.info("Collecting power metrics (actual) for device " + self.block.friendly_name())
                 self.block.parent._prometheus_metrics['power_actual'].labels(room=self.block.room_name(), friendly_name = self.block.friendly_name(), device_type=self.block.type_name(), device_id=self.id).set(power)
             if total is not None:
-                print("Collecting power metrics (counter) for device " + self.block.friendly_name())
+                LOGGER.info("Collecting power metrics (counter) for device " + self.block.friendly_name())
                 self.block.parent._prometheus_metrics['power_counter'].labels(room=self.block.room_name(), friendly_name = self.block.friendly_name(),device_type=self.block.type_name(), device_id=self.id).set(float(total)/60)
 
     def update_status_information(self, _status, src):

@@ -1,9 +1,13 @@
 from pyShelly import pyShelly
 from datetime import timedelta, datetime
-import os
+import logging
+import os, sys
+
+logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+LOGGER = logging.getLogger('pyShelly-run')
 
 def device_added(dev,code):
-  print (dev," ",code)
+  LOGGER.info("Device added: " + str(dev) + " " + dev.friendly_name())
 
 shelly = pyShelly()
 shelly.update_status_interval = timedelta(seconds=60)

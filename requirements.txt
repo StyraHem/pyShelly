@@ -1,1 +1,2 @@
 prometheus_client >= 0.9.0
+websocket
