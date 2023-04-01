@@ -94,7 +94,8 @@ class pyShelly():
         self._update_thread = None
         self._socket = None
         self.only_device_id = None
-        self.tmpl_name = "{room} - {name}"
+        # self.tmpl_name = "{room} - {name}"
+        self.tmpl_name = "{name}"
 
         self.cloud = None
         self.cloud_server = None
@@ -120,6 +121,7 @@ class pyShelly():
         self.prometheus_enabled = False 
         self.prometheus_server_port = 8000
         self._prometheus_server = None
+        self._prometheus_metrics = {}
 
         self._shelly_by_ip = {}
         #self.loop = asyncio.get_event_loop()
