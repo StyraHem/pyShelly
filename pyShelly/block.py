@@ -166,7 +166,8 @@ class Block(Base):
         else:
             if self.rpc:
                 data = json.loads(payload['data'])
-                data = data['params'] if 'params' in data else data['result']
+                data = data['params'] if 'params' in data else data
+                data = data['result'] if 'result' in data else data
                 self.update_rpc(data, SRC_MQTT)
             else:
                 self._update_info_values_mqtt(payload, BLOCK_INFO_VALUES)
@@ -435,7 +436,12 @@ class Block(Base):
                 self._add_device(Relay(self, channel + 1))
                 self._add_device(PowerMeter(self, channel + 1, gen=2))
                 self._add_device(Switch(self, channel + 1))
-        #Shelly 2
+        #Shelly plus Plug S
+        elif self.type == 'ShellyPlusPlugS':
+            self.rpc = True
+            self._add_device(Relay(self, 1))
+            self._add_device(PowerMeter(self, 1, gen=2))
+            #self._add_device(Switch(self, 1))
         elif self.type == 'SHSW-21':           
             self._add_device(Switch(self, 1))
             self._add_device(Switch(self, 2))

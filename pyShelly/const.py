@@ -5,7 +5,7 @@ import logging
 LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
-VERSION = "1.0.2"
+VERSION = "1.0.3"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
@@ -176,6 +176,7 @@ SHELLY_TYPES = {
     'ShellyPlus1PM': {'name':"Shelly Plus 1PM", 'mqtt':'shellyplus1pm'},    
     'ShellyPlus2': {'name':"Shelly Plus 2", 'mqtt':'shellyplus2'},
     'ShellyPlus2PM': {'name':"Shelly Plus 2PM", 'mqtt':'shellyplus2pm'},
+    'ShellyPlusPlugS': {'name':"Shelly Plus Plug S", 'mqtt':'shellyplusplugs'},
     'ShellyPro1': {'name':"Shelly Pro 1", 'mqtt':'shellypro1'},
     'ShellyPro1PM': {'name':"Shelly Pro 1PM", 'mqtt':'shellypro1pm'},
     'ShellyPro2': {'name':"Shelly Pro 2", 'mqtt':'shellypro2'},

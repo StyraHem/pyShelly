@@ -45,7 +45,20 @@ class MQTT(object):
                 }                
                 self._root.update_block(device_id, \
                     device_type, None, 'MQTT', payload, mqtt=name)
-                
+            elif topic.startswith("shelly") and "/status/" in topic:                
+                name, cmd, start = topic.rsplit('/', 2)
+                _type, device_id = name.rsplit('-', 1)
+                device_type = self._mqtt_types.get(_type)
+                data = "{\"" + start + "\":" + data + "}"
+                payload = {
+                    'type': 'mqtt',
+                    'name': name,
+                    'topic': cmd,
+                    'data': data,
+                    'src':  self.src
+                }                
+                self._root.update_block(device_id, \
+                    device_type, None, 'MQTT', payload, mqtt=name)               
             elif topic.startswith("shellies/shelly"):
                 _, name, cmd = topic.split('/', 2)
                 if name == 'announce':
