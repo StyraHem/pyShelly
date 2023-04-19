@@ -65,6 +65,7 @@ This library was created for Shelly Plugins for Home Assistant and Telldus Tells
 - Shelly Plus 2
 - Shelly Plus 2PM
 - Shelly Plus i3
+- Shelly Plus Plug S
 
 ### Pro devices
 - Shelly Pro 1
