@@ -173,6 +173,7 @@ SHELLY_TYPES = {
     'SHSW-L': {'name': "Shelly 1L", 'mqtt':'shelly1l'},
     'SHMOS-01': {'name': "Shelly Motion", 'mqtt':'shellymotionsensor'},
     'ShellyPlus1': {'name':"Shelly Plus 1", 'mqtt':'shellyplus1'},
+    'ShellyPlus1Mini': {'name': "Shelly Plus 1 Mini", 'mqtt': 'shelly1mini'},
     'ShellyPlus1PM': {'name':"Shelly Plus 1PM", 'mqtt':'shellyplus1pm'},    
     'ShellyPlus2': {'name':"Shelly Plus 2", 'mqtt':'shellyplus2'},
     'ShellyPlus2PM': {'name':"Shelly Plus 2PM", 'mqtt':'shellyplus2pm'},
