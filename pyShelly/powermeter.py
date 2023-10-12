@@ -101,6 +101,7 @@ class PowerMeter(Device):
                 labelnames=labelnames,
                 namespace=self.block.parent.prometheus_namespace
             )
+            
 
         if 'power_counter' not in self.block.parent._prometheus_metrics:
             self.block.parent._prometheus_metrics['power_counter'] = prometheus_client.Gauge(
