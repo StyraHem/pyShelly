@@ -417,6 +417,11 @@ class Block(Base):
             self.rpc = True
             self._add_device(Relay(self, 0))
             self._add_device(Switch(self, 0))
+        #Shelly Plus 1 Mini
+        elif self.type == 'ShellyPlus1Mini':
+            self.rpc = True
+            self._add_device(Switch(self,0))
+            self._add_device(Relay(self, 0))
         #Shelly Plus 1PM
         elif self.type == 'ShellyPlus1PM':
             self.rpc = True
