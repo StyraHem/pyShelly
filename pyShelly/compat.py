@@ -25,6 +25,7 @@ if sys.version_info < (3,):
     def urlopen(x):
         return urllib2.urlopen(x)
 else:
+    import urllib.parse
     import urllib.request
 
     def ba2c(x):  # Convert bytearra to compatible bytearray
