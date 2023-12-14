@@ -16,7 +16,7 @@ This library was created for Shelly Plugins for Home Assistant and Telldus Tells
 - Monitor status
 - Monitor switch status
 - Control (turn on/off etc)
-- MQTT Server (buildin MQTT server taht devices can connect to directly)
+- MQTT Server (buildin MQTT server that devices can connect to directly)
 - MQTT Client (using a MQTT broker)
 - Websocket
 - Run only locally
@@ -61,10 +61,12 @@ This library was created for Shelly Plugins for Home Assistant and Telldus Tells
 
 ### Plus devices
 - Shelly Plus 1
+- Shelly Plus 1 Mini
 - Shelly Plus 1PM
 - Shelly Plus 2
 - Shelly Plus 2PM
 - Shelly Plus i3
+- Shelly Plus Plug S
 
 ### Pro devices
 - Shelly Pro 1
