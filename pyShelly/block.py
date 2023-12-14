@@ -9,7 +9,7 @@ from .utils import shelly_http_get, timer
 from .switch import Switch
 from .relay import Relay
 from .powermeter import PowerMeter
-from .sensor import (Sensor, BinarySensor, Flood, DoorWindow, ExtTemp,
+from .sensor import (Sensor, BinarySensor, Flood, Smoke, DoorWindow, ExtTemp,
                      ExtHumidity, Gas, TempSensor, ExtSwitch, Motion)
 from .trv import Trv
 from .light import RGBW2W, RGBW2C, RGBWW, Bulb, Duo, Vintage
@@ -442,6 +442,12 @@ class Block(Base):
             self._add_device(Relay(self, 1))
             self._add_device(PowerMeter(self, 1, gen=2))
             #self._add_device(Switch(self, 1))
+        #Shelly Plus Smoke
+        elif self.type == 'ShellyPlusSmoke':
+            self.rpc = True
+            self.sleep_device = True
+            self.unavailable_after_sec = SENSOR_UNAVAILABLE_SEC
+            self._add_device(Smoke(self))
         elif self.type == 'SHSW-21':           
             self._add_device(Switch(self, 1))
             self._add_device(Switch(self, 2))

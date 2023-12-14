@@ -7,11 +7,12 @@ from .const import (
     ATTR_FMT,
     ATTR_POS,
     ATTR_TOPIC,
+    ATTR_RPC,
     SRC_MQTT
 )
 
 class Sensor(Device):
-    def __init__(self, block, pos, device_type, path, index=None, topic=None):
+    def __init__(self, block, pos, device_type, path, index=None, topic=None, rpc=None):
         super(Sensor, self).__init__(block)
         self.id = block.id
         self._channel = index or 0
@@ -33,6 +34,8 @@ class Sensor(Device):
         }
         if topic:
            self._state_cfg[ATTR_TOPIC] =  topic
+        if rpc:
+           self._state_cfg[ATTR_RPC] =  rpc
 
     def format(self, value):
         return float(value)
@@ -54,8 +57,8 @@ class Sensor(Device):
 
 class BinarySensor(Sensor):
     """Abstract class to represent binary sensor"""
-    def __init__(self, block, pos, device_type, status_attr, topic=None):
-        super(BinarySensor, self).__init__(block, pos, device_type, status_attr, topic=topic)
+    def __init__(self, block, pos, device_type, status_attr, topic=None, rpc=None):
+        super(BinarySensor, self).__init__(block, pos, device_type, status_attr, topic=topic, rpc=rpc)
         self.device_type = "BINARY_SENSOR"
 
     def format(self, value):
@@ -121,6 +124,12 @@ class Flood(BinarySensor):
     """Class to represent a flood sensor"""
     def __init__(self, block):
         super(Flood, self).__init__(block, [23, 6106], 'flood', 'flood', topic='sensor/flood')
+        self.sleep_device = True
+
+class Smoke(BinarySensor):
+    """Class to represent a flood sensor"""
+    def __init__(self, block):
+        super(Smoke, self).__init__(block, None, 'smoke', 'smoke', rpc='smoke:0/alarm')  #RPC or topic??
         self.sleep_device = True
 
 class DoorWindow(BinarySensor):
