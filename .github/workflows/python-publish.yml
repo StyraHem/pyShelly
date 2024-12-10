@@ -16,7 +16,9 @@ jobs:
     permissions:
       contents: write
       id-token: write
-      
+    environment:
+      name: pyShelly
+      url: https://pypi.org/p/pyShelly 
 
     steps:
     - uses: actions/checkout@v2
@@ -43,5 +45,3 @@ jobs:
         python setup.py sdist bdist_wheel
     - name: Publish package distributions to pyShelly
       uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-       repository-url: https://pypi.org/p/pyShelly/
