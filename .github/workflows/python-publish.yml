@@ -14,7 +14,10 @@ jobs:
   deploy:
 
     runs-on: ubuntu-latest
-
+    environment: pypi
+    permissions:      
+      id-token: write
+      
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
@@ -35,10 +38,10 @@ jobs:
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         tag: ${{ env.version }}
-    - name: Build and publish
-      env:
-        TWINE_USERNAME: ${{ secrets.PYPI_USERNAME }}
-        TWINE_PASSWORD: ${{ secrets.PYPI_PASSWORD }}
+    - name: Build and publish      
       run: |
         python setup.py sdist bdist_wheel
-        twine upload dist/*
+    - name: Publish package distributions to pyShelly
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+       repository-url: https://pypi.org/project/pyShelly/
