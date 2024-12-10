@@ -5,7 +5,7 @@ import logging
 LOGGER = logging.getLogger('pyShelly')
 
 NAME = "pyShelly"
-VERSION = "1.0.3"
+VERSION = "1.0.4"
 
 COAP_IP = "224.0.1.187"
 COAP_PORT = 5683
@@ -172,22 +172,21 @@ SHELLY_TYPES = {
     'SHUNI-1': {'name': "Shelly UNI", 'mqtt':'shellyuni'},
     'SHSW-L': {'name': "Shelly 1L", 'mqtt':'shelly1l'},
     'SHMOS-01': {'name': "Shelly Motion", 'mqtt':'shellymotionsensor'},
-    'ShellyPlus1': {'name':"Shelly Plus 1", 'mqtt':'shellyplus1'},
-    'ShellyPlus1PM': {'name':"Shelly Plus 1PM", 'mqtt':'shellyplus1pm'},    
-    'ShellyPlus2': {'name':"Shelly Plus 2", 'mqtt':'shellyplus2'},
-    'ShellyPlus2PM': {'name':"Shelly Plus 2PM", 'mqtt':'shellyplus2pm'},
+    'ShellyPlus1': {'name':"Shelly Plus 1", 'mqtt':'shellyplus1', 'img': 'SNSW-001X16EU'},
+    'ShellyPlus1PM': {'name':"Shelly Plus 1PM", 'mqtt':'shellyplus1pm', 'img':'SNSW-001P16EU'},    
+    'ShellyPlus2PM': {'name':"Shelly Plus 2PM", 'mqtt':'shellyplus2pm', 'img':'SNSW-102P16EU'},
     'ShellyPlusPlugS': {'name':"Shelly Plus Plug S", 'mqtt':'shellyplusplugs'},
     'ShellyPlusSmoke': {'name':"Shelly Plus Smoke", 'mqtt':'shellyplussmoke', 'battery':True},
     'ShellyPlus1Mini': {'name': "Shelly Plus 1 Mini", 'mqtt': 'shelly1mini'},
     'ShellyPlus1PMMini': {'name':"Shelly Plus 1PM Mini", 'mqtt':'shelly1pmmini'},
-    'ShellyPro1': {'name':"Shelly Pro 1", 'mqtt':'shellypro1'},
-    'ShellyPro1PM': {'name':"Shelly Pro 1PM", 'mqtt':'shellypro1pm'},
-    'ShellyPro2': {'name':"Shelly Pro 2", 'mqtt':'shellypro2'},
-    'ShellyPro2PM': {'name':"Shelly Pro 2PM", 'mqtt':'shellypro2pm'},
-    'ShellyPro4PM': {'name':"Shelly Pro 4PM", 'mqtt':'shellypro4pm'},
-    'ShellyPlusI4': {'name':"Shelly Plus i4", 'mqtt':'shellyplusi4'},
+    'ShellyPro1': {'name':"Shelly Pro 1", 'mqtt':'shellypro1', 'img':'SPSW-001XE16EU'},
+    'ShellyPro1PM': {'name':"Shelly Pro 1PM", 'mqtt':'shellypro1pm', 'img':'SPSW-001PE16EU'},
+    'ShellyPro2': {'name':"Shelly Pro 2", 'mqtt':'shellypro2', 'img':'SPSW-002XE16EU'},
+    'ShellyPro2PM': {'name':"Shelly Pro 2PM", 'mqtt':'shellypro2pm', 'img':'SPSW-002PE16EU'},
+    'ShellyPro4PM': {'name':"Shelly Pro 4PM", 'mqtt':'shellypro4pm', 'img':'SPSW-004PE16EU'},
+    'ShellyPlusI4': {'name':"Shelly Plus i4", 'mqtt':'shellyplusi4', 'img':'SNSN-0024X'},
     'SHTRV-01': {'name':"Shelly TRV", 'mqtt':'shellytrv'},
-    #'SNSN-0013A': {'name': "Shelly Plus H&T", 'mqtt':'shellyplusht'}
+    'SNSN-0013A': {'name': "Shelly Plus H&T", 'mqtt':'shellyplusht'}
 }
 
 EFFECTS_RGBW2 = [

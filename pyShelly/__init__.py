@@ -4,7 +4,6 @@
 import base64
 from datetime import datetime, timedelta
 import json
-from re import T
 try:
     import asyncio
 except:

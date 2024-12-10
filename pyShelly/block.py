@@ -428,13 +428,7 @@ class Block(Base):
             self._add_device(Relay(self, 0))
             self._add_device(PowerMeter(self, 0, gen=2))
             self._add_device(Switch(self, 0))
-        #Shelly Plus 1
-        elif self.type == 'ShellyPlus2':
-            self.rpc = True
-            for channel in range(2):
-                self._add_device(Relay(self, channel + 1))
-                self._add_device(Switch(self, channel + 1))
-        #Shelly Plus 1PM
+        #Shelly Plus 2PM
         elif self.type == 'ShellyPlus2PM':
             self.rpc = True
             for channel in range(2):
@@ -644,7 +638,7 @@ class Block(Base):
             #{"G":[[0,6107,1],[0,3119,1614417090],[0,3120,1],[0,6110,0],[0,3106,285],[0,3111,87],[0,9103,11]]}
             self._add_device(Motion(self))    
         elif self.type == 'SHTRV-01':
-            self._add_device(Trv(self))  
+            self._add_device(Trv(self))
         else:
             pass  
 
@@ -698,6 +692,14 @@ class Block(Base):
         """Type friendly name"""
         try:
             name = SHELLY_TYPES[self.type]['name']
+        except:
+            name = self.type
+        return name
+    
+    def type_img(self):
+        """Type friendly name"""
+        try:
+            name = SHELLY_TYPES[self.type]['img']
         except:
             name = self.type
         return name
