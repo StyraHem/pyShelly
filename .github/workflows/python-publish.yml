@@ -44,4 +44,4 @@ jobs:
     - name: Publish package distributions to pyShelly
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
-       repository-url: https://pypi.org/project/pyShelly/
+       repository-url: https://pypi.org/p/pyShelly
