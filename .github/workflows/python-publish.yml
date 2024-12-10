@@ -12,12 +12,7 @@ on:
 
 jobs:
   deploy:
-
-    runs-on: ubuntu-latest
-    environment: pypi
-    permissions:      
-      id-token: write
-      
+    runs-on: ubuntu-latest      
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python
